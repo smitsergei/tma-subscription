@@ -6,8 +6,7 @@ interface User {
   id: string
   telegramId: bigint
   firstName: string
-  lastName: string
-  username: string
+    username: string
   createdAt: string
   subscriptions: Subscription[]
 }
@@ -34,7 +33,6 @@ export default function UserManagement() {
   const [newUser, setNewUser] = useState({
     telegramId: '',
     firstName: '',
-    lastName: '',
     username: ''
   })
 
@@ -74,7 +72,7 @@ export default function UserManagement() {
 
       if (response.ok) {
         setShowCreateModal(false)
-        setNewUser({ telegramId: '', firstName: '', lastName: '', username: '' })
+        setNewUser({ telegramId: '', firstName: '', username: '' })
         fetchUsers()
       } else {
         const error = await response.json()
@@ -210,7 +208,7 @@ export default function UserManagement() {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {user.firstName} {user.lastName}
+                          {user.firstName}
                         </div>
                         <div className="text-sm text-gray-500">
                           @{user.username || 'no_username'}
@@ -313,14 +311,7 @@ export default function UserManagement() {
                 onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
-              <input
-                type="text"
-                placeholder="Фамилия"
-                value={newUser.lastName}
-                onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-              <input
+                <input
                 type="text"
                 placeholder="Username (без @)"
                 value={newUser.username}

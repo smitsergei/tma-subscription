@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { telegramId, firstName, lastName, username } = await request.json()
+    const { telegramId, firstName, username } = await request.json()
 
     if (!telegramId) {
       return NextResponse.json(
@@ -125,7 +125,6 @@ export async function POST(request: NextRequest) {
       data: {
         telegramId: BigInt(telegramId),
         firstName: firstName || '',
-        lastName: lastName || '',
         username: username || ''
       }
     })
