@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     // Check if product exists
     const product = await prisma.product.findUnique({
-      where: { id: productId }
+      where: { productId }
     })
 
     if (!product) {
