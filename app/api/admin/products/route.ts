@@ -200,7 +200,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     await prisma.product.delete({
-      where: { id: productId }
+      where: { productId }
     })
 
     return NextResponse.json({ success: true })
