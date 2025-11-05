@@ -68,15 +68,14 @@ export async function POST(request: NextRequest) {
 
     // Find or create channel
     let channel = await prisma.channel.findUnique({
-      where: { telegramId: channelTelegramId }
+      where: { channelId: BigInt(channelTelegramId) }
     })
 
     if (!channel) {
       channel = await prisma.channel.create({
         data: {
-          telegramId: channelTelegramId,
+          channelId: BigInt(channelTelegramId),
           name: `Channel ${channelTelegramId}`,
-          isPrivate: true
         }
       })
     }
@@ -135,15 +134,14 @@ export async function PUT(request: NextRequest) {
 
     if (channelTelegramId) {
       let channel = await prisma.channel.findUnique({
-        where: { telegramId: channelTelegramId }
+        where: { channelId: BigInt(channelTelegramId) }
       })
 
       if (!channel) {
         channel = await prisma.channel.create({
           data: {
-            telegramId: channelTelegramId,
+            channelId: BigInt(channelTelegramId),
             name: `Channel ${channelTelegramId}`,
-            isPrivate: true
           }
         })
       }

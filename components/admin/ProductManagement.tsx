@@ -169,7 +169,7 @@ export default function ProductManagement() {
       name: product.name,
       description: product.description,
       price: product.price.toString(),
-      channelTelegramId: product.channel.telegramId,
+      channelTelegramId: product.channel.channelId,
       durationDays: product.durationDays.toString(),
       isActive: product.isActive
     })
@@ -240,7 +240,7 @@ export default function ProductManagement() {
                       {product.channel.name}
                     </div>
                     <div className="text-sm text-gray-500">
-                      ID: {product.channel.telegramId}
+                      ID: {product.channel.channelId}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
