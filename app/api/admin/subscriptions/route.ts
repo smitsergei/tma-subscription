@@ -204,7 +204,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     await prisma.subscription.delete({
-      where: { id: subscriptionId }
+      where: { subscriptionId }
     })
 
     return NextResponse.json({ success: true })
