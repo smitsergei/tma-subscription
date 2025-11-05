@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         name,
         description: description || '',
         price: parseFloat(price),
-        channelId: channel.id,
+        channelId: channel.channelId,
         durationDays: durationDays || 30,
         isActive: isActive !== false
       },
@@ -146,7 +146,7 @@ export async function PUT(request: NextRequest) {
         })
       }
 
-      updateData.channelId = channel.id
+      updateData.channelId = channel.channelId
     }
 
     const product = await prisma.product.update({
