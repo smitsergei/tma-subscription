@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { name, description, price, channelTelegramId, durationDays, isActive } = await request.json()
+    const { name, description, price, channelTelegramId, periodDays, isActive } = await request.json()
 
     if (!name || !price || !channelTelegramId) {
       return NextResponse.json(
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         description: description || '',
         price: parseFloat(price),
         channelId: channel.channelId,
-        durationDays: durationDays || 30,
+        periodDays: periodDays || 30,
         isActive: isActive !== false
       },
       include: {
@@ -121,7 +121,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const { name, description, price, channelTelegramId, durationDays, isActive } = await request.json()
+    const { name, description, price, channelTelegramId, periodDays, isActive } = await request.json()
 
     // Handle channel change if provided
     let updateData: any = {}
@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest) {
     if (name) updateData.name = name
     if (description !== undefined) updateData.description = description
     if (price !== undefined) updateData.price = parseFloat(price)
-    if (durationDays !== undefined) updateData.durationDays = durationDays
+    if (periodDays !== undefined) updateData.periodDays = periodDays
     if (isActive !== undefined) updateData.isActive = isActive
 
     if (channelTelegramId) {

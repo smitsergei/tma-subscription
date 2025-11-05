@@ -7,7 +7,7 @@ interface Product {
   name: string
   description: string
   price: number
-  durationDays: number
+  periodDays: number
   isActive: boolean
   createdAt: string
   channel: {
@@ -32,7 +32,7 @@ export default function ProductManagement() {
     description: '',
     price: '',
     channelTelegramId: '',
-    durationDays: '30',
+    periodDays: '30',
     isActive: true
   })
 
@@ -41,7 +41,7 @@ export default function ProductManagement() {
     description: '',
     price: '',
     channelTelegramId: '',
-    durationDays: '',
+    periodDays: '',
     isActive: true
   })
 
@@ -78,7 +78,7 @@ export default function ProductManagement() {
           description: '',
           price: '',
           channelTelegramId: '',
-          durationDays: '30',
+          periodDays: '30',
           isActive: true
         })
         fetchProducts()
@@ -110,7 +110,7 @@ export default function ProductManagement() {
           description: '',
           price: '',
           channelTelegramId: '',
-          durationDays: '',
+          periodDays: '',
           isActive: true
         })
         fetchProducts()
@@ -170,7 +170,7 @@ export default function ProductManagement() {
       description: product.description,
       price: product.price.toString(),
       channelTelegramId: product.channel.channelId,
-      durationDays: product.durationDays.toString(),
+      periodDays: product.periodDays.toString(),
       isActive: product.isActive
     })
     setShowEditModal(true)
@@ -247,7 +247,7 @@ export default function ProductManagement() {
                     ${product.price}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product.durationDays} дней
+                    {product.periodDays} дней
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
@@ -323,8 +323,8 @@ export default function ProductManagement() {
               <input
                 type="number"
                 placeholder="Длительность (дни)"
-                value={newProduct.durationDays}
-                onChange={(e) => setNewProduct({...newProduct, durationDays: e.target.value})}
+                value={newProduct.periodDays}
+                onChange={(e) => setNewProduct({...newProduct, periodDays: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 min="1"
               />
@@ -395,8 +395,8 @@ export default function ProductManagement() {
               <input
                 type="number"
                 placeholder="Длительность (дни)"
-                value={editProduct.durationDays}
-                onChange={(e) => setEditProduct({...editProduct, durationDays: e.target.value})}
+                value={editProduct.periodDays}
+                onChange={(e) => setEditProduct({...editProduct, periodDays: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 min="1"
               />
