@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
                 {
                   text: '👑 Админ-панель',
                   web_app: {
-                    url: 'https://tma-subscription.vercel.app/admin'
+                    url: 'https://tma-subscription-6ae50gzkk-smits-projects-3d9ec8f0.vercel.app/admin'
                   }
                 }
               ]]
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
                 {
                   text: '👑 Открыть админ-панель',
                   web_app: {
-                    url: 'https://tma-subscription.vercel.app/admin'
+                    url: 'https://tma-subscription-6ae50gzkk-smits-projects-3d9ec8f0.vercel.app/admin'
                   }
                 }
               ]]
