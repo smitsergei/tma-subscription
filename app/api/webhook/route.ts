@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
                 {
                   text: '👑 Админ-панель',
                   web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin/simple-page'
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin'
                   }
                 }
               ]]
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
                 {
                   text: '👑 Открыть админ-панель',
                   web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin/simple-page'
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin'
                   }
                 }
               ]]
