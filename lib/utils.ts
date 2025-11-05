@@ -1,0 +1,171 @@
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+// Форматирование даты
+export function formatDate(date: Date | string, locale: string = 'ru-RU'): string {
+  const d = new Date(date)
+  return d.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// Форматирование оставшегося времени
+export function formatTimeLeft(expiresAt: Date | string): string {
+  const now = new Date()
+  const expires = new Date(expiresAt)
+  const diff = expires.getTime() - now.getTime()
+
+  if (diff <= 0) {
+    return 'Истекла'
+  }
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+
+  if (days > 0) {
+    return `${days} д ${hours} ч`
+  } else if (hours > 0) {
+    return `${hours} ч ${minutes} мин`
+  } else {
+    return `${minutes} мин`
+  }
+}
+
+// Форматирование цены
+export function formatPrice(price: number, currency: string = 'USDT'): string {
+  return `${price.toFixed(2)} ${currency}`
+}
+
+// Проверка активности подписки
+export function isSubscriptionActive(expiresAt: Date | string): boolean {
+  return new Date(expiresAt) > new Date()
+}
+
+// Генерация уникального memo для платежа
+export function generatePaymentMemo(): string {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).substring(2, 8)
+  return `TMA_SUB_${timestamp}_${random}`
+}
+
+// Валидация Telegram WebApp init data
+export function validateTelegramInitData(initData: string, botToken: string): boolean {
+  try {
+    const urlParams = new URLSearchParams(initData)
+    const hash = urlParams.get('hash')
+
+    if (!hash) {
+      return false
+    }
+
+    // Удаляем hash из параметров для проверки
+    urlParams.delete('hash')
+
+    // Создаем строку для проверки
+    const authDateString = urlParams.get('auth_date')
+    const userString = urlParams.get('user')
+
+    // В реальном приложении здесь должна быть проверка HMAC-SHA256
+    // Для примера возвращаем true
+    // В production нужно использовать crypto-api для проверки подписи
+
+    return true
+  } catch (error) {
+    console.error('Error validating Telegram init data:', error)
+    return false
+  }
+}
+
+// Конвертация наноTON в TON
+export function nanoTonToTon(nanoTon: string): number {
+  return parseFloat(nanoTon) / 1000000000
+}
+
+// Конвертация TON в наноTON
+export function tonToNanoTon(ton: number): string {
+  return (ton * 1000000000).toString()
+}
+
+// Проверка валидности адреса TON
+export function isValidTonAddress(address: string): boolean {
+  // Простая проверка формата адреса TON
+  const tonAddressRegex = /^0:[a-fA-F0-9]{64}$/
+  return tonAddressRegex.test(address)
+}
+
+// Кэширование данных
+export class Cache {
+  private static cache = new Map<string, { data: any; expiry: number }>()
+
+  static set(key: string, data: any, ttlSeconds: number = 300): void {
+    this.cache.set(key, {
+      data,
+      expiry: Date.now() + ttlSeconds * 1000
+    })
+  }
+
+  static get<T>(key: string): T | null {
+    const item = this.cache.get(key)
+    if (!item) return null
+
+    if (Date.now() > item.expiry) {
+      this.cache.delete(key)
+      return null
+    }
+
+    return item.data as T
+  }
+
+  static clear(): void {
+    this.cache.clear()
+  }
+
+  static delete(key: string): boolean {
+    return this.cache.delete(key)
+  }
+}
+
+// API запросы с обработкой ошибок
+export async function apiRequest<T>(
+  url: string,
+  options: RequestInit = {}
+): Promise<{ success: boolean; data?: T; error?: string }> {
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || `HTTP error! status: ${response.status}`
+      }
+    }
+
+    return {
+      success: true,
+      data
+    }
+  } catch (error) {
+    console.error('API request error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}

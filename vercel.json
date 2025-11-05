@@ -1,0 +1,36 @@
+{
+  "buildCommand": "prisma generate && next build",
+  "framework": "nextjs",
+  "functions": {
+    "app/api/telegram/webhook/route.ts": {
+      "runtime": "nodejs18.x",
+      "maxDuration": 30
+    },
+    "app/api/payment/verify/route.ts": {
+      "runtime": "nodejs18.x",
+      "maxDuration": 60
+    },
+    "app/api/cron/check-subscriptions/route.ts": {
+      "runtime": "nodejs18.x",
+      "maxDuration": 300
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/check-subscriptions",
+      "schedule": "0 */6 * * *"
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_APP_URL": "@app_url",
+    "BOT_TOKEN": "@bot_token",
+    "BOT_SECRET": "@bot_secret",
+    "POSTGRES_URL": "@postgres_url",
+    "POSTGRES_PRISMA_URL": "@postgres_prisma_url",
+    "POSTGRES_URL_NON_POOLING": "@postgres_url_non_pooling",
+    "TONCENTER_API_KEY": "@toncenter_api_key",
+    "TON_WALLET_ADDRESS": "@ton_wallet_address",
+    "ADMIN_TELEGRAM_ID": "@admin_telegram_id",
+    "CRON_SECRET": "@cron_secret"
+  }
+}
