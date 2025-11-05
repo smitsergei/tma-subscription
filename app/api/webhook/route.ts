@@ -64,13 +64,13 @@ export async function POST(request: NextRequest) {
                 {
                   text: '🔧 Тестовая страница',
                   web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/test'
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/simple'
                   }
                 },
                 {
-                  text: '🚀 Простая страница',
+                  text: '👑 Админ-панель',
                   web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/simple'
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin/simple-page'
                   }
                 }
               ]]
@@ -104,14 +104,24 @@ export async function POST(request: NextRequest) {
         // Проверяем, является ли пользователь администратором
         const adminTelegramId = process.env.ADMIN_TELEGRAM_ID
 
+        console.log('🔐 Admin check:', {
+          chatId: chatId,
+          chatIdType: typeof chatId,
+          adminId: adminTelegramId,
+          adminIdType: typeof adminTelegramId,
+          comparison: chatId.toString() === adminTelegramId
+        })
+
         if (!adminTelegramId) {
+          console.log('❌ Admin not configured')
           await sendMessage(chatId, '❌ Администратор не настроен')
           responseSent = true
           return
         }
 
-        if (chatId.toString() !== adminTelegramId) {
-          await sendMessage(chatId, '❌ Доступ запрещен. У вас нет прав администратора.')
+        if (chatId.toString() !== adminTelegramId && chatId !== parseInt(adminTelegramId)) {
+          console.log('❌ Access denied for user:', chatId)
+          await sendMessage(chatId, `❌ Доступ запрещен. Ваш ID: ${chatId}, ID администратора: ${adminTelegramId}`)
           responseSent = true
           return
         }
@@ -130,7 +140,7 @@ export async function POST(request: NextRequest) {
                 {
                   text: '👑 Открыть админ-панель',
                   web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin'
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin/simple-page'
                   }
                 }
               ]]
