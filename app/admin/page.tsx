@@ -26,6 +26,7 @@ function parseTelegramData() {
 }
 
 export default function SimpleAdminPage() {
+  console.log('✅ Admin page v2.0 - loaded correctly')
   const [user, setUser] = useState<any>(null)
   const [stats, setStats] = useState({
     totalUsers: 0,
