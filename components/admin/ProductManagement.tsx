@@ -11,8 +11,7 @@ interface Product {
   isActive: boolean
   createdAt: string
   channel: {
-    id: string
-    telegramId: string
+    channelId: string
     name: string
   }
   _count: {
