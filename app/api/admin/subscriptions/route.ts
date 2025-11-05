@@ -165,7 +165,7 @@ export async function PUT(request: NextRequest) {
     const { status, expiresAt } = await request.json()
 
     const subscription = await prisma.subscription.update({
-      where: { id: subscriptionId },
+      where: { subscriptionId },
       data: {
         ...(status && { status }),
         ...(expiresAt && { expiresAt: new Date(expiresAt) })
