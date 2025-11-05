@@ -58,19 +58,19 @@ export async function POST(request: NextRequest) {
                 {
                   text: '🚀 Открыть приложение',
                   web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
+                    url: 'https://tma-subscription.vercel.app/app'
                   }
                 },
                 {
                   text: '🔧 Тестовая страница',
                   web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/simple'
+                    url: 'https://tma-subscription.vercel.app/simple'
                   }
                 },
                 {
                   text: '👑 Админ-панель',
                   web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin'
+                    url: 'https://tma-subscription.vercel.app/admin'
                   }
                 }
               ]]
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
                 {
                   text: '👑 Открыть админ-панель',
                   web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin'
+                    url: 'https://tma-subscription.vercel.app/admin'
                   }
                 }
               ]]
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
                 {
                   text: '🚀 Открыть приложение',
                   web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
+                    url: 'https://tma-subscription.vercel.app/app'
                   }
                 }
               ]]
