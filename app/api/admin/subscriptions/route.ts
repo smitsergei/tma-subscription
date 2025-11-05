@@ -122,14 +122,16 @@ export async function POST(request: NextRequest) {
     // Create subscription
     const subscription = await prisma.subscription.create({
       data: {
-        userId: user.id,
+        userId: user.telegramId,
         productId,
+        channelId: product.channelId,
         status: status || 'active',
         expiresAt: expiresAt ? new Date(expiresAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days by default
       },
       include: {
         user: true,
-        product: true
+        product: true,
+        channel: true
       }
     })
 
