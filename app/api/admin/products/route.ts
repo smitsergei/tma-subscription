@@ -150,7 +150,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const product = await prisma.product.update({
-      where: { id: productId },
+      where: { productId },
       data: updateData,
       include: {
         channel: true
