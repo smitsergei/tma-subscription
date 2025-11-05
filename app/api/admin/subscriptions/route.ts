@@ -1,0 +1,217 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import { validateTelegramInitData } from '@/lib/utils'
+
+async function checkAdminAuth(request: NextRequest): Promise<boolean> {
+  const initData = request.headers.get('x-telegram-init-data')
+  if (!initData) return false
+
+  if (!validateTelegramInitData(initData, process.env.BOT_TOKEN!)) return false
+
+  const urlParams = new URLSearchParams(initData)
+  const userStr = urlParams.get('user')
+  if (!userStr) return false
+
+  const user = JSON.parse(decodeURIComponent(userStr))
+  const telegramId = BigInt(user.id)
+
+  const admin = await prisma.admin.findUnique({
+    where: { telegramId }
+  })
+
+  return !!admin
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    if (!(await checkAdminAuth(request))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const status = searchParams.get('status')
+    const userId = searchParams.get('userId')
+
+    const skip = (page - 1) * limit
+
+    // Build where clause
+    const where: any = {}
+
+    if (status) {
+      where.status = status
+    }
+
+    if (userId) {
+      where.userId = BigInt(userId)
+    }
+
+    const subscriptions = await prisma.subscription.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: true,
+        product: true,
+        payment: true
+      }
+    })
+
+    const total = await prisma.subscription.count({ where })
+
+    return NextResponse.json({
+      subscriptions,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    })
+
+  } catch (error) {
+    console.error('Error fetching subscriptions:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    if (!(await checkAdminAuth(request))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { userId, productId, status, expiresAt } = await request.json()
+
+    if (!userId || !productId) {
+      return NextResponse.json(
+        { error: 'userId and productId are required' },
+        { status: 400 }
+      )
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { telegramId: BigInt(userId) }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if product exists
+    const product = await prisma.product.findUnique({
+      where: { id: productId }
+    })
+
+    if (!product) {
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      )
+    }
+
+    // Create subscription
+    const subscription = await prisma.subscription.create({
+      data: {
+        userId: user.id,
+        productId,
+        status: status || 'active',
+        expiresAt: expiresAt ? new Date(expiresAt) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days by default
+      },
+      include: {
+        user: true,
+        product: true
+      }
+    })
+
+    return NextResponse.json({ subscription })
+
+  } catch (error) {
+    console.error('Error creating subscription:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    if (!(await checkAdminAuth(request))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const subscriptionId = searchParams.get('id')
+
+    if (!subscriptionId) {
+      return NextResponse.json(
+        { error: 'subscription id is required' },
+        { status: 400 }
+      )
+    }
+
+    const { status, expiresAt } = await request.json()
+
+    const subscription = await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        ...(status && { status }),
+        ...(expiresAt && { expiresAt: new Date(expiresAt) })
+      },
+      include: {
+        user: true,
+        product: true
+      }
+    })
+
+    return NextResponse.json({ subscription })
+
+  } catch (error) {
+    console.error('Error updating subscription:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    if (!(await checkAdminAuth(request))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const subscriptionId = searchParams.get('id')
+
+    if (!subscriptionId) {
+      return NextResponse.json(
+        { error: 'subscription id is required' },
+        { status: 400 }
+      )
+    }
+
+    await prisma.subscription.delete({
+      where: { id: subscriptionId }
+    })
+
+    return NextResponse.json({ success: true })
+
+  } catch (error) {
+    console.error('Error deleting subscription:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
