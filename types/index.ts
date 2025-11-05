@@ -108,6 +108,14 @@ export interface TelegramWebApp {
     section_separator_color?: string
   }
   onEvent: (eventType: string, callback: () => void) => void
+  showAlert?: (message: string) => void
+  showConfirm?: (message: string, callback: (confirmed: boolean) => void) => void
+  BackButton?: {
+    show: () => void
+    hide: () => void
+    onClick: (callback: () => void) => void
+    offClick: (callback: () => void) => void
+  }
 }
 
 // TON Connect types

@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react'
 import { Product } from '@/types'
 import { apiRequest, formatPrice, formatTimeLeft } from '@/lib/utils'
 
-export function ProductList() {
+interface ProductListProps {
+  telegramUser?: any
+}
+
+export function ProductList({ telegramUser }: ProductListProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

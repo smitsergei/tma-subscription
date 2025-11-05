@@ -1,0 +1,1 @@
+INSERT INTO "Admins" (telegram_id) VALUES (257394938);

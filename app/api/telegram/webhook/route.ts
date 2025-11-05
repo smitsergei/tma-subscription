@@ -120,7 +120,7 @@ async function handleCallbackQuery(callbackQuery: any, botToken: string) {
 
   // Обработка данных кнопки
   if (data === 'open_app') {
-    await sendWebApp(message.chat.id, botToken)
+    await sendWelcomeMessage(message.chat.id, message.from.first_name, botToken)
   } else if (data.startsWith('manage_subscription_')) {
     const subscriptionId = data.replace('manage_subscription_', '')
     await manageSubscription(telegramId, subscriptionId, message.chat.id, botToken)

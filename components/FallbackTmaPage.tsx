@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { ProductList } from './ProductList'
+import { UserSubscriptions } from './UserSubscriptions'
+import { LoadingSpinner } from './LoadingSpinner'
 
 // Функция для извлечения данных из URL
 function parseTelegramData() {
@@ -25,7 +28,7 @@ function parseTelegramData() {
   }
 }
 
-export default function TmaPage() {
+export function FallbackTmaPage() {
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'products' | 'subscriptions'>('products')
@@ -44,14 +47,7 @@ export default function TmaPage() {
   }, [])
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="loading-spinner w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   if (!user) {
@@ -103,35 +99,8 @@ export default function TmaPage() {
 
       {/* Content */}
       <div className="px-4 py-4">
-        {activeTab === 'products' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">🛍️ Доступные подписки</h2>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <h3 className="font-medium text-gray-900">VIP подписка на 30 дней</h3>
-              <p className="text-gray-600 text-sm mt-1">Полный доступ к эксклюзивному контенту на 30 дней</p>
-              <div className="flex items-center justify-between mt-3">
-                <div>
-                  <span className="text-lg font-bold text-blue-600">$8.00</span>
-                  <span className="text-sm text-gray-500 line-through ml-2">$10.00</span>
-                </div>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                  🛒 Купить
-                </button>
-              </div>
-            </div>
-            <div className="text-center text-gray-500 text-sm mt-4">
-              💳 Оплата через TON Connect (USDT)
-            </div>
-          </div>
-        )}
-        {activeTab === 'subscriptions' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">📋 Мои подписки</h2>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-gray-500 text-center">У вас пока нет активных подписок</p>
-            </div>
-          </div>
-        )}
+        {activeTab === 'products' && <ProductList telegramUser={user} />}
+        {activeTab === 'subscriptions' && <UserSubscriptions telegramUser={user} />}
       </div>
     </div>
   )

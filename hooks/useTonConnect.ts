@@ -26,11 +26,11 @@ export function useTonConnect() {
         })
 
         setConnection({
-          connect: async () => {
+          connect: async (walletsList?: any) => {
             setIsLoading(true)
             setError(null)
             try {
-              await tonConnection.connect()
+              await tonConnection.connect(walletsList)
             } catch (err) {
               setError('Ошибка подключения кошелька')
               throw err
@@ -46,7 +46,7 @@ export function useTonConnect() {
               throw err
             }
           },
-          sendTransaction: async (transaction: PaymentTransaction) => {
+          sendTransaction: async (transaction: any) => {
             setIsLoading(true)
             setError(null)
             try {
@@ -60,7 +60,7 @@ export function useTonConnect() {
             }
           },
           isConnected: tonConnection.connected,
-          address: tonConnection.address,
+          address: tonConnection.wallet?.account?.address,
         })
 
         // Подписка на изменения статуса подключения

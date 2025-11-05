@@ -42,11 +42,13 @@ export function useTelegram() {
         // Устанавливаем заголовок
         tg.setHeaderColor('secondary_bg_color')
 
-        // Обрабатываем кнопку "назад"
-        tg.BackButton.show()
-        tg.onEvent('backButtonClicked', () => {
-          tg.close()
-        })
+        // Кнопка "назад" доступна в новых версиях WebApp API
+        if (tg.BackButton) {
+          tg.BackButton.show()
+          tg.onEvent('backButtonClicked', () => {
+            tg.close()
+          })
+        }
 
       } catch (err) {
         console.error('Telegram initialization error:', err)
@@ -62,7 +64,7 @@ export function useTelegram() {
   }, [])
 
   const showAlert = (message: string) => {
-    if (window.Telegram?.WebApp) {
+    if (window.Telegram?.WebApp?.showAlert) {
       window.Telegram.WebApp.showAlert(message)
     } else {
       alert(message)
@@ -71,7 +73,7 @@ export function useTelegram() {
 
   const showConfirm = (message: string): Promise<boolean> => {
     return new Promise((resolve) => {
-      if (window.Telegram?.WebApp) {
+      if (window.Telegram?.WebApp?.showConfirm) {
         window.Telegram.WebApp.showConfirm(message, (confirmed) => {
           resolve(confirmed)
         })

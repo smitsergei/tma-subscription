@@ -1,0 +1,269 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
+
+export async function POST(request: NextRequest) {
+  try {
+    // Получаем тело запроса
+    const body = await request.text()
+
+    // Парсим JSON
+    let update
+    try {
+      update = JSON.parse(body)
+    } catch (error) {
+      console.error('❌ Failed to parse webhook body:', error)
+      return NextResponse.json(
+        { error: 'Invalid JSON' },
+        { status: 400 }
+      )
+    }
+
+    // Проверяем, что это запрос от Telegram
+    const telegramToken = process.env.BOT_TOKEN
+    if (!telegramToken) {
+      return NextResponse.json(
+        { error: 'BOT_TOKEN not configured' },
+        { status: 500 }
+      )
+    }
+
+    // Логируем запрос для отладки
+    console.log('📨 Telegram webhook received:', {
+      timestamp: new Date().toISOString(),
+      updateId: update.update_id,
+      chatId: update.message?.chat?.id || update.callback_query?.from?.id,
+      bodyPreview: body.substring(0, 200) + (body.length > 200 ? '...' : '')
+    })
+
+    // Обрабатываем различные типы обновлений
+    let responseSent = false
+
+    // Обработка обычных сообщений
+    if (update.message) {
+      const message = update.message
+      const chatId = message.chat.id
+      const text = message.text || ''
+
+      console.log('💬 Processing message:', { chatId, text })
+
+      if (text === '/start') {
+        await sendMessage(
+          chatId,
+          '👋 Добро пожаловать в TMA-Подписка!\n\n' +
+          'Здесь вы можете приобрести подписку на наши эксклюзивные каналы.\n\n' +
+          '📱 Откройте Mini App, чтобы начать:',
+          {
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: '🚀 Открыть приложение',
+                  web_app: {
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
+                  }
+                },
+                {
+                  text: '🔧 Тестовая страница',
+                  web_app: {
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/test'
+                  }
+                },
+                {
+                  text: '🚀 Простая страница',
+                  web_app: {
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/simple'
+                  }
+                }
+              ]]
+            }
+          }
+        )
+        responseSent = true
+      }
+
+      if (text === '/test') {
+        await sendMessage(
+          chatId,
+          '🔧 Открываю тестовую страницу для диагностики...',
+          {
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: '🔧 Открыть тестовую страницу',
+                  web_app: {
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/test'
+                  }
+                }
+              ]]
+            }
+          }
+        )
+        responseSent = true
+      }
+
+      if (text === '/admin') {
+        // Проверяем, является ли пользователь администратором
+        const adminTelegramId = process.env.ADMIN_TELEGRAM_ID
+
+        if (!adminTelegramId) {
+          await sendMessage(chatId, '❌ Администратор не настроен')
+          responseSent = true
+          return
+        }
+
+        if (chatId.toString() !== adminTelegramId) {
+          await sendMessage(chatId, '❌ Доступ запрещен. У вас нет прав администратора.')
+          responseSent = true
+          return
+        }
+
+        await sendMessage(
+          chatId,
+          '👑 Панель администратора\n\n' +
+          'Доступные функции:\n' +
+          '📊 Статистика продаж\n' +
+          '📝 Управление продуктами\n' +
+          '👥 Управление подписками\n\n' +
+          'Откройте админ-панель:',
+          {
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: '👑 Открыть админ-панель',
+                  web_app: {
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin'
+                  }
+                }
+              ]]
+            }
+          }
+        )
+        responseSent = true
+      }
+    }
+
+    // Обработка callback запросов от кнопок
+    if (update.callback_query) {
+      const callbackQuery = update.callback_query
+      const chatId = callbackQuery.message?.chat?.id || callbackQuery.from?.id
+      const data = callbackQuery.data
+
+      console.log('🔘 Processing callback:', { chatId, data })
+
+      if (data === 'open_app') {
+        await answerCallbackQuery(callbackQuery.id)
+        await sendMessage(
+          chatId,
+          '📱 Открываю Mini App для вас...',
+          {
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: '🚀 Открыть приложение',
+                  web_app: {
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
+                  }
+                }
+              ]]
+            }
+          }
+        )
+        responseSent = true
+      }
+    }
+
+    // Если ответ отправлен, возвращаем успешный статус
+    if (responseSent) {
+      return NextResponse.json({ ok: true })
+    }
+
+    // Для других запросов просто возвращаем успешный статус
+    return NextResponse.json({ ok: true })
+
+  } catch (error) {
+    console.error('❌ Webhook error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// Вспомогательные функции для работы с Telegram Bot API
+async function sendMessage(chatId: number, text: string, options?: any) {
+  try {
+    const telegramToken = process.env.BOT_TOKEN
+    const url = `https://api.telegram.org/bot${telegramToken}/sendMessage`
+
+    const payload = {
+      chat_id: chatId,
+      text: text,
+      parse_mode: 'HTML',
+      ...options
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Failed to send message:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText
+      })
+    } else {
+      console.log('✅ Message sent successfully to chat:', chatId)
+    }
+
+    return response
+  } catch (error) {
+    console.error('❌ Error sending message:', error)
+    throw error
+  }
+}
+
+async function answerCallbackQuery(callbackQueryId: string) {
+  try {
+    const telegramToken = process.env.BOT_TOKEN
+    const url = `https://api.telegram.org/bot${telegramToken}/answerCallbackQuery`
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId
+      })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Failed to answer callback query:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText
+      })
+    }
+
+    return response
+  } catch (error) {
+    console.error('❌ Error answering callback query:', error)
+    throw error
+  }
+}
+
+// Обработка GET запросов для проверки статуса
+export async function GET(request: NextRequest) {
+  return NextResponse.json({
+    status: 'Webhook endpoint is working',
+    timestamp: new Date().toISOString(),
+    botToken: !!process.env.BOT_TOKEN,
+    appUrl: process.env.APP_URL
+  })
+}

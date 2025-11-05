@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react'
 import { Subscription } from '@/types'
 import { apiRequest, formatDate, formatTimeLeft, isSubscriptionActive } from '@/lib/utils'
 
-export function UserSubscriptions() {
+interface UserSubscriptionsProps {
+  telegramUser?: any
+}
+
+export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
