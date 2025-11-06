@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
 interface User {
   id: string
@@ -45,7 +46,7 @@ export default function UserManagement() {
         ...(status && { status })
       })
 
-      const response = await fetch(`/api/admin/users?${params}`)
+      const response = await fetch(`/api/admin/users?${params}`, createAuthenticatedRequest())
       if (response.ok) {
         const data = await response.json()
         setUsers(data.users)
@@ -64,11 +65,10 @@ export default function UserManagement() {
 
   const createUser = async () => {
     try {
-      const response = await fetch('/api/admin/users', {
+      const response = await fetch('/api/admin/users', createAuthenticatedRequest({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newUser)
-      })
+      }))
 
       if (response.ok) {
         setShowCreateModal(false)
@@ -88,9 +88,9 @@ export default function UserManagement() {
     if (!confirm('Are you sure you want to delete this user?')) return
 
     try {
-      const response = await fetch(`/api/admin/users?telegramId=${telegramId}`, {
+      const response = await fetch(`/api/admin/users?telegramId=${telegramId}`, createAuthenticatedRequest({
         method: 'DELETE'
-      })
+      }))
 
       if (response.ok) {
         fetchUsers()
@@ -112,16 +112,15 @@ export default function UserManagement() {
     if (!productId || !expiresAt) return
 
     try {
-      const response = await fetch('/api/admin/subscriptions', {
+      const response = await fetch('/api/admin/subscriptions', createAuthenticatedRequest({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
           productId,
           expiresAt,
           status: 'active'
         })
-      })
+      }))
 
       if (response.ok) {
         fetchUsers()

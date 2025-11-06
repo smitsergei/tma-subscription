@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
 interface Subscription {
   id: string
@@ -61,7 +62,7 @@ export default function SubscriptionManagement() {
         ...(status && { status })
       })
 
-      const response = await fetch(`/api/admin/subscriptions?${params}`)
+      const response = await fetch(`/api/admin/subscriptions?${params}`, createAuthenticatedRequest())
       if (response.ok) {
         const data = await response.json()
         setSubscriptions(data.subscriptions)
@@ -76,8 +77,8 @@ export default function SubscriptionManagement() {
 
   const fetchUsersAndProducts = async () => {
     try {
-      const usersResponse = await fetch('/api/admin/users?limit=100')
-      const productsResponse = await fetch('/api/admin/products')
+      const usersResponse = await fetch('/api/admin/users?limit=100', createAuthenticatedRequest())
+      const productsResponse = await fetch('/api/admin/products', createAuthenticatedRequest())
 
       if (usersResponse.ok) {
         const usersData = await usersResponse.json()
@@ -100,11 +101,10 @@ export default function SubscriptionManagement() {
 
   const createSubscription = async () => {
     try {
-      const response = await fetch('/api/admin/subscriptions', {
+      const response = await fetch('/api/admin/subscriptions', createAuthenticatedRequest({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSubscription)
-      })
+      }))
 
       if (response.ok) {
         setShowCreateModal(false)
@@ -124,11 +124,10 @@ export default function SubscriptionManagement() {
     if (!selectedSubscription) return
 
     try {
-      const response = await fetch(`/api/admin/subscriptions?id=${selectedSubscription.id}`, {
+      const response = await fetch(`/api/admin/subscriptions?id=${selectedSubscription.id}`, createAuthenticatedRequest({
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editSubscription)
-      })
+      }))
 
       if (response.ok) {
         setShowEditModal(false)
@@ -149,9 +148,9 @@ export default function SubscriptionManagement() {
     if (!confirm('Are you sure you want to delete this subscription?')) return
 
     try {
-      const response = await fetch(`/api/admin/subscriptions?id=${subscriptionId}`, {
+      const response = await fetch(`/api/admin/subscriptions?id=${subscriptionId}`, createAuthenticatedRequest({
         method: 'DELETE'
-      })
+      }))
 
       if (response.ok) {
         fetchSubscriptions()

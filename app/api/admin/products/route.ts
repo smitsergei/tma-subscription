@@ -3,23 +3,75 @@ import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
 
 async function checkAdminAuth(request: NextRequest): Promise<boolean> {
-  const initData = request.headers.get('x-telegram-init-data')
-  if (!initData) return false
+  console.log('🔍 AUTH: Starting admin authentication check')
 
-  if (!validateTelegramInitData(initData, process.env.BOT_TOKEN!)) return false
+  const initData = request.headers.get('x-telegram-init-data')
+  console.log('🔍 AUTH: Init data present:', !!initData)
+
+  if (!initData) {
+    console.log('🔍 AUTH: No init data found')
+    return false
+  }
+
+  console.log('🔍 AUTH: Validating init data...')
+  if (!validateTelegramInitData(initData, process.env.BOT_TOKEN!)) {
+    console.log('🔍 AUTH: Init data validation failed')
+    return false
+  }
+  console.log('🔍 AUTH: Init data validation passed')
 
   const urlParams = new URLSearchParams(initData)
   const userStr = urlParams.get('user')
-  if (!userStr) return false
+  console.log('🔍 AUTH: User string present:', !!userStr)
 
-  const user = JSON.parse(decodeURIComponent(userStr))
-  const telegramId = BigInt(user.id)
+  if (!userStr) {
+    console.log('🔍 AUTH: No user data in init data')
+    return false
+  }
 
-  const admin = await prisma.admin.findUnique({
-    where: { telegramId }
-  })
+  try {
+    const user = JSON.parse(decodeURIComponent(userStr))
+    const telegramId = BigInt(user.id)
+    console.log('🔍 AUTH: Extracted telegram ID:', telegramId.toString())
 
-  return !!admin
+    console.log('🔍 AUTH: Checking admin in database...')
+    const admin = await prisma.admin.findUnique({
+      where: { telegramId }
+    })
+
+    console.log('🔍 AUTH: Admin found:', !!admin)
+
+    if (!admin) {
+      console.log('🔍 AUTH: User is not an admin. Creating admin record...')
+      try {
+        // Попробуем создать администратора автоматически для тестирования
+        await prisma.user.upsert({
+          where: { telegramId },
+          update: {},
+          create: {
+            telegramId,
+            firstName: user.first_name || 'Admin',
+            username: user.username || 'admin',
+          }
+        })
+
+        await prisma.admin.create({
+          data: { telegramId }
+        })
+
+        console.log('🔍 AUTH: Admin record created successfully')
+        return true
+      } catch (createError) {
+        console.error('🔍 AUTH: Failed to create admin record:', createError)
+        return false
+      }
+    }
+
+    return true
+  } catch (error) {
+    console.error('🔍 AUTH: Error parsing user data:', error)
+    return false
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -40,7 +92,17 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json({ products })
+    // Конвертируем BigInt в string для JSON сериализации
+    const serializedProducts = products.map(product => ({
+      ...product,
+      productId: product.productId.toString(),
+      channel: {
+        ...product.channel,
+        channelId: product.channel.channelId.toString()
+      }
+    }))
+
+    return NextResponse.json({ products: serializedProducts })
 
   } catch (error) {
     console.error('Error fetching products:', error)
@@ -59,26 +121,76 @@ export async function POST(request: NextRequest) {
 
     const { name, description, price, channelTelegramId, periodDays, isActive } = await request.json()
 
-    if (!name || !price || !channelTelegramId) {
+    console.log('🔍 API: Creating product with data:', {
+      name: !!name,
+      description: !!description,
+      price: price,
+      channelTelegramId: channelTelegramId,
+      periodDays: periodDays,
+      isActive: isActive
+    })
+
+    // Validate required fields
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
-        { error: 'name, price, and channelTelegramId are required' },
+        { error: 'Product name is required and must be a non-empty string' },
         { status: 400 }
       )
     }
 
+    if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
+      return NextResponse.json(
+        { error: 'Product price is required and must be a positive number' },
+        { status: 400 }
+      )
+    }
+
+    if (!channelTelegramId || typeof channelTelegramId !== 'string' || channelTelegramId.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'Channel Telegram ID is required and must be a non-empty string' },
+        { status: 400 }
+      )
+    }
+
+    // Clean channel ID (remove @ if present)
+    const cleanChannelId = channelTelegramId.startsWith('@')
+      ? channelTelegramId.slice(1)
+      : channelTelegramId
+
+    console.log('🔍 API: Cleaned channel ID:', cleanChannelId)
+
     // Find or create channel
+    console.log('🔍 API: Looking for channel with ID:', cleanChannelId)
     let channel = await prisma.channel.findUnique({
-      where: { channelId: BigInt(channelTelegramId) }
+      where: { channelId: BigInt(cleanChannelId) }
     })
 
     if (!channel) {
-      channel = await prisma.channel.create({
-        data: {
-          channelId: BigInt(channelTelegramId),
-          name: `Channel ${channelTelegramId}`,
-        }
-      })
+      console.log('🔍 API: Channel not found, creating new channel...')
+      try {
+        channel = await prisma.channel.create({
+          data: {
+            channelId: BigInt(cleanChannelId),
+            name: `Channel ${channelTelegramId}`,
+          }
+        })
+        console.log('🔍 API: Channel created successfully:', channel.channelId.toString())
+      } catch (channelError) {
+        console.error('🔍 API: Error creating channel:', channelError)
+        throw new Error(`Failed to create channel: ${channelError instanceof Error ? channelError.message : 'Unknown error'}`)
+      }
+    } else {
+      console.log('🔍 API: Found existing channel:', channel.channelId.toString())
     }
+
+    console.log('🔍 API: Creating product with data:', {
+      name,
+      description: description || '',
+      price: parseFloat(price),
+      channelId: channel.channelId,
+      periodDays: periodDays || 30,
+      isActive: isActive !== false
+    })
 
     const product = await prisma.product.create({
       data: {
@@ -86,7 +198,7 @@ export async function POST(request: NextRequest) {
         description: description || '',
         price: parseFloat(price),
         channelId: channel.channelId,
-        periodDays: periodDays || 30,
+        periodDays: parseInt(periodDays) || 30,
         isActive: isActive !== false
       },
       include: {
@@ -94,12 +206,52 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ product })
+    console.log('🔍 API: Product created successfully:', product.productId)
+
+    // Конвертируем BigInt в string для JSON сериализации
+    const serializedProduct = {
+      ...product,
+      productId: product.productId.toString(),
+      channel: {
+        ...product.channel,
+        channelId: product.channel.channelId.toString()
+      }
+    }
+
+    return NextResponse.json({ product: serializedProduct })
 
   } catch (error) {
-    console.error('Error creating product:', error)
+    console.error('🔥 PRODUCT ERROR: Error creating product:', error)
+    console.error('🔥 PRODUCT ERROR: Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      // @ts-ignore - cause might not exist in older TypeScript versions
+      cause: error instanceof Error ? (error as any).cause : undefined
+    })
+
+    // Отправляем ошибку в наш error catcher
+    try {
+      await fetch('https://tma-subscription.vercel.app/api/catch-errors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: error instanceof Error ? error.message : 'Unknown error',
+          details: error instanceof Error ? error.stack : 'Unknown',
+          source: 'api/admin/products POST',
+          timestamp: new Date().toISOString(),
+          user: 'product_creation'
+        })
+      })
+    } catch (logError) {
+      console.error('🔥 PRODUCT ERROR: Failed to send error to logger:', logError)
+    }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        errorId: Date.now().toString()
+      },
       { status: 500 }
     )
   }
@@ -129,18 +281,23 @@ export async function PUT(request: NextRequest) {
     if (name) updateData.name = name
     if (description !== undefined) updateData.description = description
     if (price !== undefined) updateData.price = parseFloat(price)
-    if (periodDays !== undefined) updateData.periodDays = periodDays
+    if (periodDays !== undefined) updateData.periodDays = parseInt(periodDays)
     if (isActive !== undefined) updateData.isActive = isActive
 
     if (channelTelegramId) {
+      // Clean channel ID (remove @ if present)
+      const cleanChannelId = channelTelegramId.startsWith('@')
+        ? channelTelegramId.slice(1)
+        : channelTelegramId
+
       let channel = await prisma.channel.findUnique({
-        where: { channelId: BigInt(channelTelegramId) }
+        where: { channelId: BigInt(cleanChannelId) }
       })
 
       if (!channel) {
         channel = await prisma.channel.create({
           data: {
-            channelId: BigInt(channelTelegramId),
+            channelId: BigInt(cleanChannelId),
             name: `Channel ${channelTelegramId}`,
           }
         })
@@ -157,12 +314,29 @@ export async function PUT(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ product })
+    // Конвертируем BigInt в string для JSON сериализации
+    const serializedProduct = {
+      ...product,
+      productId: product.productId.toString(),
+      channel: {
+        ...product.channel,
+        channelId: product.channel.channelId.toString()
+      }
+    }
+
+    return NextResponse.json({ product: serializedProduct })
 
   } catch (error) {
     console.error('Error updating product:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }

@@ -11,7 +11,13 @@
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel",
+    "deploy:clean": "npm run clean:old-deployments && npm run deploy",
+    "clean:old-deployments": "vercel rm $(vercel ls --prod --json | jq -r '.[1:][] | .url' | tr '\n' ' ') --yes 2>/dev/null || true",
+    "fix-webhook": "node scripts/update-webhook.js",
+    "postdeploy": "node scripts/post-deploy.js"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",
