@@ -12,11 +12,5 @@
     "env": {
       "NEXT_PUBLIC_APP_URL": "https://tma-subscription.vercel.app"
     }
-  },
-  "alias": [
-    {
-      "deployment": "production",
-      "alias": "tma-subscription.vercel.app"
-    }
-  ]
+  }
 }
