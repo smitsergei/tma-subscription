@@ -17,7 +17,7 @@
     "deploy:clean": "npm run clean:old-deployments && npm run deploy",
     "clean:old-deployments": "vercel rm $(vercel ls --prod --json | jq -r '.[1:][] | .url' | tr '\n' ' ') --yes 2>/dev/null || true",
     "fix-webhook": "node scripts/update-webhook.js",
-    "postdeploy": "node scripts/post-deploy.js"
+    "postdeploy": "echo '🚀 Deployment completed - skipping notifications'"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",
