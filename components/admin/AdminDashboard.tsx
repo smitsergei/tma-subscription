@@ -3,17 +3,19 @@
 import { useState } from 'react'
 import ProductManagement from './ProductManagement'
 import UserManagement from './UserManagement'
+import SubscriptionManagement from './SubscriptionManagement'
 import DiscountManagement from './DiscountManagement'
 import PromoCodeManagement from './PromoCodeManagement'
 import DemoManagement from './DemoManagement'
 
-type TabType = 'users' | 'products' | 'discounts' | 'promocodes' | 'demo'
+type TabType = 'users' | 'subscriptions' | 'products' | 'discounts' | 'promocodes' | 'demo'
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('products')
 
   const tabs = [
     { id: 'users' as TabType, label: '👥 Пользователи', icon: 'users' },
+    { id: 'subscriptions' as TabType, label: '📋 Подписки', icon: 'subscriptions' },
     { id: 'products' as TabType, label: '📦 Продукты', icon: 'products' },
     { id: 'discounts' as TabType, label: '💰 Скидки', icon: 'discount' },
     { id: 'promocodes' as TabType, label: '🎫 Промокоды', icon: 'promos' },
@@ -24,6 +26,8 @@ export default function AdminDashboard() {
     switch (activeTab) {
       case 'users':
         return <UserManagement />
+      case 'subscriptions':
+        return <SubscriptionManagement />
       case 'products':
         return <ProductManagement />
       case 'discounts':
@@ -47,7 +51,7 @@ export default function AdminDashboard() {
               🛠️ Панель администратора
             </h1>
             <p className="mt-1 text-sm text-gray-600">
-              Управление пользователями, продуктами, скидками, промокодами и демо-доступом
+              Управление пользователями, подписками, продуктами, скидками, промокодами и демо-доступом
             </p>
           </div>
         </div>
