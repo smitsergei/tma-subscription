@@ -214,7 +214,9 @@ export default function ProductManagement() {
       price: product.price.toString(),
       channelTelegramId: product.channel.id,
       periodDays: product.periodDays.toString(),
-      isActive: product.isActive
+      isActive: product.isActive,
+      allowDemo: product.allowDemo || false,
+      demoDays: product.demoDays?.toString() || '7'
     })
     setShowEditModal(true)
   }
