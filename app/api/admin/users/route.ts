@@ -81,7 +81,6 @@ export async function GET(request: NextRequest) {
         firstName: user.firstName,
         username: user.username,
         createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
         subscriptions: user.subscriptions.map(sub => ({
           subscriptionId: sub.subscriptionId,
           userId: sub.userId.toString(),
