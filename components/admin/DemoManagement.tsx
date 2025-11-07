@@ -389,7 +389,7 @@ export default function DemoManagement() {
                 <input
                   type="number"
                   value={newDemoAccess.demoDays}
-                  onChange={(e) => setNewDemoAccess({...newDemoAccess, demoDays: e.target.value})}
+                  onChange={(e) => setNewDemoAccess({...newDemoAccess, demoDays: parseInt(e.target.value)})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   min={1}
                   max={30}
