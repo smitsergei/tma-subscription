@@ -51,29 +51,72 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    // Get users with their subscriptions
+    // Get users without subscriptions first
     const users = await prisma.user.findMany({
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        subscriptions: {
+      orderBy: { createdAt: 'desc' }
+    })
+
+    // Get subscriptions separately to avoid BigInt serialization issues
+    const usersWithSubscriptions = await Promise.all(
+      users.map(async (user) => {
+        const subscriptions = await prisma.subscription.findMany({
+          where: { userId: user.telegramId },
           include: {
-            product: true,
+            product: {
+              select: {
+                productId: true,
+                name: true,
+                price: true,
+                periodDays: true,
+                channel: {
+                  select: {
+                    channelId: true,
+                    name: true,
+                    username: true
+                  }
+                }
+              }
+            },
             payment: true
           },
           orderBy: { createdAt: 'desc' }
+        })
+
+        return {
+          ...user,
+          telegramId: user.telegramId.toString(),
+          subscriptions: subscriptions.map(sub => ({
+            subscriptionId: sub.subscriptionId,
+            userId: sub.userId.toString(),
+            productId: sub.productId,
+            status: sub.status,
+            expiresAt: sub.expiresAt,
+            createdAt: sub.createdAt,
+            product: {
+              ...sub.product,
+              productId: sub.product.productId,
+              price: parseFloat(sub.product.price.toString()),
+              periodDays: sub.product.periodDays,
+              channel: sub.product.channel ? {
+                ...sub.product.channel,
+                channelId: sub.product.channel.channelId.toString()
+              } : null
+            },
+            payment: sub.payment
+          }))
         }
-      }
-    })
+      })
+    )
 
     const total = await prisma.user.count({ where })
 
     // Filter by subscription status if provided
-    let filteredUsers = users
+    let filteredUsers = usersWithSubscriptions
     if (status) {
-      filteredUsers = users.filter(user => {
+      filteredUsers = usersWithSubscriptions.filter(user => {
         const activeSubscription = user.subscriptions.find(sub => sub.status === 'active')
         return status === 'active' ? activeSubscription : !activeSubscription
       })
@@ -81,20 +124,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       users: filteredUsers.map(user => ({
-        telegramId: user.telegramId.toString(),
+        telegramId: user.telegramId,
         firstName: user.firstName,
         username: user.username,
         createdAt: user.createdAt,
-        subscriptions: user.subscriptions.map(sub => ({
-          subscriptionId: sub.subscriptionId,
-          userId: sub.userId.toString(),
-          productId: sub.productId,
-          status: sub.status,
-          expiresAt: sub.expiresAt,
-          createdAt: sub.createdAt,
-          product: sub.product,
-          payment: sub.payment
-        }))
+        subscriptions: user.subscriptions
       })),
       pagination: {
         page,
