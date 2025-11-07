@@ -77,7 +77,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       users: filteredUsers.map(user => ({
-        id: user.id,
         telegramId: user.telegramId.toString(),
         firstName: user.firstName,
         lastName: user.lastName,
