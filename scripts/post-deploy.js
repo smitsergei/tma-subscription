@@ -79,11 +79,13 @@ async function sendNotification() {
       return;
     }
 
+    // Используем постоянный алиас вместо URL деплоя
+    const permanentUrl = 'https://tma-subscription.vercel.app';
+
     const message = `🎉 *Deployment Successful*
 
-📡 *New deployment is live*: ${deploymentUrl}
-🔗 *Admin Panel*: ${deploymentUrl}/admin
 🤖 *Webhook*: Updated automatically
+🔗 *Admin Panel*: ${permanentUrl}/admin
 
 ✨ All systems are ready for testing!`;
 
@@ -96,13 +98,13 @@ async function sendNotification() {
           {
             text: '🚀 Открыть админ-панель',
             web_app: {
-              url: `${deploymentUrl}/admin`
+              url: `${permanentUrl}/admin`
             }
           },
           {
             text: '📱 Открыть Mini App',
             web_app: {
-              url: `${deploymentUrl}`
+              url: `${permanentUrl}/app`
             }
           }
         ]]
