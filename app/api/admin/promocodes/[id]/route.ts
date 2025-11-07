@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       include: {
         product: {
           select: {
-            id: true,
+            productId: true,
             name: true,
             price: true
           }
