@@ -251,7 +251,7 @@ export default function SubscriptionManagement() {
   const fetchUsersAndProducts = async () => {
     try {
       const usersResponse = await fetch('/api/admin/users?limit=100', createAuthenticatedRequest())
-      const productsResponse = await fetch('/api/admin/products', createAuthenticatedRequest())
+      const productsResponse = await fetch('/api/admin/products-v2', createAuthenticatedRequest())
 
       if (usersResponse.ok) {
         const usersData = await usersResponse.json()

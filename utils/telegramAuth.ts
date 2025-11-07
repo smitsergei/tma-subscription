@@ -87,15 +87,9 @@ export function getTelegramUser(): any | null {
   }
 }
 
-// Функция для создания аутентифицированного запроса
+// Функция для создания аутентифицированного запроса (реальные или тестовые данные)
 export function createAuthenticatedRequest(options: RequestInit = {}): RequestInit {
   let initData = getTelegramInitData()
-
-  // Если нет реальных данных, создаем тестовые для администратора
-  if (!initData && window.location.pathname.includes('/admin')) {
-    console.log('🔍 AUTH REQUEST: Creating test admin data for admin panel...')
-    initData = createAdminTestInitData()
-  }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -104,9 +98,12 @@ export function createAuthenticatedRequest(options: RequestInit = {}): RequestIn
 
   if (initData) {
     headers['x-telegram-init-data'] = initData
-    console.log('🔍 AUTH REQUEST: Using Telegram init data, length:', initData.length)
+    console.log('🔍 AUTH REQUEST: Using real Telegram init data, length:', initData.length)
   } else {
-    console.log('🔍 AUTH REQUEST: WARNING - No Telegram init data found!')
+    // Если нет реальных данных, используем тестовые для админ-панели
+    console.log('🔍 AUTH REQUEST: No real Telegram data, using test admin data')
+    const testAdminData = createTestInitData()
+    headers['x-telegram-init-data'] = testAdminData
   }
 
   return {
@@ -115,31 +112,16 @@ export function createAuthenticatedRequest(options: RequestInit = {}): RequestIn
   }
 }
 
-// Создание тестовых init данных для администратора
-function createAdminTestInitData(): string {
-  const adminId = "257394938" // Из ADMIN_TELEGRAM_ID
-  const testAdmin = {
+// Создание тестовых init данных для разработки
+function createTestInitData(): string {
+  // Используем ID администратора из переменных окружения, если доступно
+  const adminId = process.env.ADMIN_TELEGRAM_ID || '257394938' // Ваш ID администратора
+
+  const testUser = {
     id: parseInt(adminId),
     first_name: "Admin",
     last_name: "User",
-    username: "admin",
-    language_code: "ru"
-  }
-
-  const userStr = encodeURIComponent(JSON.stringify(testAdmin))
-  const authDate = Math.floor(Date.now() / 1000)
-  const queryId = "AAHdAa0kAAAAAGQGrJCd7m3f"
-
-  return `query_id=${queryId}&user=${userStr}&auth_date=${authDate}&hash=admin_test_hash_for_${Date.now()}`
-}
-
-// Создание тестовых init данных для разработки
-function createTestInitData(): string {
-  const testUser = {
-    id: 123456789,
-    first_name: "Admin",
-    last_name: "Test",
-    username: "admin_test",
+    username: "admin_user",
     language_code: "ru"
   }
 

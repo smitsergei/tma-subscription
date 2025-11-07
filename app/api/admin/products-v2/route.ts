@@ -26,53 +26,38 @@ function createJsonResponse(data: any, status: number = 200): NextResponse {
 async function checkAdminAuth(request: NextRequest): Promise<boolean> {
   try {
     const initData = request.headers.get('x-telegram-init-data');
+
     if (!initData) {
-      console.log('🔍 ADMIN AUTH: No init data found')
+      console.log('🔍 AUTH: No init data found')
       return false
     }
 
-    console.log('🔍 ADMIN AUTH: Checking auth with init data length:', initData.length)
-
-    // Проверяем на тестовые данные администратора
-    if (initData.includes('admin_test_hash_for_')) {
-      console.log('🔍 ADMIN AUTH: Using test admin data')
-      const urlParams = new URLSearchParams(initData)
-      const userStr = urlParams.get('user')
-      if (!userStr) return false
-
-      const user = JSON.parse(decodeURIComponent(userStr))
-      const telegramId = BigInt(user.id)
-      const adminTelegramId = process.env.ADMIN_TELEGRAM_ID
-
-      if (!adminTelegramId) {
-        console.log('🔍 ADMIN AUTH: ADMIN_TELEGRAM_ID not configured')
-        return false
-      }
-
-      return telegramId.toString() === adminTelegramId
-    }
-
-    // Для реальных данных используем валидацию
+    console.log('🔍 AUTH: Validating init data...')
     if (!validateTelegramInitData(initData, process.env.BOT_TOKEN!)) {
-      console.log('🔍 ADMIN AUTH: Failed Telegram validation')
+      console.log('🔍 AUTH: Init data validation failed')
       return false
     }
+    console.log('🔍 AUTH: Init data validation passed')
 
     const urlParams = new URLSearchParams(initData)
     const userStr = urlParams.get('user')
-    if (!userStr) return false
+    console.log('🔍 AUTH: User string present:', !!userStr)
+
+    if (!userStr) {
+      console.log('🔍 AUTH: No user string found')
+      return false
+    }
 
     const user = JSON.parse(decodeURIComponent(userStr))
     const telegramId = BigInt(user.id)
 
-    // Проверяем, является ли пользователь администратором или создает админа
-    const adminTelegramId = process.env.ADMIN_TELEGRAM_ID
-    if (!adminTelegramId) {
-      console.log('🔍 ADMIN AUTH: ADMIN_TELEGRAM_ID not configured')
-      return false
-    }
+    const admin = await prisma.admin.findUnique({
+      where: { telegramId }
+    })
 
-    if (telegramId.toString() === adminTelegramId) {
+    if (!admin) {
+      console.log('🔍 AUTH: Admin not found, creating...')
+
       // Создаем админа если его нет
       try {
         await prisma.user.upsert({
@@ -85,23 +70,22 @@ async function checkAdminAuth(request: NextRequest): Promise<boolean> {
           }
         })
 
-        await prisma.admin.upsert({
-          where: { telegramId },
-          update: {},
-          create: { telegramId }
+        await prisma.admin.create({
+          data: { telegramId }
         })
-        console.log('🔍 ADMIN AUTH: Admin record created/updated successfully')
+
+        console.log('🔍 AUTH: Admin record created successfully')
         return true
       } catch (createError) {
-        console.error('🔍 ADMIN AUTH: Failed to create admin record:', createError)
+        console.error('🔍 AUTH: Failed to create admin record:', createError)
         return false
       }
     }
 
-    console.log('🔍 ADMIN AUTH: User is not admin, ID:', telegramId.toString())
-    return false
+    console.log('🔍 AUTH: Admin found: true')
+    return true
   } catch (error) {
-    console.error('🔍 ADMIN AUTH: Error parsing user data:', error)
+    console.error('🔍 AUTH: Error parsing user data:', error)
     return false
   }
 }
