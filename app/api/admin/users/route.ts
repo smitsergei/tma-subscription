@@ -90,8 +90,7 @@ export async function GET(request: NextRequest) {
           createdAt: sub.createdAt,
           product: sub.product,
           payment: sub.payment
-        })),
-        _count: user._count
+        }))
       })),
       pagination: {
         page,
