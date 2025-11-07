@@ -1,9 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import UserManagement from '@/components/admin/UserManagement'
-import SubscriptionManagement from '@/components/admin/SubscriptionManagement'
-import ProductManagement from '@/components/admin/ProductManagement'
+import AdminDashboard from '@/components/admin/AdminDashboard'
 
 // Функция для извлечения данных из URL
 function parseTelegramData() {

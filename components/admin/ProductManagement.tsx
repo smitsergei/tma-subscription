@@ -5,6 +5,7 @@ import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
 interface Product {
   id: string
+  productId: string
   name: string
   description: string
   price: number
@@ -14,6 +15,8 @@ interface Product {
   updatedAt: string
   discountPrice?: number
   isTrial?: boolean
+  allowDemo?: boolean
+  demoDays?: number
   channel: {
     id: string
     name: string
@@ -24,6 +27,7 @@ interface Product {
   _count: {
     subscriptions: number
   }
+  activeDiscounts?: number
 }
 
 export default function ProductManagement() {
@@ -39,7 +43,9 @@ export default function ProductManagement() {
     price: '',
     channelTelegramId: '',
     periodDays: '30',
-    isActive: true
+    isActive: true,
+    allowDemo: false,
+    demoDays: '7'
   })
 
   const [editProduct, setEditProduct] = useState({
@@ -48,7 +54,9 @@ export default function ProductManagement() {
     price: '',
     channelTelegramId: '',
     periodDays: '',
-    isActive: true
+    isActive: true,
+    allowDemo: false,
+    demoDays: '7'
   })
 
   const fetchProducts = async () => {
@@ -243,6 +251,12 @@ export default function ProductManagement() {
                   Длительность
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Скидки
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Демо
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Статус
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -279,6 +293,30 @@ export default function ProductManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {product.periodDays} дней
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {product.activeDiscounts ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        ✅ {product.activeDiscounts} активных
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                        ➕ Нет скидок
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {product.allowDemo ? (
+                      <div className="flex flex-col">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          🎓 {product.demoDays || 7} дней
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                        ❌ Недоступно
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button

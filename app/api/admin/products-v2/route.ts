@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
 
     // Конвертируем BigInt в string
     const serializedProducts = products.map(product => ({
-      id: product.productId.toString(),
+      id: product.productId,
       name: product.name,
       description: product.description,
       price: product.price,
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 500 }
+      500
     )
   }
 }
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
     if (!name || !price || !channelTelegramId) {
       return createJsonResponse(
         { error: 'Missing required fields' },
-        { status: 400 }
+        400
       )
     }
 
@@ -177,14 +177,14 @@ export async function POST(request: NextRequest) {
       : channelTelegramId
 
     let channel = await prisma.channel.findUnique({
-      where: { channelId: BigInt(cleanChannelId) }
+      where: { channelId: BigInt(cleanChannelId) as any }
     })
 
     if (!channel) {
       console.log('🔍 API: Channel not found, creating new channel...')
       channel = await prisma.channel.create({
         data: {
-          channelId: BigInt(cleanChannelId),
+          channelId: BigInt(cleanChannelId) as any,
           name: `Channel ${channelTelegramId}`,
         }
       })
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
 
     // Конвертируем BigInt в string
     const serializedProduct = {
-      id: product.productId.toString(),
+      id: product.productId,
       name: product.name,
       description: product.description,
       price: product.price,
@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 500 }
+      500
     )
   }
 }
@@ -261,7 +261,7 @@ export async function PUT(request: NextRequest) {
     if (!productId) {
       return createJsonResponse(
         { error: 'Product ID is required' },
-        { status: 400 }
+        400
       )
     }
 
@@ -281,23 +281,23 @@ export async function PUT(request: NextRequest) {
         : channelTelegramId
 
       let channel = await prisma.channel.findUnique({
-        where: { channelId: BigInt(cleanChannelId) }
+        where: { channelId: BigInt(cleanChannelId) as any }
       })
 
       if (!channel) {
         channel = await prisma.channel.create({
           data: {
-            channelId: BigInt(cleanChannelId),
+            channelId: BigInt(cleanChannelId) as any,
             name: `Channel ${channelTelegramId}`,
           }
         })
       }
 
-      updateData.channelId = channel.channelId
+      (updateData as any).channelId = channel.channelId
     }
 
     const product = await prisma.product.update({
-      where: { productId: BigInt(productId) },
+      where: { productId: productId },
       data: updateData,
       include: {
         channel: true
@@ -305,7 +305,7 @@ export async function PUT(request: NextRequest) {
     })
 
     const serializedProduct = {
-      id: product.productId.toString(),
+      id: product.productId,
       name: product.name,
       description: product.description,
       price: product.price,
@@ -333,7 +333,7 @@ export async function PUT(request: NextRequest) {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 500 }
+      500
     )
   }
 }
@@ -350,13 +350,13 @@ export async function DELETE(request: NextRequest) {
     if (!productId) {
       return createJsonResponse(
         { error: 'Product ID is required' },
-        { status: 400 }
+        400
       )
     }
 
     const activeSubscriptions = await prisma.subscription.count({
       where: {
-        productId: BigInt(productId),
+        productId: productId,
         status: 'active'
       }
     })
@@ -364,12 +364,12 @@ export async function DELETE(request: NextRequest) {
     if (activeSubscriptions > 0) {
       return createJsonResponse(
         { error: 'Cannot delete product with active subscriptions' },
-        { status: 400 }
+        400
       )
     }
 
     await prisma.product.delete({
-      where: { productId: BigInt(productId) }
+      where: { productId: productId }
     })
 
     return createJsonResponse({ success: true })
@@ -381,7 +381,7 @@ export async function DELETE(request: NextRequest) {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 500 }
+      500
     )
   }
 }
