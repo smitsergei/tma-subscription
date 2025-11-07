@@ -143,7 +143,9 @@ export default function ProductManagement() {
           price: '',
           channelTelegramId: '',
           periodDays: '',
-          isActive: true
+          isActive: true,
+          allowDemo: false,
+          demoDays: '7'
         })
         fetchProducts()
       } else {
