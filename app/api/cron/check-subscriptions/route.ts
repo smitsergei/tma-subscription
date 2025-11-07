@@ -26,6 +26,9 @@ export async function GET(request: NextRequest) {
 
     console.log('Starting subscription expiry check...')
 
+    // Сначала отправляем уведомления о приближающемся окончании подписок
+    await sendExpirationReminders()
+
     // Поиск истекших подписок
     const expiredSubscriptions = await prisma.subscription.findMany({
       where: {
@@ -241,5 +244,172 @@ async function sendExpirationNotification(
   } catch (error) {
     console.error(`Error sending expiration notification to user ${userId}:`, error)
     throw error
+  }
+}
+
+// Функция для отправки уведомлений о приближающемся окончании подписки
+async function sendExpirationReminders(): Promise<void> {
+  try {
+    // Находим подписки, которые истекают в течение следующих 7 дней
+    const sevenDaysFromNow = new Date()
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+
+    const threeDaysFromNow = new Date()
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3)
+
+    const oneDayFromNow = new Date()
+    oneDayFromNow.setDate(oneDayFromNow.getDate() + 1)
+
+    // Подписки, истекающие через 7 дней
+    const weekExpiring = await prisma.subscription.findMany({
+      where: {
+        status: 'active',
+        expiresAt: {
+          gte: sevenDaysFromNow,
+          lt: new Date(sevenDaysFromNow.getTime() + 24 * 60 * 60 * 1000) // в течение 24 часов после 7 дней
+        }
+      },
+      include: {
+        user: true,
+        product: true,
+        channel: true
+      }
+    })
+
+    // Подписки, истекающие через 3 дня
+    const threeDaysExpiring = await prisma.subscription.findMany({
+      where: {
+        status: 'active',
+        expiresAt: {
+          gte: threeDaysFromNow,
+          lt: new Date(threeDaysFromNow.getTime() + 24 * 60 * 60 * 1000)
+        }
+      },
+      include: {
+        user: true,
+        product: true,
+        channel: true
+      }
+    })
+
+    // Подписки, истекающие через 1 день
+    const oneDayExpiring = await prisma.subscription.findMany({
+      where: {
+        status: 'active',
+        expiresAt: {
+          gte: oneDayFromNow,
+          lt: new Date(oneDayFromNow.getTime() + 24 * 60 * 60 * 1000)
+        }
+      },
+      include: {
+        user: true,
+        product: true,
+        channel: true
+      }
+    })
+
+    const botToken = process.env.BOT_TOKEN
+    if (!botToken) {
+      console.error('BOT_TOKEN not configured for sending reminders')
+      return
+    }
+
+    // Отправляем уведомления
+    await sendReminderNotifications(weekExpiring, 7, botToken)
+    await sendReminderNotifications(threeDaysExpiring, 3, botToken)
+    await sendReminderNotifications(oneDayExpiring, 1, botToken)
+
+    const totalReminders = weekExpiring.length + threeDaysExpiring.length + oneDayExpiring.length
+    if (totalReminders > 0) {
+      console.log(`Sent ${totalReminders} expiration reminders (7d: ${weekExpiring.length}, 3d: ${threeDaysExpiring.length}, 1d: ${oneDayExpiring.length})`)
+    }
+
+  } catch (error) {
+    console.error('Error sending expiration reminders:', error)
+  }
+}
+
+async function sendReminderNotifications(
+  subscriptions: any[],
+  daysRemaining: number,
+  botToken: string
+): Promise<void> {
+  for (const subscription of subscriptions) {
+    try {
+      const expiresDate = new Date(subscription.expiresAt).toLocaleDateString('ru-RU')
+      const urgencyEmoji = daysRemaining <= 1 ? '⚠️' : daysRemaining <= 3 ? '⏰' : '📅'
+
+      const message = `
+${urgencyEmoji} *Ваша подписка истекает через ${daysRemaining} ${getDayWord(daysRemaining)}!*
+
+📦 Продукт: ${subscription.product.name}
+📢 Канал: ${subscription.channel.name}
+📅 Дата окончания: ${expiresDate}
+
+${daysRemaining <= 1
+  ? '❗ *Последний день для продления!*'
+  : '🛍️ *Продлите подписку заранее, чтобы не потерять доступ!*'}
+
+*Как продлить:*
+1. Откройте Mini App бота
+2. Выберите "Управление подписками"
+3. Нажмите "Продлить" рядом с вашей подпиской
+
+Спасибо, что остаетесь с нами! 💙
+      `.trim()
+
+      await fetch(
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: subscription.user.telegramId.toString(),
+            text: message,
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🛍️ Управление подписками',
+                    web_app: {
+                      url: `${process.env.APP_URL}/app`
+                    }
+                  }
+                ]
+              ]
+            }
+          })
+        }
+      )
+
+      console.log(`Sent ${daysRemaining}-day reminder to user ${subscription.user.telegramId}`)
+
+      // Небольшая задержка между отправками, чтобы не превысить лимиты Telegram
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+    } catch (error) {
+      console.error(`Error sending ${daysRemaining}-day reminder to user ${subscription.user.telegramId}:`, error)
+    }
+  }
+}
+
+function getDayWord(days: number): string {
+  const lastDigit = days % 10
+  const lastTwoDigits = days % 100
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+    return 'дней'
+  }
+
+  switch (lastDigit) {
+    case 1:
+      return 'день'
+    case 2:
+    case 3:
+    case 4:
+      return 'дня'
+    default:
+      return 'дней'
   }
 }
