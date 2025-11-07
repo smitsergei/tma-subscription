@@ -78,10 +78,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: subscriptions.map(sub => ({
-        ...sub,
+        subscriptionId: sub.subscriptionId,
         userId: sub.userId.toString(),
+        productId: sub.productId,
+        channelId: sub.channelId.toString(),
+        status: sub.status,
         expiresAt: sub.expiresAt.toISOString(),
-        daysRemaining: Math.ceil((sub.expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+        daysRemaining: Math.ceil((sub.expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+        createdAt: sub.createdAt,
+        updatedAt: sub.updatedAt,
+        user: sub.user ? {
+          telegramId: sub.user.telegramId.toString(),
+          firstName: sub.user.firstName,
+          username: sub.user.username
+        } : null,
+        product: sub.product ? {
+          productId: sub.product.productId,
+          name: sub.product.name,
+          description: sub.product.description,
+          periodDays: sub.product.periodDays
+        } : null,
+        channel: sub.product ? {
+          channelId: sub.product.channelId.toString(),
+          name: 'VIP Контент', // Временное решение, т.к. канал не включен в запрос
+          username: null
+        } : null
       }))
     })
 

@@ -80,17 +80,25 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: subscriptions.map(subscription => ({
-        ...subscription,
+        subscriptionId: subscription.subscriptionId,
         userId: subscription.userId.toString(),
         productId: subscription.productId,
         channelId: subscription.channelId.toString(),
+        status: subscription.status,
+        expiresAt: subscription.expiresAt,
+        daysRemaining: Math.ceil((subscription.expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+        createdAt: subscription.createdAt,
+        updatedAt: subscription.updatedAt,
         user: subscription.user ? {
-          ...subscription.user,
-          telegramId: subscription.user.telegramId.toString()
+          telegramId: subscription.user.telegramId.toString(),
+          firstName: subscription.user.firstName,
+          username: subscription.user.username
         } : null,
+        product: subscription.product,
         channel: subscription.channel ? {
-          ...subscription.channel,
-          channelId: subscription.channel.channelId.toString()
+          channelId: subscription.channel.channelId.toString(),
+          name: subscription.channel.name,
+          username: subscription.channel.username
         } : null
       }))
     })

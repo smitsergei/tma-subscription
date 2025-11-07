@@ -28,8 +28,10 @@ function parseTelegramData() {
 export default function TmaPage() {
   const [user, setUser] = useState<any>(null)
   const [products, setProducts] = useState<any[]>([])
+  const [userSubscriptions, setUserSubscriptions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [productsLoading, setProductsLoading] = useState(false)
+  const [subscriptionsLoading, setSubscriptionsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'products' | 'subscriptions'>('products')
 
   // Функция для загрузки продуктов
@@ -56,6 +58,68 @@ export default function TmaPage() {
     }
   }
 
+  // Функция для загрузки подписок пользователя
+  const loadUserSubscriptions = async () => {
+    try {
+      setSubscriptionsLoading(true)
+      console.log('🔍 Loading user subscriptions...')
+
+      // Получаем Telegram init данные из URL
+      const webAppData = parseTelegramInitData()
+
+      const response = await fetch('/api/user/subscriptions' + (webAppData ? `?initData=${encodeURIComponent(webAppData)}` : ''))
+      const data = await response.json()
+
+      console.log('🔍 User subscriptions API response:', data)
+
+      if (data.success) {
+        setUserSubscriptions(data.data)
+        console.log(`✅ Loaded ${data.data.length} user subscriptions`)
+      } else {
+        console.error('❌ User subscriptions API error:', data.error)
+        // Если API требует авторизации, попробуем использовать debug endpoint
+        console.log('🔄 Trying debug endpoint...')
+        await loadUserSubscriptionsFromDebug()
+      }
+    } catch (error) {
+      console.error('❌ Error loading user subscriptions:', error)
+      // Пробуем debug endpoint при ошибке
+      await loadUserSubscriptionsFromDebug()
+    } finally {
+      setSubscriptionsLoading(false)
+    }
+  }
+
+  // Функция для получения Telegram init данных
+  const parseTelegramInitData = () => {
+    if (typeof window === 'undefined') return null
+
+    const urlParams = new URLSearchParams(window.location.hash.slice(1))
+    const webAppData = urlParams.get('tgWebAppData')
+    return webAppData
+  }
+
+  // Загрузка подписок через debug endpoint (для тестирования)
+  const loadUserSubscriptionsFromDebug = async () => {
+    try {
+      console.log('🔄 Loading subscriptions from debug endpoint...')
+
+      const response = await fetch('/api/debug/test-subscription')
+      const data = await response.json()
+
+      console.log('🔍 Debug subscriptions API response:', data)
+
+      if (data.success) {
+        // Фильтруем только активные подписки
+        const activeSubscriptions = data.data.filter((sub: any) => sub.status === 'active')
+        setUserSubscriptions(activeSubscriptions)
+        console.log(`✅ Loaded ${activeSubscriptions.length} active subscriptions from debug`)
+      }
+    } catch (error) {
+      console.error('❌ Error loading debug subscriptions:', error)
+    }
+  }
+
   // Функция для обработки покупки
   const handlePurchase = async (product: any) => {
     try {
@@ -79,12 +143,21 @@ export default function TmaPage() {
       console.log('✅ User data parsed from URL:', initData)
       // Загружаем продукты после получения данных пользователя
       loadProducts()
+      // Загружаем подписки пользователя
+      loadUserSubscriptions()
     } else {
       console.log('❌ No Telegram data found in URL')
     }
 
     setIsLoading(false)
   }, [])
+
+  // Загружаем подписки когда переключаемся на вкладку
+  useEffect(() => {
+    if (activeTab === 'subscriptions' && user) {
+      loadUserSubscriptions()
+    }
+  }, [activeTab, user])
 
   if (isLoading) {
     return (
@@ -202,9 +275,59 @@ export default function TmaPage() {
         {activeTab === 'subscriptions' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">📋 Мои подписки</h2>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-gray-500 text-center">У вас пока нет активных подписок</p>
-            </div>
+
+            {subscriptionsLoading ? (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="text-center">
+                  <div className="loading-spinner w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+                  <p className="text-gray-500">Загрузка подписок...</p>
+                </div>
+              </div>
+            ) : userSubscriptions.length === 0 ? (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-gray-500 text-center">У вас пока нет активных подписок</p>
+                <p className="text-gray-400 text-sm text-center mt-1">
+                  🛍️ Перейдите в "Подписки", чтобы оформить доступ к контенту
+                </p>
+              </div>
+            ) : (
+              <>
+                {userSubscriptions.map((subscription) => (
+                  <div key={subscription.subscriptionId} className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">{subscription.product?.name || 'Подписка'}</h3>
+                        {subscription.product?.channel && (
+                          <p className="text-gray-500 text-sm mt-1">
+                            📢 {subscription.product.channel.name}
+                          </p>
+                        )}
+                        <p className="text-gray-500 text-xs mt-2">
+                          📅 Истекает: {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}
+                        </p>
+                        <p className="text-gray-500 text-xs">
+                          Осталось дней: {subscription.daysRemaining || Math.ceil((new Date(subscription.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
+                        </p>
+                      </div>
+                      <div className={`ml-4 px-2 py-1 text-xs font-medium rounded-full ${
+                        subscription.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {subscription.status === 'active' ? '✅ Активна' : '❌ Истекла'}
+                      </div>
+                    </div>
+                    {subscription.status === 'active' && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <button className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
+                          🔄 Продлить
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         )}
       </div>
