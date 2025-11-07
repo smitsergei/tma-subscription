@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
       include: {
         user: true,
         product: true,
+        channel: true,
         payment: true
       }
     })
@@ -62,7 +63,28 @@ export async function GET(request: NextRequest) {
     const total = await prisma.subscription.count({ where })
 
     return NextResponse.json({
-      subscriptions,
+      subscriptions: subscriptions.map(sub => ({
+        subscriptionId: sub.subscriptionId,
+        userId: sub.userId.toString(),
+        productId: sub.productId,
+        channelId: sub.channelId.toString(),
+        status: sub.status,
+        expiresAt: sub.expiresAt,
+        createdAt: sub.createdAt,
+        updatedAt: sub.updatedAt,
+        user: sub.user ? {
+          telegramId: sub.user.telegramId.toString(),
+          firstName: sub.user.firstName,
+          username: sub.user.username
+        } : null,
+        product: sub.product,
+        channel: sub.channel ? {
+          channelId: sub.channel.channelId.toString(),
+          name: sub.channel.name,
+          username: sub.channel.username
+        } : null,
+        payment: sub.payment
+      })),
       pagination: {
         page,
         limit,

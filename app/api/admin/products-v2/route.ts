@@ -171,21 +171,34 @@ export async function POST(request: NextRequest) {
       isActive: isActive !== false
     })
 
-    // Clean channel ID (remove @ if present)
-    const cleanChannelId = channelTelegramId.startsWith('@')
+    // Clean and process channel ID
+    let cleanChannelId = channelTelegramId.startsWith('@')
       ? channelTelegramId.slice(1)
       : channelTelegramId
 
-    let channel = await prisma.channel.findUnique({
-      where: { channelId: BigInt(cleanChannelId) as any }
-    })
+    // Convert to proper BigInt format
+    let finalChannelId = cleanChannelId
+    if (!/^\d+$/.test(cleanChannelId)) {
+      // If it's a username or non-numeric, convert to a unique negative number
+      finalChannelId = `-${Math.abs(cleanChannelId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0))}`
+    }
+
+    let channel = null
+    try {
+      channel = await prisma.channel.findUnique({
+        where: { channelId: BigInt(finalChannelId) }
+      })
+    } catch (error) {
+      console.log('🔍 API: Error finding channel, trying as string:', error)
+    }
 
     if (!channel) {
       console.log('🔍 API: Channel not found, creating new channel...')
       channel = await prisma.channel.create({
         data: {
-          channelId: BigInt(cleanChannelId) as any,
+          channelId: BigInt(finalChannelId),
           name: `Channel ${channelTelegramId}`,
+          username: channelTelegramId.startsWith('@') ? channelTelegramId : `@${channelTelegramId}`
         }
       })
       console.log('🔍 API: Channel created successfully:', channel.channelId.toString())
@@ -276,24 +289,38 @@ export async function PUT(request: NextRequest) {
     if (isActive !== undefined) updateData.isActive = isActive
 
     if (channelTelegramId) {
-      const cleanChannelId = channelTelegramId.startsWith('@')
+      // Clean and process channel ID
+      let cleanChannelId = channelTelegramId.startsWith('@')
         ? channelTelegramId.slice(1)
         : channelTelegramId
 
-      let channel = await prisma.channel.findUnique({
-        where: { channelId: BigInt(cleanChannelId) as any }
-      })
+      // Convert to proper BigInt format
+      let finalChannelId = cleanChannelId
+      if (!/^\d+$/.test(cleanChannelId)) {
+        // If it's a username or non-numeric, convert to a unique negative number
+        finalChannelId = `-${Math.abs(cleanChannelId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0))}`
+      }
+
+      let channel = null
+      try {
+        channel = await prisma.channel.findUnique({
+          where: { channelId: BigInt(finalChannelId) }
+        })
+      } catch (error) {
+        console.log('🔍 API: Error finding channel for update, creating new')
+      }
 
       if (!channel) {
         channel = await prisma.channel.create({
           data: {
-            channelId: BigInt(cleanChannelId) as any,
+            channelId: BigInt(finalChannelId),
             name: `Channel ${channelTelegramId}`,
+            username: channelTelegramId.startsWith('@') ? channelTelegramId : `@${channelTelegramId}`
           }
         })
       }
 
-      (updateData as any).channelId = channel.channelId
+      updateData.channelId = channel.channelId
     }
 
     const product = await prisma.product.update({
