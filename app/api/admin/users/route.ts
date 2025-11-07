@@ -76,7 +76,26 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      users: filteredUsers,
+      users: filteredUsers.map(user => ({
+        id: user.id,
+        telegramId: user.telegramId.toString(),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        subscriptions: user.subscriptions.map(sub => ({
+          subscriptionId: sub.subscriptionId,
+          userId: sub.userId.toString(),
+          productId: sub.productId,
+          status: sub.status,
+          expiresAt: sub.expiresAt,
+          createdAt: sub.createdAt,
+          product: sub.product,
+          payment: sub.payment
+        })),
+        _count: user._count
+      })),
       pagination: {
         page,
         limit,
