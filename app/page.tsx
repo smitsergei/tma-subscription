@@ -52,14 +52,7 @@ export default function HomePage() {
             href="/app"
             className="block w-full bg-blue-600 text-white py-3 px-6 rounded-xl hover:bg-blue-700 transition-colors duration-200 font-medium"
           >
-            Открыть Mini App
-          </Link>
-
-          <Link
-            href="/admin"
-            className="block w-full bg-gray-900 text-white py-3 px-6 rounded-xl hover:bg-gray-800 transition-colors duration-200 font-medium"
-          >
-            Панель администратора
+            🚀 Открыть Mini App
           </Link>
         </div>
 
@@ -68,15 +61,15 @@ export default function HomePage() {
           <div className="text-left space-y-2 text-sm text-gray-600">
             <div className="flex items-center space-x-2">
               <span className="text-blue-600">1.</span>
-              <span>Откройте Telegram и найдите нашего бота</span>
+              <span>Откройте Telegram и запустите нашего бота командой /start</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-blue-600">2.</span>
-              <span>Нажмите /start для начала</span>
+              <span>Нажмите кнопку "🚀 Открыть Mini App" в сообщении бота</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-blue-600">3.</span>
-              <span>Выберите подписку и оплатите через TON Connect</span>
+              <span>Выберите подходящую подписку и оформите доступ</span>
             </div>
           </div>
         </div>
