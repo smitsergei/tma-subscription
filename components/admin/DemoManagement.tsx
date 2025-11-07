@@ -69,7 +69,7 @@ export default function DemoManagement() {
       const response = await fetch('/api/admin/products-v2', createAuthenticatedRequest())
       if (response.ok) {
         const data = await response.json()
-        setProducts(data.products?.filter(p => p.allowDemo) || [])
+        setProducts(data.products?.filter((p: any) => p.allowDemo) || [])
       }
     } catch (error) {
       console.error('Error fetching products:', error)
