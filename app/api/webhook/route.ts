@@ -126,10 +126,10 @@ export async function POST(request: NextRequest) {
 
         if (chatId.toString() !== adminTelegramId && chatId !== parseInt(adminTelegramId)) {
           console.log('❌ Access denied for user:', chatId)
-          await sendMessage(chatId, `❌ Доступ запрещен. Ваш ID: ${chatId}, ID администратора: ${adminTelegramId}`)
+          await sendMessage(chatId, '❌ Доступ запрещен')
           responseSent = true
-          return
-        }
+          // Убираем return, чтобы другие команды продолжали работать
+        } else {
 
         await sendMessage(
           chatId,
@@ -153,6 +153,7 @@ export async function POST(request: NextRequest) {
           }
         )
         responseSent = true
+      } // Конец else блока для администратора
       }
 
       if (text === '/help') {
