@@ -49,28 +49,17 @@ export async function POST(request: NextRequest) {
       if (text === '/start') {
         await sendMessage(
           chatId,
-          '👋 Добро пожаловать в TMA-Подписка!\n\n' +
+          '<b>👋 Добро пожаловать в TMA-Подписка!</b>\n\n' +
           'Здесь вы можете приобрести подписку на наши эксклюзивные каналы.\n\n' +
-          '📱 Откройте Mini App, чтобы начать:',
+          '<b>📱 Откройте Mini App, чтобы начать:</b>\n' +
+          'Нажмите кнопку ниже, чтобы открыть приложение и выбрать подходящую подписку.',
           {
             reply_markup: {
               inline_keyboard: [[
                 {
-                  text: '🚀 Открыть приложение',
+                  text: '🚀 Открыть Mini App',
                   web_app: {
-                    url: 'https://tma-subscription.vercel.app/app'
-                  }
-                },
-                {
-                  text: '🔧 Тестовая страница',
-                  web_app: {
-                    url: 'https://tma-subscription.vercel.app/simple'
-                  }
-                },
-                {
-                  text: '👑 Админ-панель',
-                  web_app: {
-                    url: 'https://tma-subscription.vercel.app/admin'
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
                   }
                 }
               ]]
@@ -168,9 +157,9 @@ export async function POST(request: NextRequest) {
             reply_markup: {
               inline_keyboard: [[
                 {
-                  text: '🚀 Открыть приложение',
+                  text: '🚀 Открыть Mini App',
                   web_app: {
-                    url: 'https://tma-subscription.vercel.app/app'
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
                   }
                 }
               ]]
