@@ -90,7 +90,7 @@ export default function DemoManagement() {
         body: JSON.stringify({
           userId: BigInt(newDemoAccess.userId),
           productId: newDemoAccess.productId,
-          demoDays: parseInt(newDemoAccess.demoDays)
+          demoDays: newDemoAccess.demoDays
         })
       }))
 
