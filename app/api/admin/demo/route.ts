@@ -67,23 +67,21 @@ export async function GET(request: NextRequest) {
       include: {
         user: {
           select: {
-            id: true,
+            telegramId: true,
             firstName: true,
-            username: true,
-            telegramId: true
+            username: true
           }
         },
         product: {
           select: {
-            id: true,
+            productId: true,
             name: true,
-            price: true,
-            productId: true
+            price: true
           }
         }
       },
       orderBy: {
-        createdAt: 'desc'
+        startedAt: 'desc'
       }
     })
 
