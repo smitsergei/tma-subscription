@@ -224,7 +224,6 @@ export async function POST(request: NextRequest) {
               }
             )
             responseSent = true
-            return
           }
 
           let text = '<b>📋 Ваши активные подписки:</b>\n\n'
