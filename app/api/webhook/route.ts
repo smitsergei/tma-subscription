@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
+import { prisma } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,8 +44,23 @@ export async function POST(request: NextRequest) {
       const message = update.message
       const chatId = message.chat.id
       const text = message.text || ''
+      const from = message.from
 
       console.log('💬 Processing message:', { chatId, text })
+
+      // Создание или обновление пользователя
+      await prisma.user.upsert({
+        where: { telegramId: BigInt(from.id) },
+        update: {
+          firstName: from.first_name,
+          username: from.username
+        },
+        create: {
+          telegramId: BigInt(from.id),
+          firstName: from.first_name,
+          username: from.username
+        }
+      })
 
       if (text === '/start') {
         await sendMessage(
@@ -129,7 +145,132 @@ export async function POST(request: NextRequest) {
                 {
                   text: '👑 Открыть админ-панель',
                   web_app: {
-                    url: 'https://tma-subscription.vercel.app/admin'
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin'
+                  }
+                }
+              ]]
+            }
+          }
+        )
+        responseSent = true
+      }
+
+      if (text === '/help') {
+        await sendMessage(
+          chatId,
+          '<b>📖 Справка по использованию бота</b>\n\n' +
+          '<b>🔹 Доступные команды:</b>\n' +
+          '• /start - Главное меню\n' +
+          '• /help - Эта справка\n' +
+          '• /mysubscriptions - Мои подписки\n\n' +
+          '<b>🔹 Как оформить подписку:</b>\n' +
+          '1. Нажмите "🚀 Открыть Mini App"\n' +
+          '2. Выберите интересующий канал\n' +
+          '3. Оплатите через доступную платежную систему\n' +
+          '4. Получите доступ к закрытому контенту\n\n' +
+          '<b>🔹 Поддержка:</b>\n' +
+          'Если у вас возникли проблемы, обратитесь к администратору.',
+          {
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: '🚀 Открыть Mini App',
+                  web_app: {
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
+                  }
+                }
+              ]]
+            }
+          }
+        )
+        responseSent = true
+      }
+
+      if (text === '/mysubscriptions') {
+        try {
+          const subscriptions = await prisma.subscription.findMany({
+            where: {
+              userId: BigInt(from.id),
+              status: 'active',
+              expiresAt: {
+                gt: new Date()
+              }
+            },
+            include: {
+              product: {
+                include: {
+                  channel: true
+                }
+              }
+            }
+          })
+
+          if (subscriptions.length === 0) {
+            await sendMessage(
+              chatId,
+              '<b>📋 У вас нет активных подписок</b>\n\n' +
+              'Нажмите "🚀 Открыть Mini App", чтобы посмотреть доступные варианты.',
+              {
+                reply_markup: {
+                  inline_keyboard: [[
+                    {
+                      text: '🚀 Открыть Mini App',
+                      web_app: {
+                        url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
+                      }
+                    }
+                  ]]
+                }
+              }
+            )
+            responseSent = true
+            return
+          }
+
+          let text = '<b>📋 Ваши активные подписки:</b>\n\n'
+
+          subscriptions.forEach((sub, index) => {
+            const expiresAt = new Date(sub.expiresAt).toLocaleDateString('ru-RU')
+            text += `<b>${index + 1}. ${sub.product.name}</b>\n`
+            text += `   📢 Канал: ${sub.product.channel.name}\n`
+            text += `   📅 Истекает: ${expiresAt}\n\n`
+          })
+
+          await sendMessage(
+            chatId,
+            text,
+            {
+              reply_markup: {
+                inline_keyboard: [[
+                  {
+                    text: '🚀 Открыть Mini App',
+                    web_app: {
+                      url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
+                    }
+                  }
+                ]]
+              }
+            }
+          )
+        } catch (error) {
+          console.error('Error sending user subscriptions:', error)
+          await sendMessage(chatId, '❌ Произошла ошибка. Попробуйте позже.')
+        }
+        responseSent = true
+      }
+
+      // Обработка других сообщений
+      if (!responseSent) {
+        await sendMessage(
+          chatId,
+          '😕 Не понимаю вас. Используйте команду /help для справки или /start для главного меню.',
+          {
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: '🚀 Открыть Mini App',
+                  web_app: {
+                    url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
                   }
                 }
               ]]
