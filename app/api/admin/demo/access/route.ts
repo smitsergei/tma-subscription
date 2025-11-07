@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { startedAt: 'desc' }
     })
 
     // Конвертируем BigInt в string
