@@ -51,44 +51,72 @@ export async function GET(request: NextRequest) {
       where.userId = BigInt(userId)
     }
 
-    const subscriptions = await prisma.subscription.findMany({
+  // Get subscriptions separately to avoid BigInt serialization issues
+    const subscriptionsData = await prisma.subscription.findMany({
       where,
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
         user: true,
-        product: true,
+        product: {
+          select: {
+            productId: true,
+            name: true,
+            price: true,
+            periodDays: true,
+            channel: {
+              select: {
+                channelId: true,
+                name: true,
+                username: true
+              }
+            }
+          }
+        },
         channel: true,
         payment: true
       }
     })
 
+    // Serialize BigInt fields
+    const subscriptions = subscriptionsData.map(sub => ({
+      subscriptionId: sub.subscriptionId,
+      userId: sub.userId.toString(),
+      productId: sub.productId,
+      channelId: sub.channelId.toString(),
+      status: sub.status,
+      expiresAt: sub.expiresAt,
+      createdAt: sub.createdAt,
+      updatedAt: sub.updatedAt,
+      user: sub.user ? {
+        telegramId: sub.user.telegramId.toString(),
+        firstName: sub.user.firstName,
+        username: sub.user.username
+      } : null,
+      product: {
+        ...sub.product,
+        productId: sub.product.productId,
+        price: parseFloat(sub.product.price.toString()),
+        periodDays: sub.product.periodDays,
+        channel: sub.product.channel ? {
+          ...sub.product.channel,
+          channelId: sub.product.channel.channelId.toString()
+        } : null
+      },
+      channel: sub.channel ? {
+        channelId: sub.channel.channelId.toString(),
+        name: sub.channel.name,
+        username: sub.channel.username,
+        description: sub.channel.description
+      } : null,
+      payment: sub.payment
+    }))
+
     const total = await prisma.subscription.count({ where })
 
     return NextResponse.json({
-      subscriptions: subscriptions.map(sub => ({
-        subscriptionId: sub.subscriptionId,
-        userId: sub.userId.toString(),
-        productId: sub.productId,
-        channelId: sub.channelId.toString(),
-        status: sub.status,
-        expiresAt: sub.expiresAt,
-        createdAt: sub.createdAt,
-        updatedAt: sub.updatedAt,
-        user: sub.user ? {
-          telegramId: sub.user.telegramId.toString(),
-          firstName: sub.user.firstName,
-          username: sub.user.username
-        } : null,
-        product: sub.product,
-        channel: sub.channel ? {
-          channelId: sub.channel.channelId.toString(),
-          name: sub.channel.name,
-          username: sub.channel.username
-        } : null,
-        payment: sub.payment
-      })),
+      subscriptions,
       pagination: {
         page,
         limit,
