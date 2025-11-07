@@ -100,10 +100,9 @@ export async function GET(request: NextRequest) {
       include: {
         user: {
           select: {
-            id: true,
+            telegramId: true,
             firstName: true,
-            username: true,
-            telegramId: true
+            username: true
           }
         },
         product: {
@@ -127,7 +126,7 @@ export async function GET(request: NextRequest) {
       expiresAt: demoAccess.expiresAt.toISOString(),
       isActive: demoAccess.isActive,
       user: {
-        id: demoAccess.user.id,
+        telegramId: demoAccess.user.telegramId.toString(),
         firstName: demoAccess.user.firstName,
         username: demoAccess.user.username
       },
