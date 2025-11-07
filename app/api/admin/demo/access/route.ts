@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
         },
         product: {
           select: {
-            id: true,
+            productId: true,
             name: true,
             price: true,
             demoDays: true
