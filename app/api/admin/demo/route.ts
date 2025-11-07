@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
         isActive: demo.isActive && !isExpired,
         isExpired,
         daysLeft: Math.max(0, daysLeft),
-        createdAt: demo.createdAt.toISOString(),
+        startedAt: demo.startedAt.toISOString(),
         user: {
           ...demo.user,
           telegramId: demo.user.telegramId.toString()
