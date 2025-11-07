@@ -28,166 +28,6 @@ interface Product {
   price: number
 }
 
-interface DropdownMenuProps {
-  discount: Discount
-  onEdit: () => void
-  onDelete: () => void
-  onToggleStatus: () => void
-}
-
-function DropdownMenu({ discount, onEdit, onDelete, onToggleStatus }: DropdownMenuProps) {
-  const [isOpen, setIsOpen] = useState(false)
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-        aria-label="Действия"
-      >
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 z-20 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
-            <button
-              onClick={() => {
-                onToggleStatus()
-                setIsOpen(false)
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              {discount.isActive ? 'Деактивировать' : 'Активировать'}
-            </button>
-            <button
-              onClick={() => {
-                onEdit()
-                setIsOpen(false)
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Изменить
-            </button>
-            <button
-              onClick={() => {
-                onDelete()
-                setIsOpen(false)
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Удалить
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-interface DiscountCardProps {
-  discount: Discount
-  onEdit: () => void
-  onDelete: () => void
-  onToggleStatus: () => void
-}
-
-function DiscountCard({ discount, onEdit, onDelete, onToggleStatus }: DiscountCardProps) {
-  const isDiscountActive = () => {
-    const now = new Date()
-    const startDate = new Date(discount.startDate)
-    const endDate = new Date(discount.endDate)
-    return discount.isActive && now >= startDate && now <= endDate
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    })
-  }
-
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 text-lg">{discount.product.name}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            {discount.type === 'PERCENTAGE' ? (
-              <span className="text-green-600 font-bold text-lg">-{discount.value}%</span>
-            ) : (
-              <span className="text-blue-600 font-bold text-lg">-${discount.value}</span>
-            )}
-          </div>
-        </div>
-        <DropdownMenu
-          discount={discount}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onToggleStatus={onToggleStatus}
-        />
-      </div>
-
-      {/* Date Range */}
-      <div className="bg-gray-50 rounded-lg p-3 mb-3">
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <div>
-            <div className="text-sm font-medium text-gray-900">Период действия</div>
-            <div className="text-xs text-gray-500">
-              {formatDate(discount.startDate)} - {formatDate(discount.endDate)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Status and Usage */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={onToggleStatus}
-          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-            isDiscountActive()
-              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          {isDiscountActive() ? 'Активна' : 'Неактивна'}
-        </button>
-
-        <div className="flex items-center gap-1">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className={`text-xs font-medium ${
-            discount._count.usageHistory > 0 ? 'text-blue-600' : 'text-gray-500'
-          }`}>
-            {discount._count.usageHistory} использований
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function DiscountManagement() {
   const [discounts, setDiscounts] = useState<Discount[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -395,112 +235,105 @@ export default function DiscountManagement() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-        <span className="ml-2 text-gray-600">Загрузка скидок...</span>
-      </div>
-    )
+    return <div className="text-center py-8">Загрузка скидок...</div>
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Управление скидками</h2>
-          <p className="text-sm text-gray-600 mt-1">{discounts.length} {discounts.length === 1 ? 'скидка' : discounts.length < 5 ? 'скидки' : 'скидок'}</p>
+          <h2 className="text-xl font-semibold text-gray-900">💰 Управление скидками</h2>
+          <p className="text-gray-600 mt-1">Создание и управление скидками на продукты</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 self-start"
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Создать скидку
+          ➕ Создать скидку
         </button>
       </div>
 
-      {/* Desktop Table */}
-      <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
+      {/* Discounts Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Продукт
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Скидка
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Период действия
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Период
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Статус
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Использований
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Действия
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-200">
               {discounts.map((discount) => (
-                <tr key={discount.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{discount.product.name}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    {discount.type === 'PERCENTAGE' ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                        -{discount.value}%
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                        -${discount.value}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {formatDate(discount.startDate)} - {formatDate(discount.endDate)}
+                <tr key={discount.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {discount.product.name}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {discount.type === 'PERCENTAGE' ? (
+                        <span className="text-green-600 font-semibold">-{discount.value}%</span>
+                      ) : (
+                        <span className="text-blue-600 font-semibold">-${discount.value}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(discount.startDate)} - {formatDate(discount.endDate)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => toggleDiscountStatus(discount)}
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         isDiscountActive(discount)
                           ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                       }`}
                     >
-                      {isDiscountActive(discount) ? 'Активна' : 'Неактивна'}
+                      {isDiscountActive(discount) ? '✅ Активна' : '⏸️ Неактивна'}
                     </button>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className={`text-sm font-medium ${
-                        discount._count.usageHistory > 0 ? 'text-blue-600' : 'text-gray-500'
-                      }`}>
-                        {discount._count.usageHistory}
-                      </span>
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      discount._count.usageHistory > 0
+                        ? 'bg-blue-100 text-blue-800 font-semibold'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {discount._count.usageHistory}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <DropdownMenu
-                      discount={discount}
-                      onEdit={() => openEditModal(discount)}
-                      onDelete={() => deleteDiscount(discount.id)}
-                      onToggleStatus={() => toggleDiscountStatus(discount)}
-                    />
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <button
+                      onClick={() => openEditModal(discount)}
+                      className="text-indigo-600 hover:text-indigo-900 px-2 py-1 text-sm font-medium"
+                    >
+                      ✏️ Изменить
+                    </button>
+                    <button
+                      onClick={() => deleteDiscount(discount.id)}
+                      className="text-red-600 hover:text-red-900 px-2 py-1 text-sm font-medium"
+                    >
+                      🗑️ Удалить
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -509,51 +342,16 @@ export default function DiscountManagement() {
         </div>
       </div>
 
-      {/* Mobile Cards */}
-      <div className="lg:hidden space-y-4">
-        {discounts.map((discount) => (
-          <DiscountCard
-            key={discount.id}
-            discount={discount}
-            onEdit={() => openEditModal(discount)}
-            onDelete={() => deleteDiscount(discount.id)}
-            onToggleStatus={() => toggleDiscountStatus(discount)}
-          />
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {discounts.length === 0 && (
-        <div className="text-center py-12">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Нет скидок</h3>
-          <p className="mt-1 text-sm text-gray-500">Начните с создания первой скидки</p>
-          <div className="mt-6">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Создать скидку
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Create Discount Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Создать скидку</h3>
             <div className="space-y-4">
               <select
                 value={newDiscount.productId}
                 onChange={(e) => setNewDiscount({...newDiscount, productId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 required
               >
                 <option value="">Выберите продукт *</option>
@@ -567,7 +365,7 @@ export default function DiscountManagement() {
               <select
                 value={newDiscount.type}
                 onChange={(e) => setNewDiscount({...newDiscount, type: e.target.value as 'PERCENTAGE' | 'FIXED_AMOUNT'})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="PERCENTAGE">Процентная скидка</option>
                 <option value="FIXED_AMOUNT">Фиксированная скидка</option>
@@ -578,7 +376,7 @@ export default function DiscountManagement() {
                 placeholder={newDiscount.type === 'PERCENTAGE' ? "Процент скидки *" : "Сумма скидки ($)"}
                 value={newDiscount.value}
                 onChange={(e) => setNewDiscount({...newDiscount, value: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 min={newDiscount.type === 'PERCENTAGE' ? 1 : 0}
                 max={newDiscount.type === 'PERCENTAGE' ? 100 : undefined}
                 step={newDiscount.type === 'PERCENTAGE' ? 1 : 0.01}
@@ -592,7 +390,7 @@ export default function DiscountManagement() {
                     type="date"
                     value={newDiscount.startDate}
                     onChange={(e) => setNewDiscount({...newDiscount, startDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
@@ -602,7 +400,7 @@ export default function DiscountManagement() {
                     type="date"
                     value={newDiscount.endDate}
                     onChange={(e) => setNewDiscount({...newDiscount, endDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
@@ -621,16 +419,16 @@ export default function DiscountManagement() {
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
               >
                 Отмена
               </button>
               <button
                 onClick={createDiscount}
                 disabled={!newDiscount.productId || !newDiscount.value}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium transition-colors"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
               >
-                Создать скидку
+                ✅ Создать скидку
               </button>
             </div>
           </div>
@@ -639,14 +437,14 @@ export default function DiscountManagement() {
 
       {/* Edit Discount Modal */}
       {showEditModal && selectedDiscount && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Изменить скидку</h3>
             <div className="space-y-4">
               <select
                 value={editDiscount.type}
                 onChange={(e) => setEditDiscount({...editDiscount, type: e.target.value as 'PERCENTAGE' | 'FIXED_AMOUNT'})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="PERCENTAGE">Процентная скидка</option>
                 <option value="FIXED_AMOUNT">Фиксированная скидка</option>
@@ -657,7 +455,7 @@ export default function DiscountManagement() {
                 placeholder={editDiscount.type === 'PERCENTAGE' ? "Процент скидки" : "Сумма скидки ($)"}
                 value={editDiscount.value}
                 onChange={(e) => setEditDiscount({...editDiscount, value: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 min={editDiscount.type === 'PERCENTAGE' ? 1 : 0}
                 max={editDiscount.type === 'PERCENTAGE' ? 100 : undefined}
                 step={editDiscount.type === 'PERCENTAGE' ? 1 : 0.01}
@@ -670,7 +468,7 @@ export default function DiscountManagement() {
                     type="date"
                     value={editDiscount.startDate}
                     onChange={(e) => setEditDiscount({...editDiscount, startDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
                 <div>
@@ -679,7 +477,7 @@ export default function DiscountManagement() {
                     type="date"
                     value={editDiscount.endDate}
                     onChange={(e) => setEditDiscount({...editDiscount, endDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
               </div>
@@ -697,15 +495,15 @@ export default function DiscountManagement() {
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
               >
                 Отмена
               </button>
               <button
                 onClick={updateDiscount}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
               >
-                Сохранить изменения
+                💾 Сохранить изменения
               </button>
             </div>
           </div>

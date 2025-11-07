@@ -32,219 +32,6 @@ interface Product {
   price: number
 }
 
-interface DropdownMenuProps {
-  promoCode: PromoCode
-  onEdit: () => void
-  onDelete: () => void
-  onToggleStatus: () => void
-}
-
-function DropdownMenu({ promoCode, onEdit, onDelete, onToggleStatus }: DropdownMenuProps) {
-  const [isOpen, setIsOpen] = useState(false)
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-        aria-label="Действия"
-      >
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 z-20 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
-            <button
-              onClick={() => {
-                onToggleStatus()
-                setIsOpen(false)
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              {promoCode.isActive ? 'Деактивировать' : 'Активировать'}
-            </button>
-            <button
-              onClick={() => {
-                onEdit()
-                setIsOpen(false)
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Изменить
-            </button>
-            <button
-              onClick={() => {
-                onDelete()
-                setIsOpen(false)
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Удалить
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-interface PromoCodeCardProps {
-  promoCode: PromoCode
-  onEdit: () => void
-  onDelete: () => void
-  onToggleStatus: () => void
-}
-
-function PromoCodeCard({ promoCode, onEdit, onDelete, onToggleStatus }: PromoCodeCardProps) {
-  const isPromoCodeActive = () => {
-    const now = new Date()
-    const validFrom = new Date(promoCode.validFrom)
-    const validUntil = new Date(promoCode.validUntil)
-
-    if (!promoCode.isActive) return false
-    if (now < validFrom || now > validUntil) return false
-    if (promoCode.maxUses && promoCode.currentUses >= promoCode.maxUses) return false
-
-    return true
-  }
-
-  const getUsesProgress = () => {
-    if (!promoCode.maxUses) return null
-    const percentage = (promoCode.currentUses / promoCode.maxUses) * 100
-    return { used: promoCode.currentUses, max: promoCode.maxUses, percentage }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    })
-  }
-
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-mono font-semibold text-gray-900 text-lg bg-purple-50 px-2 py-1 rounded">
-              {promoCode.code}
-            </h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {promoCode.type === 'PERCENTAGE' && (
-              <span className="text-green-600 font-bold text-lg">-{promoCode.discountValue}%</span>
-            )}
-            {promoCode.type === 'FIXED_AMOUNT' && (
-              <span className="text-blue-600 font-bold text-lg">-${promoCode.discountValue}</span>
-            )}
-            {promoCode.type === 'FREE_TRIAL' && (
-              <span className="text-purple-600 font-bold text-sm">Бесплатный период</span>
-            )}
-            {promoCode.minAmount && (
-              <span className="text-xs text-gray-500">от ${promoCode.minAmount}</span>
-            )}
-          </div>
-        </div>
-        <DropdownMenu
-          promoCode={promoCode}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onToggleStatus={onToggleStatus}
-        />
-      </div>
-
-      {/* Product Info */}
-      <div className="bg-gray-50 rounded-lg p-3 mb-3">
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <div>
-            <div className="text-sm font-medium text-gray-900">
-              {promoCode.product ? promoCode.product.name : 'Все продукты'}
-            </div>
-            {promoCode.product && (
-              <div className="text-xs text-gray-500">${promoCode.product.price}</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Date Range */}
-      <div className="bg-gray-50 rounded-lg p-3 mb-3">
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <div>
-            <div className="text-sm font-medium text-gray-900">Период действия</div>
-            <div className="text-xs text-gray-500">
-              {formatDate(promoCode.validFrom)} - {formatDate(promoCode.validUntil)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Status and Usage */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={onToggleStatus}
-          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-            isPromoCodeActive()
-              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          {isPromoCodeActive() ? 'Активен' : 'Неактивен'}
-        </button>
-
-        {getUsesProgress() ? (
-          <div className="flex items-center gap-2">
-            <div className="text-xs text-gray-600">
-              {getUsesProgress()!.used}/{getUsesProgress()!.max}
-            </div>
-            <div className="w-16 bg-gray-200 rounded-full h-1.5">
-              <div
-                className={`h-1.5 rounded-full transition-all ${
-                  getUsesProgress()!.percentage > 80 ? 'bg-red-500' : 'bg-purple-600'
-                }`}
-                style={{ width: `${Math.min(getUsesProgress()!.percentage, 100)}%` }}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-xs font-medium text-gray-600">
-              {promoCode._count.usageHistory} использований
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export default function PromoCodeManagement() {
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -513,155 +300,134 @@ export default function PromoCodeManagement() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-        <span className="ml-2 text-gray-600">Загрузка промокодов...</span>
-      </div>
-    )
+    return <div className="text-center py-8">Загрузка промокодов...</div>
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Управление промокодами</h2>
-          <p className="text-sm text-gray-600 mt-1">{promoCodes.length} {promoCodes.length === 1 ? 'промокод' : promoCodes.length < 5 ? 'промокода' : 'промокодов'}</p>
+          <h2 className="text-xl font-semibold text-gray-900">🎫 Управление промокодами</h2>
+          <p className="text-gray-600 mt-1">Создание и управление промокодами</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 self-start"
+          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Создать промокод
+          ➕ Создать промокод
         </button>
       </div>
 
-      {/* Desktop Table */}
-      <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
+      {/* Promo Codes Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Промокод
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Тип и значение
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Применимость
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Использования
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Срок действия
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Статус
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Действия
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-200">
               {promoCodes.map((promoCode) => (
-                <tr key={promoCode.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-mono font-medium text-gray-900 bg-purple-50 px-2 py-1 rounded">
+                <tr key={promoCode.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded">
                       {promoCode.code}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm">
                       {promoCode.type === 'PERCENTAGE' && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                          -{promoCode.discountValue}%
-                        </span>
+                        <span className="text-green-600 font-semibold">-{promoCode.discountValue}%</span>
                       )}
                       {promoCode.type === 'FIXED_AMOUNT' && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                          -${promoCode.discountValue}
-                        </span>
+                        <span className="text-blue-600 font-semibold">-${promoCode.discountValue}</span>
                       )}
                       {promoCode.type === 'FREE_TRIAL' && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
-                          Бесплатный период
-                        </span>
-                      )}
-                      {promoCode.minAmount && (
-                        <div className="text-xs text-gray-500 mt-1">от ${promoCode.minAmount}</div>
+                        <span className="text-purple-600 font-semibold">Бесплатный период</span>
                       )}
                     </div>
+                    {promoCode.minAmount && (
+                      <div className="text-xs text-gray-500">от ${promoCode.minAmount}</div>
+                    )}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {promoCode.product ? (
-                        <div>
-                          <div className="font-medium">{promoCode.product.name}</div>
-                          <div className="text-xs text-gray-500">${promoCode.product.price}</div>
-                        </div>
-                      ) : (
-                        <span className="text-purple-600 font-medium">Все продукты</span>
-                      )}
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {promoCode.product ? (
+                      <div>
+                        <div className="font-medium">{promoCode.product.name}</div>
+                        <div className="text-gray-500">${promoCode.product.price}</div>
+                      </div>
+                    ) : (
+                      <span className="text-purple-600">Все продукты</span>
+                    )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {getUsesProgress(promoCode) ? (
                       <div className="max-w-[100px]">
                         <div className="flex justify-between text-xs mb-1">
-                          <span className="text-gray-600">{getUsesProgress(promoCode)!.used}</span>
-                          <span className="text-gray-600">{getUsesProgress(promoCode)!.max}</span>
+                          <span>{getUsesProgress(promoCode)!.used}</span>
+                          <span>{getUsesProgress(promoCode)!.max}</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
-                            className={`h-2 rounded-full transition-all ${
-                              getUsesProgress(promoCode)!.percentage > 80 ? 'bg-red-500' : 'bg-purple-600'
-                            }`}
-                            style={{ width: `${Math.min(getUsesProgress(promoCode)!.percentage, 100)}%` }}
+                            className="bg-purple-600 h-2 rounded-full"
+                            style={{ width: `${getUsesProgress(promoCode)!.percentage}%` }}
                           />
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-sm font-medium text-gray-900">
-                          {promoCode._count.usageHistory}
-                        </span>
-                      </div>
+                      <span className="text-gray-500">{promoCode._count.usageHistory}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {formatDate(promoCode.validFrom)} - {formatDate(promoCode.validUntil)}
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(promoCode.validFrom)} - {formatDate(promoCode.validUntil)}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => togglePromoCodeStatus(promoCode)}
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         isPromoCodeActive(promoCode)
                           ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                       }`}
                     >
-                      {isPromoCodeActive(promoCode) ? 'Активен' : 'Неактивен'}
+                      {isPromoCodeActive(promoCode) ? '✅ Активен' : '⏸️ Неактивен'}
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <DropdownMenu
-                      promoCode={promoCode}
-                      onEdit={() => openEditModal(promoCode)}
-                      onDelete={() => deletePromoCode(promoCode.id)}
-                      onToggleStatus={() => togglePromoCodeStatus(promoCode)}
-                    />
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <button
+                      onClick={() => openEditModal(promoCode)}
+                      className="text-indigo-600 hover:text-indigo-900 px-2 py-1 text-sm font-medium"
+                    >
+                      ✏️ Изменить
+                    </button>
+                    <button
+                      onClick={() => deletePromoCode(promoCode.id)}
+                      className="text-red-600 hover:text-red-900 px-2 py-1 text-sm font-medium"
+                    >
+                      🗑️ Удалить
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -670,45 +436,10 @@ export default function PromoCodeManagement() {
         </div>
       </div>
 
-      {/* Mobile Cards */}
-      <div className="lg:hidden space-y-4">
-        {promoCodes.map((promoCode) => (
-          <PromoCodeCard
-            key={promoCode.id}
-            promoCode={promoCode}
-            onEdit={() => openEditModal(promoCode)}
-            onDelete={() => deletePromoCode(promoCode.id)}
-            onToggleStatus={() => togglePromoCodeStatus(promoCode)}
-          />
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {promoCodes.length === 0 && (
-        <div className="text-center py-12">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Нет промокодов</h3>
-          <p className="mt-1 text-sm text-gray-500">Начните с создания первого промокода</p>
-          <div className="mt-6">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Создать промокод
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Create Promo Code Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Создать промокод</h3>
             <div className="space-y-4">
               <div>
@@ -719,17 +450,15 @@ export default function PromoCodeManagement() {
                     placeholder="Введите код или сгенерируйте"
                     value={newPromoCode.code}
                     onChange={(e) => setNewPromoCode({...newPromoCode, code: e.target.value.toUpperCase()})}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-mono focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-mono"
                     required
                   />
                   <button
                     type="button"
                     onClick={generateRandomCode}
-                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
+                    🎲
                   </button>
                 </div>
               </div>
@@ -737,7 +466,7 @@ export default function PromoCodeManagement() {
               <select
                 value={newPromoCode.type}
                 onChange={(e) => setNewPromoCode({...newPromoCode, type: e.target.value as 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FREE_TRIAL'})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="PERCENTAGE">Процентная скидка</option>
                 <option value="FIXED_AMOUNT">Фиксированная скидка</option>
@@ -750,7 +479,7 @@ export default function PromoCodeManagement() {
                   placeholder={newPromoCode.type === 'PERCENTAGE' ? "Размер скидки %" : "Сумма скидки $"}
                   value={newPromoCode.discountValue}
                   onChange={(e) => setNewPromoCode({...newPromoCode, discountValue: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   min={newPromoCode.type === 'PERCENTAGE' ? 1 : 0}
                   max={newPromoCode.type === 'PERCENTAGE' ? 100 : undefined}
                   step={newPromoCode.type === 'PERCENTAGE' ? 1 : 0.01}
@@ -761,7 +490,7 @@ export default function PromoCodeManagement() {
               <select
                 value={newPromoCode.productId}
                 onChange={(e) => setNewPromoCode({...newPromoCode, productId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="">Все продукты</option>
                 {products.map((product) => (
@@ -777,7 +506,7 @@ export default function PromoCodeManagement() {
                   placeholder="Макс. использований"
                   value={newPromoCode.maxUses}
                   onChange={(e) => setNewPromoCode({...newPromoCode, maxUses: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   min={1}
                 />
                 <input
@@ -785,7 +514,7 @@ export default function PromoCodeManagement() {
                   placeholder="Мин. сумма $"
                   value={newPromoCode.minAmount}
                   onChange={(e) => setNewPromoCode({...newPromoCode, minAmount: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   min={0}
                   step={0.01}
                 />
@@ -798,7 +527,7 @@ export default function PromoCodeManagement() {
                     type="date"
                     value={newPromoCode.validFrom}
                     onChange={(e) => setNewPromoCode({...newPromoCode, validFrom: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
@@ -808,7 +537,7 @@ export default function PromoCodeManagement() {
                     type="date"
                     value={newPromoCode.validUntil}
                     onChange={(e) => setNewPromoCode({...newPromoCode, validUntil: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
@@ -830,16 +559,16 @@ export default function PromoCodeManagement() {
                   setShowCreateModal(false)
                   resetNewPromoCode()
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
               >
                 Отмена
               </button>
               <button
                 onClick={createPromoCode}
                 disabled={!newPromoCode.code || (newPromoCode.type !== 'FREE_TRIAL' && !newPromoCode.discountValue)}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium transition-colors"
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium"
               >
-                Создать промокод
+                ✅ Создать промокод
               </button>
             </div>
           </div>
@@ -848,18 +577,18 @@ export default function PromoCodeManagement() {
 
       {/* Edit Promo Code Modal */}
       {showEditModal && selectedPromoCode && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Изменить промокод: {selectedPromoCode.code}</h3>
             <div className="space-y-4">
               <div className="text-sm text-gray-600 mb-4">
-                Код: <span className="font-mono bg-purple-50 px-2 py-1 rounded">{selectedPromoCode.code}</span>
+                Код: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{selectedPromoCode.code}</span>
               </div>
 
               <select
                 value={editPromoCode.type}
                 onChange={(e) => setEditPromoCode({...editPromoCode, type: e.target.value as 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FREE_TRIAL'})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="PERCENTAGE">Процентная скидка</option>
                 <option value="FIXED_AMOUNT">Фиксированная скидка</option>
@@ -872,7 +601,7 @@ export default function PromoCodeManagement() {
                   placeholder={editPromoCode.type === 'PERCENTAGE' ? "Размер скидки %" : "Сумма скидки $"}
                   value={editPromoCode.discountValue}
                   onChange={(e) => setEditPromoCode({...editPromoCode, discountValue: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   min={editPromoCode.type === 'PERCENTAGE' ? 1 : 0}
                   max={editPromoCode.type === 'PERCENTAGE' ? 100 : undefined}
                   step={editPromoCode.type === 'PERCENTAGE' ? 1 : 0.01}
@@ -882,7 +611,7 @@ export default function PromoCodeManagement() {
               <select
                 value={editPromoCode.productId}
                 onChange={(e) => setEditPromoCode({...editPromoCode, productId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="">Все продукты</option>
                 {products.map((product) => (
@@ -898,7 +627,7 @@ export default function PromoCodeManagement() {
                   placeholder="Макс. использований"
                   value={editPromoCode.maxUses}
                   onChange={(e) => setEditPromoCode({...editPromoCode, maxUses: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   min={1}
                 />
                 <input
@@ -906,7 +635,7 @@ export default function PromoCodeManagement() {
                   placeholder="Мин. сумма $"
                   value={editPromoCode.minAmount}
                   onChange={(e) => setEditPromoCode({...editPromoCode, minAmount: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   min={0}
                   step={0.01}
                 />
@@ -919,7 +648,7 @@ export default function PromoCodeManagement() {
                     type="date"
                     value={editPromoCode.validFrom}
                     onChange={(e) => setEditPromoCode({...editPromoCode, validFrom: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
                 <div>
@@ -928,7 +657,7 @@ export default function PromoCodeManagement() {
                     type="date"
                     value={editPromoCode.validUntil}
                     onChange={(e) => setEditPromoCode({...editPromoCode, validUntil: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
               </div>
@@ -950,15 +679,15 @@ export default function PromoCodeManagement() {
                   setSelectedPromoCode(null)
                   resetEditPromoCode()
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
               >
                 Отмена
               </button>
               <button
                 onClick={updatePromoCode}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors"
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
               >
-                Сохранить изменения
+                💾 Сохранить изменения
               </button>
             </div>
           </div>

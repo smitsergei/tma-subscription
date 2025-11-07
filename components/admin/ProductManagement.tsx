@@ -30,6 +30,166 @@ interface Product {
   activeDiscounts?: number
 }
 
+interface DropdownMenuProps {
+  product: Product
+  onEdit: () => void
+  onDelete: () => void
+  onToggleStatus: () => void
+}
+
+function DropdownMenu({ product, onEdit, onDelete, onToggleStatus }: DropdownMenuProps) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        aria-label="Действия"
+      >
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute right-0 z-20 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+            <button
+              onClick={() => {
+                onToggleStatus()
+                setIsOpen(false)
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              {product.isActive ? 'Деактивировать' : 'Активировать'}
+            </button>
+            <button
+              onClick={() => {
+                onEdit()
+                setIsOpen(false)
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Изменить
+            </button>
+            <button
+              onClick={() => {
+                onDelete()
+                setIsOpen(false)
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Удалить
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+interface ProductCardProps {
+  product: Product
+  onEdit: () => void
+  onDelete: () => void
+  onToggleStatus: () => void
+}
+
+function ProductCard({ product, onEdit, onDelete, onToggleStatus }: ProductCardProps) {
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex-1">
+          <h3 className="font-semibold text-gray-900 text-lg">{product.name}</h3>
+          <p className="text-gray-600 text-sm mt-1">{product.description}</p>
+        </div>
+        <DropdownMenu
+          product={product}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onToggleStatus={onToggleStatus}
+        />
+      </div>
+
+      {/* Price and Status */}
+      <div className="flex items-center gap-4 mb-3">
+        <div className="flex items-center gap-1">
+          <span className="text-2xl font-bold text-green-600">${product.price}</span>
+          <span className="text-gray-500 text-sm">/{product.periodDays}дн</span>
+        </div>
+        <button
+          onClick={onToggleStatus}
+          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+            product.isActive
+              ? 'bg-green-100 text-green-800 hover:bg-green-200'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          {product.isActive ? 'Активен' : 'Неактивен'}
+        </button>
+      </div>
+
+      {/* Channel Info */}
+      <div className="bg-gray-50 rounded-lg p-3 mb-3">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+          </svg>
+          <div>
+            <div className="font-medium text-gray-900">{product.channel.name}</div>
+            <div className="text-xs text-gray-500">ID: {product.channel.id}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats and Features */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span className="text-sm text-gray-600">{product._count.subscriptions} подписок</span>
+          </div>
+
+          {product.allowDemo && (
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              <span className="text-xs text-blue-600 font-medium">Демо {product.demoDays || 7}дн</span>
+            </div>
+          )}
+
+          {product.activeDiscounts ? (
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-xs text-green-600 font-medium">{product.activeDiscounts} скидок</span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ProductManagement() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -93,7 +253,6 @@ export default function ProductManagement() {
       }))
 
       console.log('🔍 Response status:', response.status)
-      console.log('🔍 Response headers:', response.headers)
 
       if (response.ok) {
         const result = await response.json()
@@ -125,7 +284,7 @@ export default function ProductManagement() {
     if (!selectedProduct) return
 
     try {
-      console.log('🔍 Updating product:', selectedProduct.id, 'with data:', editProduct)
+      console.log('🔍 Updating product:', selectedProduct.id)
 
       const response = await fetch(`/api/admin/products-v2?id=${selectedProduct.id}`, createAuthenticatedRequest({
         method: 'PUT',
@@ -222,136 +381,117 @@ export default function ProductManagement() {
   }
 
   if (loading) {
-    return <div className="text-center py-8">Loading products...</div>
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Загрузка продуктов...</span>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">📦 Управление продуктами</h2>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Управление продуктами</h2>
+          <p className="text-sm text-gray-600 mt-1">{products.length} {products.length === 1 ? 'продукт' : products.length < 5 ? 'продукта' : 'продуктов'}</p>
+        </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 self-start"
         >
-          ➕ Создать продукт
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Создать продукт
         </button>
       </div>
 
-      {/* Products Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Desktop Table */}
+      <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Продукт
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Канал
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Цена
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Длительность
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Скидки
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Демо
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Статус
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Подписки
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Действия
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200">
               {products.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {product.name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {product.description}
+                      <div className="font-medium text-gray-900">{product.name}</div>
+                      <div className="text-sm text-gray-500 mt-1">{product.description}</div>
+                      <div className="flex items-center gap-3 mt-2">
+                        {product.allowDemo && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            Демо {product.demoDays || 7}дн
+                          </span>
+                        )}
+                        {product.activeDiscounts && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            {product.activeDiscounts} скидок
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {product.channel.name}
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 font-medium">{product.channel.name}</div>
+                    <div className="text-xs text-gray-500">ID: {product.channel.id}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-semibold text-gray-900">${product.price}</span>
+                      <span className="text-xs text-gray-500">/{product.periodDays}дн</span>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      ID: {product.channel.id}
-                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${product.price}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product.periodDays} дней
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {product.activeDiscounts ? (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        ✅ {product.activeDiscounts} активных
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                        ➕ Нет скидок
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {product.allowDemo ? (
-                      <div className="flex flex-col">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          🎓 {product.demoDays || 7} дней
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                        ❌ Недоступно
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <button
                       onClick={() => toggleProductStatus(product)}
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                         product.isActive
                           ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
                       {product.isActive ? 'Активен' : 'Неактивен'}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product._count.subscriptions}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-900">{product._count.subscriptions}</span>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => openEditModal(product)}
-                      className="text-indigo-600 hover:text-indigo-900 px-2 py-1 text-sm font-medium"
-                    >
-                      ✏️ Изменить
-                    </button>
-                    <button
-                      onClick={() => deleteProduct(product.id)}
-                      className="text-red-600 hover:text-red-900 px-2 py-1 text-sm font-medium"
-                    >
-                      🗑️ Удалить
-                    </button>
+                  <td className="px-6 py-4 text-right">
+                    <DropdownMenu
+                      product={product}
+                      onEdit={() => openEditModal(product)}
+                      onDelete={() => deleteProduct(product.id)}
+                      onToggleStatus={() => toggleProductStatus(product)}
+                    />
                   </td>
                 </tr>
               ))}
@@ -360,10 +500,45 @@ export default function ProductManagement() {
         </div>
       </div>
 
+      {/* Mobile Cards */}
+      <div className="lg:hidden space-y-4">
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            onEdit={() => openEditModal(product)}
+            onDelete={() => deleteProduct(product.id)}
+            onToggleStatus={() => toggleProductStatus(product)}
+          />
+        ))}
+      </div>
+
+      {/* Empty State */}
+      {products.length === 0 && (
+        <div className="text-center py-12">
+          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Нет продуктов</h3>
+          <p className="mt-1 text-sm text-gray-500">Начните с создания первого продукта</p>
+          <div className="mt-6">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Создать продукт
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Create Product Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Создать продукт</h3>
             <div className="space-y-4">
               <input
@@ -371,13 +546,13 @@ export default function ProductManagement() {
                 placeholder="Название продукта *"
                 value={newProduct.name}
                 onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <textarea
                 placeholder="Описание"
                 value={newProduct.description}
                 onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 rows={3}
               />
               <input
@@ -385,7 +560,7 @@ export default function ProductManagement() {
                 placeholder="Цена (USD) *"
                 value={newProduct.price}
                 onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 step="0.01"
               />
               <input
@@ -393,14 +568,14 @@ export default function ProductManagement() {
                 placeholder="ID канала Telegram *"
                 value={newProduct.channelTelegramId}
                 onChange={(e) => setNewProduct({...newProduct, channelTelegramId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <input
                 type="number"
                 placeholder="Длительность (дни)"
                 value={newProduct.periodDays}
                 onChange={(e) => setNewProduct({...newProduct, periodDays: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="1"
               />
               <label className="flex items-center">
@@ -416,16 +591,16 @@ export default function ProductManagement() {
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               >
                 Отмена
               </button>
               <button
                 onClick={createProduct}
                 disabled={!newProduct.name || !newProduct.price || !newProduct.channelTelegramId}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
               >
-                ✅ Создать продукт
+                Создать продукт
               </button>
             </div>
           </div>
@@ -434,8 +609,8 @@ export default function ProductManagement() {
 
       {/* Edit Product Modal */}
       {showEditModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Изменить продукт</h3>
             <div className="space-y-4">
               <input
@@ -443,13 +618,13 @@ export default function ProductManagement() {
                 placeholder="Название продукта"
                 value={editProduct.name}
                 onChange={(e) => setEditProduct({...editProduct, name: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <textarea
                 placeholder="Описание"
                 value={editProduct.description}
                 onChange={(e) => setEditProduct({...editProduct, description: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 rows={3}
               />
               <input
@@ -457,7 +632,7 @@ export default function ProductManagement() {
                 placeholder="Цена (USD)"
                 value={editProduct.price}
                 onChange={(e) => setEditProduct({...editProduct, price: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 step="0.01"
               />
               <input
@@ -465,14 +640,14 @@ export default function ProductManagement() {
                 placeholder="ID канала Telegram"
                 value={editProduct.channelTelegramId}
                 onChange={(e) => setEditProduct({...editProduct, channelTelegramId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <input
                 type="number"
                 placeholder="Длительность (дни)"
                 value={editProduct.periodDays}
                 onChange={(e) => setEditProduct({...editProduct, periodDays: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="1"
               />
               <label className="flex items-center">
@@ -488,15 +663,15 @@ export default function ProductManagement() {
             <div className="flex justify-end space-x-3 mt-6">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               >
                 Отмена
               </button>
               <button
                 onClick={updateProduct}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
               >
-                💾 Сохранить изменения
+                Сохранить изменения
               </button>
             </div>
           </div>
