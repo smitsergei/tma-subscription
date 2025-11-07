@@ -143,14 +143,14 @@ export async function POST(request: NextRequest) {
       include: {
         user: {
           select: {
-            id: true,
+            telegramId: true,
             firstName: true,
             username: true
           }
         },
         product: {
           select: {
-            id: true,
+            productId: true,
             name: true,
             price: true
           }
