@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
           console.log('❌ Access denied for user:', chatId)
           await sendMessage(chatId, '❌ Доступ запрещен')
           responseSent = true
-          // Убираем return, чтобы другие команды продолжали работать
+          // Убираем return, чтобы другие команды продолжали работать (fixed)
         } else {
 
         await sendMessage(
