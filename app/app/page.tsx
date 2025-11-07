@@ -27,8 +27,49 @@ function parseTelegramData() {
 
 export default function TmaPage() {
   const [user, setUser] = useState<any>(null)
+  const [products, setProducts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [productsLoading, setProductsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'products' | 'subscriptions'>('products')
+
+  // Функция для загрузки продуктов
+  const loadProducts = async () => {
+    try {
+      setProductsLoading(true)
+      console.log('🔍 Loading products from API...')
+
+      const response = await fetch('/api/products')
+      const data = await response.json()
+
+      console.log('🔍 Products API response:', data)
+
+      if (data.success) {
+        setProducts(data.data)
+        console.log(`✅ Loaded ${data.data.length} products`)
+      } else {
+        console.error('❌ Products API error:', data.error)
+      }
+    } catch (error) {
+      console.error('❌ Error loading products:', error)
+    } finally {
+      setProductsLoading(false)
+    }
+  }
+
+  // Функция для обработки покупки
+  const handlePurchase = async (product: any) => {
+    try {
+      console.log('🛒 Starting purchase for product:', product.productId)
+
+      // Здесь будет логика инициализации платежа через TON Connect
+      // Пока покажем заглушку
+      alert(`🛒 Покупка "${product.name}"暂时 недоступна\n\nВ разработке: оплата через TON Connect (USDT)`)
+
+    } catch (error) {
+      console.error('❌ Purchase error:', error)
+      alert('❌ Ошибка при оформлении подписки')
+    }
+  }
 
   useEffect(() => {
     const initData = parseTelegramData()
@@ -36,6 +77,8 @@ export default function TmaPage() {
     if (initData) {
       setUser(initData)
       console.log('✅ User data parsed from URL:', initData)
+      // Загружаем продукты после получения данных пользователя
+      loadProducts()
     } else {
       console.log('❌ No Telegram data found in URL')
     }
@@ -106,22 +149,54 @@ export default function TmaPage() {
         {activeTab === 'products' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">🛍️ Доступные подписки</h2>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <h3 className="font-medium text-gray-900">VIP подписка на 30 дней</h3>
-              <p className="text-gray-600 text-sm mt-1">Полный доступ к эксклюзивному контенту на 30 дней</p>
-              <div className="flex items-center justify-between mt-3">
-                <div>
-                  <span className="text-lg font-bold text-blue-600">$8.00</span>
-                  <span className="text-sm text-gray-500 line-through ml-2">$10.00</span>
+
+            {productsLoading ? (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="text-center">
+                  <div className="loading-spinner w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+                  <p className="text-gray-500">Загрузка подписок...</p>
                 </div>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                  🛒 Купить
-                </button>
               </div>
-            </div>
-            <div className="text-center text-gray-500 text-sm mt-4">
-              💳 Оплата через TON Connect (USDT)
-            </div>
+            ) : products.length === 0 ? (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-gray-500 text-center">😕 Нет доступных подписок</p>
+                <p className="text-gray-400 text-sm text-center mt-1">Попробуйте обновить страницу</p>
+              </div>
+            ) : (
+              <>
+                {products.map((product) => (
+                  <div key={product.productId} className="bg-white rounded-lg p-4 border border-gray-200">
+                    <h3 className="font-medium text-gray-900">{product.name}</h3>
+                    <p className="text-gray-600 text-sm mt-1">{product.description}</p>
+                    {product.channel && (
+                      <p className="text-gray-500 text-xs mt-1">📢 {product.channel.name}</p>
+                    )}
+                    <div className="flex items-center justify-between mt-3">
+                      <div>
+                        {product.discountPrice && product.discountPrice < product.price ? (
+                          <>
+                            <span className="text-lg font-bold text-blue-600">${product.discountPrice.toFixed(2)}</span>
+                            <span className="text-sm text-gray-500 line-through ml-2">${product.price.toFixed(2)}</span>
+                          </>
+                        ) : (
+                          <span className="text-lg font-bold text-blue-600">${product.price.toFixed(2)}</span>
+                        )}
+                        <span className="text-xs text-gray-500 ml-1">/{product.periodDays}дней</span>
+                      </div>
+                      <button
+                        onClick={() => handlePurchase(product)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        🛒 Купить
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <div className="text-center text-gray-500 text-sm mt-4">
+                  💳 Оплата через TON Connect (USDT)
+                </div>
+              </>
+            )}
           </div>
         )}
         {activeTab === 'subscriptions' && (
