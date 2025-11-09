@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
         // Отправка уведомления пользователю
         await sendExpirationNotification(
           subscription.user.telegramId.toString(),
-          subscription.product.name,
+          subscription.product?.name || 'Подписка',
           subscription.channel.name,
           botToken
         )
