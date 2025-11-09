@@ -332,13 +332,11 @@ export default function PaymentManagement() {
 
   // Обработка фильтров
   useEffect(() => {
-    if (filters.status || filters.userId || filters.productId || filters.search) {
-      const timeoutId = setTimeout(() => {
-        loadPayments(1)
-      }, 500)
-      return () => clearTimeout(timeoutId)
-    }
-  }, [filters])
+    const timeoutId = setTimeout(() => {
+      loadPayments(1)
+    }, 500)
+    return () => clearTimeout(timeoutId)
+  }, [filters, pagination.limit])
 
   const getStatusColor = (status: string) => {
     switch (status) {
