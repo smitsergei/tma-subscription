@@ -1,16 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
-
-// Хелпер для безопасной JSON сериализации с BigInt поддержкой
-function safeJsonStringify(obj: any): string {
-  return JSON.stringify(obj, (_, value) => {
-    if (typeof value === 'bigint') {
-      return value.toString()
-    }
-    return value
-  })
-}
+import { createJsonResponse } from '@/lib/serialization'
 
 async function checkAdminAuth(request: NextRequest): Promise<boolean> {
   const initData = request.headers.get('x-telegram-init-data')
@@ -44,9 +35,9 @@ export async function GET(request: NextRequest) {
     // Проверка прав администратора
     if (!(await checkAdminAuth(request))) {
       console.log('🔍 ADMIN PAYMENTS: Admin authentication failed')
-      return NextResponse.json(
+      return createJsonResponse(
         { success: false, error: 'Доступ запрещен' },
-        { status: 403 }
+        403
       )
     }
 
@@ -160,16 +151,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Используем NextResponse.json с трансформером для BigInt
-    return NextResponse.json(responseData, {
-      status: 200
-    })
+    // Используем кастомный сериализатор для BigInt
+    return createJsonResponse(responseData, 200)
 
   } catch (error) {
     console.error('Error fetching payments:', error)
-    return NextResponse.json(
+    return createJsonResponse(
       { success: false, error: 'Ошибка получения платежей' },
-      { status: 500 }
+      500
     )
   }
 }
@@ -182,9 +171,9 @@ export async function POST(request: NextRequest) {
     // Проверка прав администратора
     if (!(await checkAdminAuth(request))) {
       console.log('🔍 ADMIN PAYMENTS: Admin authentication failed')
-      return NextResponse.json(
+      return createJsonResponse(
         { success: false, error: 'Доступ запрещен' },
-        { status: 403 }
+        403
       )
     }
 
@@ -192,9 +181,9 @@ export async function POST(request: NextRequest) {
     const { paymentId, action, txHash, notes } = body
 
     if (!paymentId || !action) {
-      return NextResponse.json(
+      return createJsonResponse(
         { success: false, error: 'Payment ID и action обязательны' },
-        { status: 400 }
+        400
       )
     }
 
@@ -210,9 +199,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (!payment) {
-      return NextResponse.json(
+      return createJsonResponse(
         { success: false, error: 'Платеж не найден' },
-        { status: 404 }
+        404
       )
     }
 
@@ -222,9 +211,9 @@ export async function POST(request: NextRequest) {
       case 'confirm':
         // Ручное подтверждение платежа
         if (payment.status !== 'pending') {
-          return NextResponse.json(
+          return createJsonResponse(
             { success: false, error: 'Платеж уже обработан' },
-            { status: 400 }
+            400
           )
         }
 
@@ -291,9 +280,9 @@ export async function POST(request: NextRequest) {
       case 'reject':
         // Отклонение платежа
         if (payment.status !== 'pending') {
-          return NextResponse.json(
+          return createJsonResponse(
             { success: false, error: 'Платеж уже обработан' },
-            { status: 400 }
+            400
           )
         }
 
@@ -334,9 +323,9 @@ export async function POST(request: NextRequest) {
       case 'reset':
         // Сброс статуса в pending
         if (payment.status === 'pending') {
-          return NextResponse.json(
+          return createJsonResponse(
             { success: false, error: 'Платеж уже в статусе pending' },
-            { status: 400 }
+            400
           )
         }
 
@@ -351,9 +340,9 @@ export async function POST(request: NextRequest) {
         break
 
       default:
-        return NextResponse.json(
+        return createJsonResponse(
           { success: false, error: 'Неизвестное действие' },
-          { status: 400 }
+          400
         )
     }
 
@@ -371,16 +360,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Используем NextResponse.json - BigInt уже сконвертированы в formattedPayments
-    return NextResponse.json(responseData, {
-      status: 200
-    })
+    // Используем кастомный сериализатор для BigInt
+    return createJsonResponse(responseData, 200)
 
   } catch (error) {
     console.error('Error managing payment:', error)
-    return NextResponse.json(
+    return createJsonResponse(
       { success: false, error: 'Ошибка управления платежом' },
-      { status: 500 }
+      500
     )
   }
 }
