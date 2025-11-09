@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       data: {
         subscriptionId: subscription.subscriptionId,
         expiresAt: subscription.expiresAt,
-        channelName: payment.product.channel.name
+        channelName: payment.product?.channel?.name || 'Без названия'
       },
       message: 'Оплата прошла успешно! Подписка активирована.'
     })

@@ -18,10 +18,6 @@
     {
       "path": "/api/cron/check-subscriptions",
       "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/payments/check-pending",
-      "schedule": "0 3 * * *"
     }
   ]
 }
