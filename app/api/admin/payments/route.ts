@@ -253,8 +253,8 @@ export async function POST(request: NextRequest) {
         try {
           const message = `✅ <b>Оплата подтверждена администратором!</b>
 
-📦 <b>Подписка:</b> ${payment.product.name}
-📢 <b>Канал:</b> ${payment.product.channel.name}
+📦 <b>Подписка:</b> ${payment.product?.name || 'Без названия'}
+📢 <b>Канал:</b> ${payment.product?.channel?.name || 'Без канала'}
 ⏰ <b>Действует до:</b> ${expiresAt.toLocaleDateString('ru-RU')}
 
 Ваша подписка активирована.`
