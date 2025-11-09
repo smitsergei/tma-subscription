@@ -110,13 +110,22 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Создание платежа в NOWPayments
+  // Создание платежа в NOWPayments
     const nowPaymentsResponse = await createNOWPayment(
       finalAmount,
       currency,
       payment.paymentId,
       orderDescription
     )
+
+    console.log('💰 PAYMENT INITIATE: USDT Payment details:', {
+      paymentId: payment.paymentId,
+      amount: finalPrice,
+      currency: 'USDT',
+      memo,
+      usdtAmount: (Number(finalPrice) * 1000000).toString(),
+      commission: commissionInNanoTON.toString()
+    })
 
     return NextResponse.json({
       success: true,

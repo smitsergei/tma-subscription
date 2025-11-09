@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
-import { Address, beginCell, toNano } from '@ton/ton'
-import { TonClient } from '@ton/ton'
 
-interface VerifyPaymentRequest {
-  txHash: string
+interface VerifyUSDTPaymentRequest {
   paymentId: string
 }
 
@@ -34,12 +31,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body: VerifyPaymentRequest = await request.json()
-    const { txHash, paymentId } = body
+    const body: VerifyUSDTPaymentRequest = await request.json()
+    const { paymentId } = body
 
-    if (!txHash || !paymentId) {
+    if (!paymentId) {
       return NextResponse.json(
-        { success: false, error: 'Хеш транзакции и ID платежа обязательны' },
+        { success: false, error: 'ID платежа обязателен' },
         { status: 400 }
       )
     }
@@ -89,27 +86,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Верификация транзакции через TON API
-    const isValidTransaction = await verifyTonTransaction(txHash, payment)
+    // Для USDT используем поллинг - ищем транзакцию по memo
+    console.log('🔍 USDT VERIFY: Starting USDT transaction polling for payment:', paymentId)
 
-    if (!isValidTransaction) {
-      // Обновляем статус платежа как failed
-      await prisma.payment.update({
-        where: { paymentId },
-        data: {
-          status: 'failed',
-          txHash
-        }
-      })
+    const isUSDTransactionReceived = await pollForUSDTTransaction(payment)
 
+    if (!isUSDTransactionReceived) {
       return NextResponse.json(
-        { success: false, error: 'Транзакция не найдена или неверная' },
-        { status: 400 }
+        {
+          success: false,
+          error: 'Платеж еще не получен. Пожалуйста, подождите несколько минут и попробуйте снова.',
+          needsRetry: true
+        },
+        { status: 202 } // Accepted
       )
     }
 
     // Обработка подтвержденного платежа
-    const subscription = await processConfirmedPayment(payment, txHash)
+    const subscription = await processConfirmedPayment(payment, 'usdt-jetton')
 
     return NextResponse.json({
       success: true,
@@ -120,8 +114,9 @@ export async function POST(request: NextRequest) {
       },
       message: 'Оплата прошла успешно! Подписка активирована.'
     })
+
   } catch (error) {
-    console.error('Error verifying payment:', error)
+    console.error('Error verifying USDT payment:', error)
     return NextResponse.json(
       { success: false, error: 'Ошибка верификации платежа' },
       { status: 500 }
@@ -129,22 +124,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function verifyTonTransaction(txHash: string, payment: any): Promise<boolean> {
+async function pollForUSDTTransaction(payment: any): Promise<boolean> {
   try {
-    console.log('🔍 VERIFY: Starting transaction verification for txHash:', txHash)
-    console.log('🔍 VERIFY: Payment details:', {
-      paymentId: payment.paymentId,
-      amount: payment.amount,
-      currency: payment.currency,
-      memo: payment.memo
-    })
+    console.log('🔍 USDT VERIFY: Polling for USDT transaction with memo:', payment.memo)
 
     if (!process.env.TONCENTER_API_KEY) {
-      console.error('🔍 VERIFY: TONCENTER_API_KEY not configured')
+      console.error('🔍 USDT VERIFY: TONCENTER_API_KEY not configured')
       return false
     }
 
-    // Получение информации о транзакции через Toncenter API
+    // Проверяем транзакции на нашем кошельке
     const response = await fetch('https://toncenter.com/api/v2/getTransactions', {
       method: 'POST',
       headers: {
@@ -160,108 +149,57 @@ async function verifyTonTransaction(txHash: string, payment: any): Promise<boole
     })
 
     if (!response.ok) {
-      console.error('🔍 VERIFY: Failed to fetch transactions from Toncenter')
+      console.error('🔍 USDT VERIFY: Failed to fetch transactions from Toncenter')
       return false
     }
 
     const data = await response.json()
 
     if (!data.ok || !data.result) {
-      console.error('🔍 VERIFY: Invalid response from Toncenter')
+      console.error('🔍 USDT VERIFY: Invalid response from Toncenter')
       return false
     }
 
-    // Поиск нужной транзакции
-    const targetTransaction = data.result.find((tx: any) => {
-      // Для поллинга ищем по memo вместо hash
-      if (txHash === 'polling') {
-        // Проверяем memo в сообщении
-        const message = tx.in_msg?.message || ''
-        return message === payment.memo
-      }
+    // Ищем транзакцию, которая содержит наш memo
+    // Для USDT jetton transfers memo будет в payload транзакции
+    for (const tx of data.result) {
+      console.log('🔍 USDT VERIFY: Checking transaction:', tx.transaction_id?.hash)
 
-      // Для обычной проверки по hash
-      const transactionHash = tx.transaction_id?.hash
-      if (!transactionHash) return false
+      // Проверяем все исходящие сообщения в транзакции
+      const messages = tx.out_msgs || []
 
-      // Нормализуем hash для сравнения (убираем 0x префикс если есть)
-      const normalizedTxHash = transactionHash.toLowerCase().replace(/^0x/, '')
-      const normalizedTargetHash = txHash.toLowerCase().replace(/^0x/, '')
+      for (const msg of messages) {
+        if (msg.destination === process.env.TON_WALLET_ADDRESS) {
+          // Ищем memo в payload или message
+          let foundMemo = msg.message || ''
 
-      return normalizedTxHash === normalizedTargetHash
-    })
+          // Если memo не найден в message, ищем в payload
+          if (!foundMemo && msg.msg_data?.body) {
+            try {
+              const payloadBase64 = msg.msg_data.body
+              if (typeof payloadBase64 === 'string') {
+                const buffer = Buffer.from(payloadBase64, 'base64')
+                foundMemo = buffer.toString('utf8').replace(/[^\x20-\x7E]/g, '')
+              }
+            } catch (error) {
+              console.log('🔍 USDT VERIFY: Could not decode payload')
+            }
+          }
 
-    if (!targetTransaction) {
-      console.error('🔍 VERIFY: Transaction not found in recent transactions')
-      return false
-    }
-
-    console.log('🔍 VERIFY: Found transaction:', targetTransaction.transaction_id.hash)
-
-    // Проверяем, что транзакция входящая
-    if (targetTransaction.in_msg.source === null) {
-      console.error('🔍 VERIFY: Transaction is not incoming')
-      return false
-    }
-
-    // Проверяем получателя
-    const expectedAddress = process.env.TON_WALLET_ADDRESS?.replace(/^0x/, '')
-    const destinationAddress = targetTransaction.in_msg.destination?.replace(/^0x/, '')
-
-    if (!expectedAddress || !destinationAddress || expectedAddress !== destinationAddress) {
-      console.error('🔍 VERIFY: Wrong destination address')
-      console.log('Expected:', expectedAddress)
-      console.log('Got:', destinationAddress)
-      return false
-    }
-
-    // Проверяем memo (comment в транзакции)
-    // TON транзакции могут хранить memo в поле message или в payload
-    const transactionMessage = targetTransaction.in_msg?.message || ''
-
-    // Если memo в прямом сообщении не найден, пробуем извлечь из payload
-    let extractedMemo = transactionMessage
-    if (!extractedMemo && targetTransaction.in_msg?.msg_data?.body) {
-      try {
-        // Пробуем декодировать payload для извлечения memo
-        const payloadBase64 = targetTransaction.in_msg.msg_data.body
-        if (typeof payloadBase64 === 'string') {
-          // Декодируем base64 и ищем текст
-          const buffer = Buffer.from(payloadBase64, 'base64')
-          extractedMemo = buffer.toString('utf8').replace(/[^\x20-\x7E]/g, '') // Удаляем non-ASCII символы
+          if (foundMemo === payment.memo) {
+            console.log('✅ USDT VERIFY: Found transaction with matching memo!')
+            console.log('Transaction hash:', tx.transaction_id?.hash)
+            return true
+          }
         }
-      } catch (error) {
-        console.log('🔍 VERIFY: Could not decode payload for memo extraction')
       }
     }
 
-    if (extractedMemo !== payment.memo) {
-      console.error('🔍 VERIFY: Memo mismatch')
-      console.log('Expected:', payment.memo)
-      console.log('Got:', extractedMemo)
-      console.log('Original message:', transactionMessage)
-      return false
-    }
-
-    // Проверяем сумму
-    // Для USDT конвертируем сумму из nanoTON
-    const receivedAmount = parseInt(targetTransaction.in_msg.value || '0', 16) / 1e9
-    const expectedAmount = parseFloat(payment.amount.toString())
-
-    // Позволяем небольшую погрешность в 1%
-    const tolerance = expectedAmount * 0.01
-    if (Math.abs(receivedAmount - expectedAmount) > tolerance) {
-      console.error('🔍 VERIFY: Amount mismatch')
-      console.log('Expected:', expectedAmount)
-      console.log('Got:', receivedAmount)
-      return false
-    }
-
-    console.log('✅ VERIFY: Transaction verified successfully')
-    return true
+    console.log('🔍 USDT VERIFY: No matching transaction found')
+    return false
 
   } catch (error) {
-    console.error('🔍 VERIFY: Error verifying TON transaction:', error)
+    console.error('🔍 USDT VERIFY: Error polling for USDT transaction:', error)
     return false
   }
 }
@@ -284,10 +222,10 @@ async function addUserToChannel(userId: string, channelId: string, botToken: str
     )
 
     const data = await response.json()
-    console.log('🔍 VERIFY: Checking user status in channel:', data.result?.status)
+    console.log('🔍 USDT VERIFY: Checking user status in channel:', data.result?.status)
 
     if (!data.ok || !data.result) {
-      console.log('🔍 VERIFY: Failed to get chat member status')
+      console.log('🔍 USDT VERIFY: Failed to get chat member status')
       return
     }
 
@@ -295,7 +233,7 @@ async function addUserToChannel(userId: string, channelId: string, botToken: str
 
     // Если пользователя нет в канале или он покинул его
     if (['left', 'kicked', 'restricted'].includes(userStatus)) {
-      console.log('🔍 VERIFY: User not in channel, attempting to add')
+      console.log('🔍 USDT VERIFY: User not in channel, attempting to add')
 
       // Создаем приглашение для пользователя
       const inviteResponse = await fetch(
@@ -318,7 +256,7 @@ async function addUserToChannel(userId: string, channelId: string, botToken: str
       const inviteData = await inviteResponse.json()
 
       if (inviteData.ok && inviteData.result?.invite_link) {
-        console.log('🔍 VERIFY: Created invite link:', inviteData.result.invite_link)
+        console.log('🔍 USDT VERIFY: Created invite link:', inviteData.result.invite_link)
 
         // Отправляем ссылку-приглашение пользователю
         await fetch(
@@ -341,20 +279,20 @@ ${inviteData.result.invite_link}
           }
         )
       } else {
-        console.error('🔍 VERIFY: Failed to create invite link:', inviteData)
+        console.error('🔍 USDT VERIFY: Failed to create invite link:', inviteData)
       }
     } else {
-      console.log('🔍 VERIFY: User already in channel')
+      console.log('🔍 USDT VERIFY: User already in channel')
     }
 
   } catch (error) {
-    console.error('🔍 VERIFY: Error managing channel membership:', error)
+    console.error('🔍 USDT VERIFY: Error managing channel membership:', error)
     throw error
   }
 }
 
 async function processConfirmedPayment(payment: any, txHash: string): Promise<any> {
-  console.log('✅ VERIFY: Processing confirmed payment:', payment.paymentId)
+  console.log('✅ USDT VERIFY: Processing confirmed payment:', payment.paymentId)
 
   // Создание подписки
   const expiresAt = new Date()
@@ -372,7 +310,7 @@ async function processConfirmedPayment(payment: any, txHash: string): Promise<an
     }
   })
 
-  console.log('✅ VERIFY: Subscription created:', subscription.subscriptionId)
+  console.log('✅ USDT VERIFY: Subscription created:', subscription.subscriptionId)
 
   // Добавление пользователя в Telegram канал
   try {
@@ -381,9 +319,9 @@ async function processConfirmedPayment(payment: any, txHash: string): Promise<an
       payment.product.channel.channelId.toString(),
       process.env.BOT_TOKEN!
     )
-    console.log('✅ VERIFY: User added to channel successfully')
+    console.log('✅ USDT VERIFY: User added to channel successfully')
   } catch (error) {
-    console.error('🔍 VERIFY: Error adding user to channel:', error)
+    console.error('🔍 USDT VERIFY: Error adding user to channel:', error)
     // Не прерываем процесс, если не удалось добавить в канал
   }
 
@@ -404,9 +342,9 @@ async function processConfirmedPayment(payment: any, txHash: string): Promise<an
       payment.product.channel.name,
       expiresAt
     )
-    console.log('✅ VERIFY: Notification sent successfully')
+    console.log('✅ USDT VERIFY: Notification sent successfully')
   } catch (error) {
-    console.error('🔍 VERIFY: Error sending notification:', error)
+    console.error('🔍 USDT VERIFY: Error sending notification:', error)
   }
 
   return subscription
@@ -444,10 +382,10 @@ async function sendPaymentNotification(
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('🔍 VERIFY: Failed to send notification:', errorText)
+      console.error('🔍 USDT VERIFY: Failed to send notification:', errorText)
     }
 
   } catch (error) {
-    console.error('🔍 VERIFY: Error sending payment notification:', error)
+    console.error('🔍 USDT VERIFY: Error sending payment notification:', error)
   }
 }

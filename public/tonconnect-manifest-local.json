@@ -1,0 +1,7 @@
+{
+  "url": "http://localhost:3009",
+  "name": "TMA Подписка (Local)",
+  "iconUrl": "https://tma-subscription.vercel.app/icon.png",
+  "termsOfUseUrl": "https://tma-subscription.vercel.app/terms",
+  "privacyPolicyUrl": "https://tma-subscription.vercel.app/privacy"
+}

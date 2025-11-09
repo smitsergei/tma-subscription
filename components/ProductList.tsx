@@ -47,13 +47,17 @@ export function ProductList({ telegramUser }: ProductListProps) {
     try {
       setPaymentStatus('Проверка оплаты...')
 
-      const result = await apiRequest('/api/payment/verify', {
+      // Для USDT используем специальный эндпоинт верификации
+      const result = await fetch('/api/payment/verify-usdt', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || ''
+        },
         body: JSON.stringify({
-          paymentId,
-          txHash
+          paymentId
         })
-      })
+      }).then(res => res.json())
 
       if (result.success) {
         setPaymentStatus('✅ Оплата прошла успешно! Подписка активирована.')
@@ -61,15 +65,23 @@ export function ProductList({ telegramUser }: ProductListProps) {
         setTimeout(() => {
           window.location.reload()
         }, 2000)
+      } else if (result.needsRetry) {
+        // Если оплата еще не пришла, пробуем снова через несколько секунд
+        setPaymentStatus('⏳ Ожидание поступления оплаты...')
+        setTimeout(() => {
+          verifyPayment(paymentId, txHash)
+        }, 5000) // Пробуем снова через 5 секунд
       } else {
         setPaymentStatus(`❌ Ошибка: ${result.error}`)
       }
     } catch (err) {
       setPaymentStatus('❌ Ошибка при проверке оплаты')
     } finally {
-      setPurchasingProduct(null)
+      if (!paymentStatus.includes('⏳')) {
+        setPurchasingProduct(null)
+      }
     }
-  }, [])
+  }, [paymentStatus])
 
   const handlePurchase = useCallback(async (product: Product) => {
     console.log('🚀 Starting purchase for product:', product.productId)
