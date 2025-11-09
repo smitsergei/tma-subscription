@@ -39,11 +39,29 @@ export function useNOWPayments() {
     setError(null)
 
     try {
+      // Получаем Telegram init данные
+      const getTelegramInitData = () => {
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.hash.slice(1))
+          return urlParams.get('tgWebAppData') || null
+        }
+        return null
+      }
+
+      const telegramInitData = getTelegramInitData()
+
+      const headers: { [key: string]: string } = {
+        'Content-Type': 'application/json',
+      }
+
+      // Добавляем Telegram init данные в headers
+      if (telegramInitData) {
+        headers['x-telegram-init-data'] = telegramInitData
+      }
+
       const response = await fetch('/api/payment/initiate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           amount,
           currency,
@@ -88,11 +106,29 @@ export function useNOWPayments() {
     setError(null)
 
     try {
+      // Получаем Telegram init данные
+      const getTelegramInitData = () => {
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.hash.slice(1))
+          return urlParams.get('tgWebAppData') || null
+        }
+        return null
+      }
+
+      const telegramInitData = getTelegramInitData()
+
+      const headers: { [key: string]: string } = {
+        'Content-Type': 'application/json',
+      }
+
+      // Добавляем Telegram init данные в headers
+      if (telegramInitData) {
+        headers['x-telegram-init-data'] = telegramInitData
+      }
+
       const response = await fetch('/api/payment/check-status', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           paymentId
         }),
