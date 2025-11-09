@@ -1,7 +1,7 @@
 {
-  "url": "https://your-app.vercel.app",
-  "name": "TMA-Подписка",
-  "iconUrl": "https://your-app.vercel.app/icon.png",
-  "termsOfUseUrl": "https://your-app.vercel.app/terms",
-  "privacyPolicyUrl": "https://your-app.vercel.app/privacy"
+  "url": "https://tma-subscription.vercel.app",
+  "name": "TMA Подписка",
+  "iconUrl": "https://tma-subscription.vercel.app/icon.png",
+  "termsOfUseUrl": "https://tma-subscription.vercel.app/terms",
+  "privacyPolicyUrl": "https://tma-subscription.vercel.app/privacy"
 }

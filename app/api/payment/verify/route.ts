@@ -131,8 +131,9 @@ export async function POST(request: NextRequest) {
         payment.product.channel.channelId.toString(),
         process.env.BOT_TOKEN!
       )
+      console.log('✅ VERIFY: User added to channel successfully')
     } catch (error) {
-      console.error('Error adding user to channel:', error)
+      console.error('🔍 VERIFY: Error adding user to channel:', error)
       // Не прерываем процесс, если не удалось добавить в канал
     }
 
@@ -144,6 +145,19 @@ export async function POST(request: NextRequest) {
         txHash
       }
     })
+
+    // Отправляем уведомление пользователю
+    try {
+      await sendPaymentNotification(
+        payment.userId.toString(),
+        payment.product.name,
+        payment.product.channel.name,
+        expiresAt
+      )
+      console.log('✅ VERIFY: Notification sent successfully')
+    } catch (error) {
+      console.error('🔍 VERIFY: Error sending notification:', error)
+    }
 
     return NextResponse.json({
       success: true,
@@ -165,40 +179,119 @@ export async function POST(request: NextRequest) {
 
 async function verifyTonTransaction(txHash: string, payment: any): Promise<boolean> {
   try {
-    // В реальном приложении здесь была бы проверка транзакции через TON API
-    // Проверка суммы, получателя, memo и т.д.
-
-    // Для примера всегда возвращаем true
-    // В production нужно集成 с Toncenter API или другим TON API провайдером
-
-    /*
-    const client = new TonClient({
-      endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-      apiKey: process.env.TONCENTER_API_KEY
+    console.log('🔍 VERIFY: Starting transaction verification for txHash:', txHash)
+    console.log('🔍 VERIFY: Payment details:', {
+      paymentId: payment.paymentId,
+      amount: payment.amount,
+      currency: payment.currency,
+      memo: payment.memo
     })
 
-    const transactions = await client.getTransactions(txHash)
-
-    // Проверка транзакции
-    if (transactions.length > 0) {
-      const tx = transactions[0]
-      // Проверка суммы, получателя, memo
-      // ...
-      return true
+    if (!process.env.TONCENTER_API_KEY) {
+      console.error('🔍 VERIFY: TONCENTER_API_KEY not configured')
+      return false
     }
-    */
 
+    // Получение информации о транзакции через Toncenter API
+    const response = await fetch('https://toncenter.com/api/v2/getTransactions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': process.env.TONCENTER_API_KEY
+      },
+      body: JSON.stringify({
+        address: process.env.TON_WALLET_ADDRESS,
+        limit: 50,
+        to_lt: 0,
+        archival: true
+      })
+    })
+
+    if (!response.ok) {
+      console.error('🔍 VERIFY: Failed to fetch transactions from Toncenter')
+      return false
+    }
+
+    const data = await response.json()
+
+    if (!data.ok || !data.result) {
+      console.error('🔍 VERIFY: Invalid response from Toncenter')
+      return false
+    }
+
+    // Поиск нужной транзакции
+    const targetTransaction = data.result.find((tx: any) => {
+      // Проверяем hash транзакции
+      const transactionHash = tx.transaction_id?.hash
+      if (!transactionHash) return false
+
+      // Нормализуем hash для сравнения (убираем 0x префикс если есть)
+      const normalizedTxHash = transactionHash.toLowerCase().replace(/^0x/, '')
+      const normalizedTargetHash = txHash.toLowerCase().replace(/^0x/, '')
+
+      return normalizedTxHash === normalizedTargetHash
+    })
+
+    if (!targetTransaction) {
+      console.error('🔍 VERIFY: Transaction not found in recent transactions')
+      return false
+    }
+
+    console.log('🔍 VERIFY: Found transaction:', targetTransaction.transaction_id.hash)
+
+    // Проверяем, что транзакция входящая
+    if (targetTransaction.in_msg.source === null) {
+      console.error('🔍 VERIFY: Transaction is not incoming')
+      return false
+    }
+
+    // Проверяем получателя
+    const expectedAddress = process.env.TON_WALLET_ADDRESS?.replace(/^0x/, '')
+    const destinationAddress = targetTransaction.in_msg.destination?.replace(/^0x/, '')
+
+    if (!expectedAddress || !destinationAddress || expectedAddress !== destinationAddress) {
+      console.error('🔍 VERIFY: Wrong destination address')
+      console.log('Expected:', expectedAddress)
+      console.log('Got:', destinationAddress)
+      return false
+    }
+
+    // Проверяем memo (comment в транзакции)
+    if (targetTransaction.in_msg.message !== payment.memo) {
+      console.error('🔍 VERIFY: Memo mismatch')
+      console.log('Expected:', payment.memo)
+      console.log('Got:', targetTransaction.in_msg.message)
+      return false
+    }
+
+    // Проверяем сумму
+    // Для USDT конвертируем сумму из nanoTON
+    const receivedAmount = parseInt(targetTransaction.in_msg.value || '0', 16) / 1e9
+    const expectedAmount = parseFloat(payment.amount.toString())
+
+    // Позволяем небольшую погрешность в 1%
+    const tolerance = expectedAmount * 0.01
+    if (Math.abs(receivedAmount - expectedAmount) > tolerance) {
+      console.error('🔍 VERIFY: Amount mismatch')
+      console.log('Expected:', expectedAmount)
+      console.log('Got:', receivedAmount)
+      return false
+    }
+
+    console.log('✅ VERIFY: Transaction verified successfully')
     return true
+
   } catch (error) {
-    console.error('Error verifying TON transaction:', error)
+    console.error('🔍 VERIFY: Error verifying TON transaction:', error)
     return false
   }
 }
 
 async function addUserToChannel(userId: string, channelId: string, botToken: string): Promise<void> {
   try {
+    // Проверяем текущий статус пользователя в канале
     const response = await fetch(
-      `https://api.telegram.org/bot${botToken}/chatMember`,
+      `https://api.telegram.org/bot${botToken}/getChatMember`,
       {
         method: 'POST',
         headers: {
@@ -212,11 +305,22 @@ async function addUserToChannel(userId: string, channelId: string, botToken: str
     )
 
     const data = await response.json()
+    console.log('🔍 VERIFY: Checking user status in channel:', data.result?.status)
 
-    // Если пользователь не в канале, пытаемся его добавить
-    if (data.ok && data.result.status === 'left') {
-      await fetch(
-        `https://api.telegram.org/bot${botToken}/restrictChatMember`,
+    if (!data.ok || !data.result) {
+      console.log('🔍 VERIFY: Failed to get chat member status')
+      return
+    }
+
+    const userStatus = data.result.status
+
+    // Если пользователя нет в канале или он покинул его
+    if (['left', 'kicked', 'restricted'].includes(userStatus)) {
+      console.log('🔍 VERIFY: User not in channel, attempting to add')
+
+      // Создаем приглашение для пользователя
+      const inviteResponse = await fetch(
+        `https://api.telegram.org/bot${botToken}/createChatInviteLink`,
         {
           method: 'POST',
           headers: {
@@ -224,23 +328,88 @@ async function addUserToChannel(userId: string, channelId: string, botToken: str
           },
           body: JSON.stringify({
             chat_id: channelId,
-            user_id: userId,
-            permissions: {
-              can_send_messages: true,
-              can_send_media_messages: true,
-              can_send_polls: true,
-              can_send_other_messages: true,
-              can_add_web_page_previews: true,
-              can_change_info: false,
-              can_invite_users: false,
-              can_pin_messages: false
-            }
+            name: 'Приглашение после оплаты подписки',
+            creates_join_request: false,
+            member_limit: 1,
+            expire_date: Math.floor(Date.now() / 1000) + 86400 // 24 часа
           })
         }
       )
+
+      const inviteData = await inviteResponse.json()
+
+      if (inviteData.ok && inviteData.result?.invite_link) {
+        console.log('🔍 VERIFY: Created invite link:', inviteData.result.invite_link)
+
+        // Отправляем ссылку-приглашение пользователю
+        await fetch(
+          `https://api.telegram.org/bot${botToken}/sendMessage`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: userId,
+              text: `🎉 Ваша подписка активирована!
+
+Чтобы получить доступ к каналу, перейдите по ссылке:
+${inviteData.result.invite_link}
+
+Ссылка действительна 24 часа.`,
+              disable_web_page_preview: false
+            })
+          }
+        )
+      } else {
+        console.error('🔍 VERIFY: Failed to create invite link:', inviteData)
+      }
+    } else {
+      console.log('🔍 VERIFY: User already in channel')
     }
+
   } catch (error) {
-    console.error('Error managing channel membership:', error)
+    console.error('🔍 VERIFY: Error managing channel membership:', error)
     throw error
+  }
+}
+
+async function sendPaymentNotification(
+  userId: string,
+  productName: string,
+  channelName: string,
+  expiresAt: Date
+): Promise<void> {
+  try {
+    const message = `✅ <b>Оплата прошла успешно!</b>
+
+📦 <b>Подписка:</b> ${productName}
+📢 <b>Канал:</b> ${channelName}
+⏰ <b>Действует до:</b> ${expiresAt.toLocaleDateString('ru-RU')}
+
+Спасибо за покупку! Приятного пользования!`
+
+    const response = await fetch(
+      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: userId,
+          text: message,
+          parse_mode: 'HTML'
+        })
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('🔍 VERIFY: Failed to send notification:', errorText)
+    }
+
+  } catch (error) {
+    console.error('🔍 VERIFY: Error sending payment notification:', error)
   }
 }

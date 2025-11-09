@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData, generatePaymentMemo } from '@/lib/utils'
+import { Address, beginCell, toNano } from '@ton/ton'
 
 interface InitiatePaymentRequest {
   productId: string
@@ -101,9 +102,26 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Здесь в реальном приложении нужно было бы рассчитать сумму в наноTON
-    // для USDT jetton. Для примера используем простую конвертацию.
-    const amountInNanoTON = (parseFloat(finalPrice.toString()) * 1000000000).toString()
+    // Расчет суммы для транзакции (в наноTON для комиссии)
+    const commissionInNanoTON = toNano('0.1') // Комиссия сети ~0.1 TON
+
+    // Для USDT используем jetton transfer
+    // Адрес USDT в TON сети
+    const usdtMasterAddress = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'
+
+    // Создаем payload для jetton transfer
+    const jettonTransferPayload = beginCell()
+      .storeUint(0xf8a7ea5, 32) // op code для jetton transfer
+      .storeUint(0, 64) // query_id
+      .storeCoins(toNano(finalPrice.toString())) // amount (jetton amount с decimals)
+      .storeAddress(Address.parse(process.env.TON_WALLET_ADDRESS!)) // destination
+      .storeAddress(Address.parse(process.env.TON_WALLET_ADDRESS!)) // response_destination
+      .storeUint(0, 1) // custom_payload
+      .storeCoins(toNano('0.001')) // forward_ton_amount
+      .storeUint(1, 1) // forward_payload type (cell)
+      .storeUint(0, 32) // flags для text comment
+      .storeString(memo) // comment с memo
+      .endCell()
 
     return NextResponse.json({
       success: true,
@@ -113,11 +131,15 @@ export async function POST(request: NextRequest) {
         currency: 'USDT',
         memo,
         walletAddress: process.env.TON_WALLET_ADDRESS,
-        // Данные для транзакции TON Connect
+        // Данные для транзакции TON Connect (USDT jetton transfer)
         transaction: {
-          address: process.env.TON_WALLET_ADDRESS,
-          amount: amountInNanoTON,
-          payload: memo
+          messages: [
+            {
+              address: usdtMasterAddress,
+              amount: commissionInNanoTON.toString(),
+              payload: jettonTransferPayload.toBoc().toString('base64')
+            }
+          ]
         }
       }
     })

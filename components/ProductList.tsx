@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Product } from '@/types'
 import { apiRequest, formatPrice, formatTimeLeft } from '@/lib/utils'
+import { useTonConnect } from '@/hooks/useTonConnect'
 
 interface ProductListProps {
   telegramUser?: any
@@ -12,6 +13,16 @@ export function ProductList({ telegramUser }: ProductListProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [purchasingProduct, setPurchasingProduct] = useState<string | null>(null)
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null)
+
+  const {
+    isConnected,
+    address,
+    connectWallet,
+    sendTransaction,
+    isLoading: tonLoading
+  } = useTonConnect()
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -32,7 +43,49 @@ export function ProductList({ telegramUser }: ProductListProps) {
     fetchProducts()
   }, [])
 
-  const handlePurchase = async (product: Product) => {
+  const verifyPayment = useCallback(async (paymentId: string, txHash: string) => {
+    try {
+      setPaymentStatus('Проверка оплаты...')
+
+      const result = await apiRequest('/api/payment/verify', {
+        method: 'POST',
+        body: JSON.stringify({
+          paymentId,
+          txHash
+        })
+      })
+
+      if (result.success) {
+        setPaymentStatus('✅ Оплата прошла успешно! Подписка активирована.')
+        // Обновляем список продуктов, чтобы убрать купленный
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000)
+      } else {
+        setPaymentStatus(`❌ Ошибка: ${result.error}`)
+      }
+    } catch (err) {
+      setPaymentStatus('❌ Ошибка при проверке оплаты')
+    } finally {
+      setPurchasingProduct(null)
+    }
+  }, [])
+
+  const handlePurchase = useCallback(async (product: Product) => {
+    if (!isConnected) {
+      // Подключаем кошелек
+      try {
+        await connectWallet()
+        return
+      } catch (err) {
+        alert('Ошибка подключения кошелька')
+        return
+      }
+    }
+
+    setPurchasingProduct(product.productId)
+    setPaymentStatus('Инициализация платежа...')
+
     try {
       // Инициация платежа
       const result = await apiRequest('/api/payment/initiate', {
@@ -43,15 +96,35 @@ export function ProductList({ telegramUser }: ProductListProps) {
       })
 
       if (result.success) {
-        // Здесь будет логика TON Connect
-        alert('Переход к оплате через TON Connect...')
+        setPaymentStatus('Ожидание подтверждения транзакции...')
+
+        // Отправка транзакции через TON Connect
+        const txResult = await sendTransaction(result.data.transaction)
+
+        if (txResult && txResult.boc) {
+          setPaymentStatus('Транзакция отправлена. Проверка оплаты...')
+
+          // Получаем hash транзакции
+          const txHash = txResult.boc // В реальности здесь будет hash транзакции
+
+          // Запускаем проверку оплаты с задержкой
+          setTimeout(() => {
+            verifyPayment(result.data.paymentId, txHash)
+          }, 5000) // Ждем 5 секунд для обработки транзакции
+        } else {
+          setPaymentStatus('❌ Ошибка отправки транзакции')
+          setPurchasingProduct(null)
+        }
       } else {
-        alert(`Ошибка: ${result.error}`)
+        setPaymentStatus(`❌ Ошибка: ${result.error}`)
+        setPurchasingProduct(null)
       }
     } catch (err) {
-      alert('Ошибка при инициализации платежа')
+      console.error('Payment error:', err)
+      setPaymentStatus('❌ Ошибка при оплате')
+      setPurchasingProduct(null)
     }
-  }
+  }, [isConnected, connectWallet, sendTransaction, verifyPayment])
 
   if (isLoading) {
     return (
@@ -84,8 +157,41 @@ export function ProductList({ telegramUser }: ProductListProps) {
     )
   }
 
+  // Индикатор подключения кошелька
+  const WalletStatus = () => (
+    <div className={`p-3 rounded-lg mb-4 ${
+      isConnected
+        ? 'bg-green-50 border border-green-200'
+        : 'bg-yellow-50 border border-yellow-200'
+    }`}>
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${
+          isConnected ? 'bg-green-500' : 'bg-yellow-500'
+        }`}></div>
+        <span className={`text-sm ${
+          isConnected ? 'text-green-800' : 'text-yellow-800'
+        }`}>
+          {isConnected
+            ? `Кошелек подключен: ${address?.slice(0, 6)}...${address?.slice(-4)}`
+            : 'Кошелек не подключен. Нажмите "Подключить кошелек" для начала.'
+          }
+        </span>
+      </div>
+    </div>
+  )
+
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-gray-500 mb-2">📦</div>
+        <p className="text-gray-600">На данный момент нет доступных подписок</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
+      <WalletStatus />
       {products.map((product) => (
         <div key={product.productId} className="subscription-card">
           <div className="flex items-start justify-between mb-3">
@@ -141,12 +247,38 @@ export function ProductList({ telegramUser }: ProductListProps) {
 
             <button
               onClick={() => handlePurchase(product)}
-              className="tg-button text-sm px-4 py-2"
-              disabled={!product.isActive}
+              className="tg-button text-sm px-4 py-2 flex items-center gap-2"
+              disabled={!product.isActive || purchasingProduct === product.productId || tonLoading}
             >
-              {product.isActive ? 'Купить' : 'Недоступно'}
+              {purchasingProduct === product.productId ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Обработка...
+                </>
+              ) : !isConnected ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Подключить кошелек
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  Купить за USDT
+                </>
+              )}
             </button>
           </div>
+
+          {/* Статус платежа */}
+          {paymentStatus && purchasingProduct === product.productId && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">{paymentStatus}</p>
+            </div>
+          )}
 
           {product.channel && (
             <div className="mt-3 pt-3 border-t border-gray-100">
