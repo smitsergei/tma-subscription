@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: products.map(product => ({
-        productId: product.productId,
+        productId: product.productId.toString(),
         name: product.name,
         description: product.description,
         price: parseFloat(product.price.toString()),
@@ -54,6 +54,12 @@ export async function GET(request: NextRequest) {
       message: (error as Error).message,
       stack: (error as Error).stack
     })
+
+    // Проверяем, что ошибка связана с BigInt
+    if ((error as Error).message.includes('BigInt')) {
+      console.error('🔍 PRODUCTS: BigInt serialization error detected')
+    }
+
     return NextResponse.json(
       { success: false, error: 'Ошибка загрузки продуктов', details: (error as Error).message },
       { status: 500 }

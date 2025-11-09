@@ -220,6 +220,7 @@ function DemoAccessCard({ demoAccess, onExtend, onRevoke }: DemoAccessCardProps)
 export default function DemoManagement() {
   const [demoAccesses, setDemoAccesses] = useState<DemoAccess[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showGrantModal, setShowGrantModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState('')
@@ -229,6 +230,10 @@ export default function DemoManagement() {
     productId: '',
     demoDays: 7
   })
+
+  const [userSearch, setUserSearch] = useState('')
+  const [userSearchLoading, setUserSearchLoading] = useState(false)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
 
   const fetchDemoAccesses = async () => {
     try {
@@ -255,10 +260,39 @@ export default function DemoManagement() {
       const response = await fetch('/api/admin/products-v2', createAuthenticatedRequest())
       if (response.ok) {
         const data = await response.json()
-        setProducts(data.products?.filter((p: any) => p.allowDemo) || [])
+        // Показываем все активные продукты, т.к. поле allowDemo отсутствует в API
+        const activeProducts = data.products?.filter((p: any) => p.isActive) || []
+        // Добавляем стандартное количество дней демо для всех продуктов
+        const productsWithDemo = activeProducts.map((p: any) => ({
+          ...p,
+          allowDemo: true, // Предполагаем, что все активные продукты поддерживают демо
+          demoDays: 7 // Стандартное значение
+        }))
+        setProducts(productsWithDemo)
       }
     } catch (error) {
       console.error('Error fetching products:', error)
+    }
+  }
+
+  const fetchUsers = async (searchTerm: string) => {
+    try {
+      setUserSearchLoading(true)
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '20',
+        ...(searchTerm && { search: searchTerm })
+      })
+
+      const response = await fetch(`/api/admin/users?${params}`, createAuthenticatedRequest())
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data.users || [])
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    } finally {
+      setUserSearchLoading(false)
     }
   }
 
@@ -266,6 +300,24 @@ export default function DemoManagement() {
     fetchDemoAccesses()
     fetchProducts()
   }, [])
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (userSearch.trim()) {
+        fetchUsers(userSearch)
+      } else {
+        setUsers([])
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [userSearch])
+
+  const selectUser = (user: any) => {
+    setNewDemoAccess({...newDemoAccess, userId: user.telegramId})
+    setUserSearch(`${user.firstName} ${user.username ? '@' + user.username : ''}`)
+    setShowUserDropdown(false)
+  }
 
   const grantDemoAccess = async () => {
     try {
@@ -591,33 +643,96 @@ export default function DemoManagement() {
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Выдать демо-доступ</h3>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ID пользователя Telegram *</label>
-                <input
-                  type="text"
-                  placeholder="Например: 123456789"
-                  value={newDemoAccess.userId}
-                  onChange={(e) => setNewDemoAccess({...newDemoAccess, userId: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">Используйте Telegram ID пользователя</p>
+              {/* User Search */}
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Поиск пользователя *</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Начните вводить имя или username..."
+                    value={userSearch}
+                    onChange={(e) => {
+                      setUserSearch(e.target.value)
+                      setShowUserDropdown(true)
+                    }}
+                    onFocus={() => setShowUserDropdown(true)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                  {userSearchLoading && (
+                    <div className="absolute right-3 top-2.5">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
+                </div>
+
+                {/* User Dropdown */}
+                {showUserDropdown && userSearch.trim() && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {users.length > 0 ? (
+                      users.map((user) => (
+                        <div
+                          key={user.telegramId}
+                          onClick={() => selectUser(user)}
+                          className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-white font-medium text-sm">
+                                {user.firstName?.[0]?.toUpperCase() || 'U'}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 truncate">{user.firstName}</div>
+                              <div className="text-sm text-gray-500">
+                                @{user.username || 'no_username'} • ID: {user.telegramId}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : !userSearchLoading ? (
+                      <div className="px-3 py-4 text-center text-gray-500 text-sm">
+                        Пользователи не найдены
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
 
-              <select
-                value={newDemoAccess.productId}
-                onChange={(e) => setNewDemoAccess({...newDemoAccess, productId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              >
-                <option value="">Выберите продукт для демо *</option>
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} (${product.price}) - {product.demoDays} дней демо
-                  </option>
-                ))}
-              </select>
+              {/* Selected User Info */}
+              {newDemoAccess.userId && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm text-blue-800">
+                      Выбран пользователь: {userSearch}
+                    </span>
+                  </div>
+                </div>
+              )}
 
+              {/* Product Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Выберите продукт *</label>
+                <select
+                  value={newDemoAccess.productId}
+                  onChange={(e) => setNewDemoAccess({...newDemoAccess, productId: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="">Выберите продукт для демо *</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} (${product.price}) - {product.demoDays || 7} дней демо
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Demo Days */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Период демо (дни)</label>
                 <input
@@ -640,6 +755,8 @@ export default function DemoManagement() {
                     productId: '',
                     demoDays: 7
                   })
+                  setUserSearch('')
+                  setUsers([])
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               >
