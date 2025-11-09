@@ -90,6 +90,11 @@ export default function PaymentManagement() {
       })
 
       const response = await fetch(`/api/admin/payments?${params}`, createAuthenticatedRequest())
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
       const data = await response.json()
 
       if (data.success) {
@@ -100,7 +105,8 @@ export default function PaymentManagement() {
         setError(data.error || 'Ошибка загрузки платежей')
       }
     } catch (err) {
-      setError('Ошибка загрузки платежей')
+      console.error('PaymentManagement error:', err)
+      setError(`Ошибка загрузки платежей: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`)
     } finally {
       setLoading(false)
     }
@@ -120,6 +126,10 @@ export default function PaymentManagement() {
         })
       }))
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
       const data = await response.json()
 
       if (data.success) {
@@ -130,7 +140,8 @@ export default function PaymentManagement() {
         setError(data.error || 'Ошибка выполнения действия')
       }
     } catch (err) {
-      setError('Ошибка выполнения действия')
+      console.error('PaymentAction error:', err)
+      setError(`Ошибка выполнения действия: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`)
     } finally {
       setActionLoading(false)
     }

@@ -160,9 +160,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return new Response(safeJsonStringify(responseData), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
+    // Используем NextResponse.json с трансформером для BigInt
+    return NextResponse.json(responseData, {
+      status: 200
     })
 
   } catch (error) {
@@ -371,9 +371,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return new Response(safeJsonStringify(responseData), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
+    // Используем NextResponse.json - BigInt уже сконвертированы в formattedPayments
+    return NextResponse.json(responseData, {
+      status: 200
     })
 
   } catch (error) {
