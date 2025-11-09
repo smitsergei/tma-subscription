@@ -135,38 +135,50 @@ export async function POST(request: NextRequest) {
         const expiresAt = new Date(startsAt)
         expiresAt.setDate(expiresAt.getDate() + payment.product.periodDays)
 
-        // Создание или обновление подписки
-        const subscription = await prisma.subscription.upsert({
+        // Поиск существующей подписки для этого пользователя и продукта
+        const existingSubscription = await prisma.subscription.findFirst({
           where: {
-            userId_productId: {
-              userId: payment.userId,
-              productId: payment.productId
-            }
-          },
-          update: {
-            status: 'active',
-            paymentId: payment.paymentId,
-            channelId: payment.product.channelId,
-            startsAt,
-            expiresAt,
-            updatedAt: new Date()
-          },
-          create: {
             userId: payment.userId,
-            productId: payment.productId,
-            channelId: payment.product.channelId,
-            paymentId: payment.paymentId,
-            status: 'active',
-            startsAt,
-            expiresAt
+            productId: payment.productId
           }
         })
 
-        console.log('✅ Subscription created/updated:', subscription.subscriptionId)
+        let subscription
+        if (existingSubscription) {
+          // Обновление существующей подписки
+          subscription = await prisma.subscription.update({
+            where: {
+              subscriptionId: existingSubscription.subscriptionId
+            },
+            data: {
+              status: 'active',
+              paymentId: payment.paymentId,
+              channelId: payment.product.channelId,
+              startsAt,
+              expiresAt,
+              updatedAt: new Date()
+            }
+          })
+          console.log('✅ Subscription updated:', subscription.subscriptionId)
+        } else {
+          // Создание новой подписки
+          subscription = await prisma.subscription.create({
+            data: {
+              userId: payment.userId,
+              productId: payment.productId,
+              channelId: payment.product.channelId,
+              paymentId: payment.paymentId,
+              status: 'active',
+              startsAt,
+              expiresAt
+            }
+          })
+          console.log('✅ Subscription created:', subscription.subscriptionId)
+        }
       } else {
         console.log('ℹ️ Custom payment without product, no subscription created')
       }
-    } else if (body.payment_status === 'failed' || body.payment_status === 'expired') {
+    } else if (body.payment_status === 'failed') {
       console.log('❌ Payment failed, updating subscription status...')
 
       // Деактивация подписки если платеж не удался

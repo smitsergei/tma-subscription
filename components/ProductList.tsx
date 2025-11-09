@@ -77,7 +77,7 @@ export function ProductList({ telegramUser }: ProductListProps) {
     } catch (err) {
       setPaymentStatus('❌ Ошибка при проверке оплаты')
     } finally {
-      if (!paymentStatus.includes('⏳')) {
+      if (paymentStatus && !paymentStatus.includes('⏳')) {
         setPurchasingProduct(null)
       }
     }
@@ -168,41 +168,8 @@ export function ProductList({ telegramUser }: ProductListProps) {
     )
   }
 
-  // Индикатор подключения кошелька
-  const WalletStatus = () => (
-    <div className={`p-3 rounded-lg mb-4 ${
-      isConnected
-        ? 'bg-green-50 border border-green-200'
-        : 'bg-yellow-50 border border-yellow-200'
-    }`}>
-      <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${
-          isConnected ? 'bg-green-500' : 'bg-yellow-500'
-        }`}></div>
-        <span className={`text-sm ${
-          isConnected ? 'text-green-800' : 'text-yellow-800'
-        }`}>
-          {isConnected
-            ? `Кошелек подключен: ${address?.slice(0, 6)}...${address?.slice(-4)}`
-            : 'Кошелек не подключен. Нажмите "Подключить кошелек" для начала.'
-          }
-        </span>
-      </div>
-    </div>
-  )
-
-  if (products.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <div className="text-gray-500 mb-2">📦</div>
-        <p className="text-gray-600">На данный момент нет доступных подписок</p>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-4">
-      <WalletStatus />
       {products.map((product) => (
         <div key={product.productId} className="subscription-card">
           <div className="flex items-start justify-between mb-3">

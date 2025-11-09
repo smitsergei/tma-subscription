@@ -65,13 +65,8 @@ export function useNOWPayments() {
       if (data.payment?.invoice_url) {
         console.log('🔄 Redirecting to payment page:', data.payment.invoice_url)
 
-        // Для Telegram WebApp используем openLink
-        if (window.Telegram?.WebApp?.openLink) {
-          window.Telegram.WebApp.openLink(data.payment.invoice_url)
-        } else {
-          // Для обычного браузера
-          window.open(data.payment.invoice_url, '_blank')
-        }
+        // Открываем ссылку на оплату в новом окне
+        window.open(data.payment.invoice_url, '_blank')
       }
 
       return data.payment
