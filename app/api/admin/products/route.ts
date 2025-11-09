@@ -329,28 +329,44 @@ export async function PUT(request: NextRequest) {
     if (periodDays !== undefined) updateData.periodDays = parseInt(periodDays)
     if (isActive !== undefined) updateData.isActive = isActive
 
-    if (channelTelegramId) {
-      // Clean channel ID (remove @ if present)
-      const cleanChannelId = channelTelegramId.startsWith('@')
-        ? channelTelegramId.slice(1)
-        : channelTelegramId
+    if (channelTelegramId || channelName || channelUsername) {
+      // Get current product to find its channel ID
+      const currentProduct = await prisma.product.findUnique({
+        where: { productId },
+        select: { channelId: true }
+      })
+
+      let targetChannelId: bigint
+
+      if (channelTelegramId) {
+        // Clean channel ID (remove @ if present)
+        const cleanChannelId = channelTelegramId.startsWith('@')
+          ? channelTelegramId.slice(1)
+          : channelTelegramId
+        targetChannelId = BigInt(cleanChannelId)
+      } else if (currentProduct?.channelId) {
+        // Use existing channel ID if no new ID provided
+        targetChannelId = currentProduct.channelId
+      } else {
+        throw new Error('Channel ID is required but not found')
+      }
 
       let channel = await prisma.channel.findUnique({
-        where: { channelId: BigInt(cleanChannelId) }
+        where: { channelId: targetChannelId }
       })
 
       if (!channel) {
         channel = await prisma.channel.create({
           data: {
-            channelId: BigInt(cleanChannelId),
-            name: channelName || `Channel ${channelTelegramId}`,
+            channelId: targetChannelId,
+            name: channelName || `Channel ${channelTelegramId || targetChannelId}`,
             username: channelUsername || null,
           }
         })
       } else if (channelName || channelUsername) {
         // Update existing channel if name or username is provided
         channel = await prisma.channel.update({
-          where: { channelId: BigInt(cleanChannelId) },
+          where: { channelId: targetChannelId },
           data: {
             ...(channelName && { name: channelName }),
             ...(channelUsername !== undefined && { username: channelUsername }),
@@ -358,7 +374,10 @@ export async function PUT(request: NextRequest) {
         })
       }
 
-      updateData.channelId = channel.channelId
+      // Only update channelId if it actually changed
+      if (channelTelegramId && (!currentProduct?.channelId || currentProduct.channelId !== channel.channelId)) {
+        updateData.channelId = channel.channelId
+      }
     }
 
     const product = await prisma.product.update({
