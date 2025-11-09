@@ -109,11 +109,11 @@ export async function POST(request: NextRequest) {
     // Адрес USDT в TON сети
     const usdtMasterAddress = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'
 
-    // Создаем payload для jetton transfer
+    // Создаем payload для jetton transfer с memo
     const jettonTransferPayload = beginCell()
       .storeUint(0xf8a7ea5, 32) // op code для jetton transfer
       .storeUint(0, 64) // query_id
-      .storeCoins(toNano(finalPrice.toString())) // amount (jetton amount с decimals)
+      .storeCoins(toNano((finalPrice * 1000000).toString())) // USDT amount (6 decimals)
       .storeAddress(Address.parse(process.env.TON_WALLET_ADDRESS!)) // destination
       .storeAddress(Address.parse(process.env.TON_WALLET_ADDRESS!)) // response_destination
       .storeUint(0, 1) // custom_payload
@@ -122,6 +122,15 @@ export async function POST(request: NextRequest) {
       .storeUint(0, 32) // flags для text comment
       .storeBuffer(Buffer.from(memo, 'utf8')) // comment с memo как buffer
       .endCell()
+
+    console.log('💰 PAYMENT INITIATE: USDT Payment details:', {
+      paymentId: payment.paymentId,
+      amount: finalPrice,
+      currency: 'USDT',
+      memo,
+      usdtAmount: (finalPrice * 1000000).toString(),
+      commission: commissionInNanoTON.toString()
+    })
 
     return NextResponse.json({
       success: true,
