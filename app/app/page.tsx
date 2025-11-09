@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useNOWPayments } from '@/hooks/useNOWPayments'
 
 // Функция для извлечения данных из URL
@@ -27,13 +28,14 @@ function parseTelegramData() {
 }
 
 export default function TmaPage() {
+  const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [products, setProducts] = useState<any[]>([])
   const [userSubscriptions, setUserSubscriptions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [productsLoading, setProductsLoading] = useState(false)
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'products' | 'subscriptions'>('products')
+  const [activeTab, setActiveTab] = useState<'products' | 'subscriptions' | 'payments'>('products')
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null)
 
   // NOWPayments integration
@@ -270,6 +272,12 @@ export default function TmaPage() {
             }`}
           >
             📋 Мои подписки
+          </button>
+          <button
+            onClick={() => window.open('/payments', '_blank')}
+            className="flex-1 py-2 px-3 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            💳 Платежи
           </button>
         </div>
 
