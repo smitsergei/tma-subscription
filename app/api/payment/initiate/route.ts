@@ -243,6 +243,12 @@ async function createNOWPayment(
     const errorText = await response.text()
     console.error('❌ NOWPayments API error:', response.status, errorText)
 
+    // Если валюта недоступна, пробуем BTC
+    if (errorText.includes('CURRENCY_UNAVAILABLE') && currency !== 'BTC') {
+      console.log('🔄 Currency unavailable, trying BTC as fallback...')
+      return await createNOWPayment(finalAmount, 'BTC', localPaymentId, orderDescription)
+    }
+
     throw new Error(`NOWPayments API error: ${response.status} - ${errorText}`)
   }
 

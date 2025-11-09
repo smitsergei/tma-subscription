@@ -64,7 +64,7 @@ export function useNOWPayments() {
         headers,
         body: JSON.stringify({
           amount,
-          currency,
+          currency: currency === 'USDT' ? 'USDT' : 'BTC', // BTC как fallback
           productId,
           orderDescription: orderDescription || `Оплата подписки ${amount} ${currency}`
         }),
