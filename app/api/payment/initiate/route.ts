@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     const jettonTransferPayload = beginCell()
       .storeUint(0xf8a7ea5, 32) // op code для jetton transfer
       .storeUint(0, 64) // query_id
-      .storeCoins(toNano((finalPrice * 1000000).toString())) // USDT amount (6 decimals)
+      .storeCoins(toNano((Number(finalPrice) * 1000000).toString())) // USDT amount (6 decimals)
       .storeAddress(Address.parse(process.env.TON_WALLET_ADDRESS!)) // destination
       .storeAddress(Address.parse(process.env.TON_WALLET_ADDRESS!)) // response_destination
       .storeUint(0, 1) // custom_payload
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
       amount: finalPrice,
       currency: 'USDT',
       memo,
-      usdtAmount: (finalPrice * 1000000).toString(),
+      usdtAmount: (Number(finalPrice) * 1000000).toString(),
       commission: commissionInNanoTON.toString()
     })
 
