@@ -231,8 +231,8 @@ export async function POST(request: NextRequest) {
 
           subscriptions.forEach((sub, index) => {
             const expiresAt = new Date(sub.expiresAt).toLocaleDateString('ru-RU')
-            text += `<b>${index + 1}. ${sub.product.name}</b>\n`
-            text += `   📢 Канал: ${sub.product.channel.name}\n`
+            text += `<b>${index + 1}. ${sub.product?.name || 'Подписка'}</b>\n`
+            text += `   📢 Канал: ${sub.product?.channel?.name || 'Без названия'}\n`
             text += `   📅 Истекает: ${expiresAt}\n\n`
           })
 
