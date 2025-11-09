@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData, generatePaymentMemo } from '@/lib/utils'
+import { Decimal } from 'decimal.js'
 
 interface InitiatePaymentRequest {
   productId?: string
@@ -129,11 +130,18 @@ export async function POST(request: NextRequest) {
       memo
     })
 
-    // Сохраняем детали NOWPayments в платеже
+    // Сохраняем все детали NOWPayments в платеже
     await prisma.payment.update({
       where: { paymentId: payment.paymentId },
       data: {
-        // Дополнительные поля можно добавить в схему при необходимости
+        nowPaymentId: nowPaymentsResponse.payment_id?.toString(),
+        payAddress: nowPaymentsResponse.pay_address,
+        payAmount: nowPaymentsResponse.pay_amount ? new Decimal(nowPaymentsResponse.pay_amount.toString()) : null,
+        payCurrency: nowPaymentsResponse.pay_currency,
+        validUntil: nowPaymentsResponse.valid_until ? new Date(nowPaymentsResponse.valid_until) : null,
+        priceAmount: nowPaymentsResponse.price_amount ? new Decimal(nowPaymentsResponse.price_amount.toString()) : null,
+        priceCurrency: nowPaymentsResponse.price_currency,
+        orderDescription: nowPaymentsResponse.order_description,
       }
     })
 

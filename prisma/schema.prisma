@@ -77,19 +77,28 @@ model Product {
 }
 
 model Payment {
-  paymentId     String         @id @default(cuid()) @map("payment_id")
-  userId        BigInt         @map("user_id")
-  productId     String?        @map("product_id")
-  amount        Decimal        @db.Decimal(10, 2)
-  currency      String         @default("USDT")
-  status        String         @default("pending")
-  txHash        String?        @unique @map("tx_hash")
-  memo          String?        @unique
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  product       Product?       @relation(fields: [productId], references: [productId])
-  user          User           @relation(fields: [userId], references: [telegramId])
-  subscriptions Subscription[]
+  paymentId        String         @id @default(cuid()) @map("payment_id")
+  userId           BigInt         @map("user_id")
+  productId        String?        @map("product_id")
+  amount           Decimal        @db.Decimal(10, 2)
+  currency         String         @default("USDT")
+  status           String         @default("pending")
+  txHash           String?        @unique @map("tx_hash")
+  memo             String?        @unique
+  // NOWPayments specific fields
+  nowPaymentId     String?        @map("now_payment_id")
+  payAddress       String?        @map("pay_address")
+  payAmount        Decimal?       @map("pay_amount") @db.Decimal(20, 8)
+  payCurrency      String?        @map("pay_currency")
+  validUntil       DateTime?      @map("valid_until")
+  priceAmount      Decimal?       @map("price_amount") @db.Decimal(10, 2)
+  priceCurrency    String?        @map("price_currency")
+  orderDescription String?        @map("order_description")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  product          Product?       @relation(fields: [productId], references: [productId])
+  user             User           @relation(fields: [userId], references: [telegramId])
+  subscriptions    Subscription[]
 
   @@map("payments")
 }
