@@ -20,7 +20,7 @@ enum PromoType {
 
 model User {
   telegramId    BigInt         @id @map("telegram_id")
-  username      String?        @unique
+  username      String?
   firstName     String?        @map("first_name")
   createdAt     DateTime       @default(now()) @map("created_at")
   admin         Admin?
