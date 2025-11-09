@@ -72,22 +72,29 @@ export function ProductList({ telegramUser }: ProductListProps) {
   }, [])
 
   const handlePurchase = useCallback(async (product: Product) => {
+    console.log('🚀 Starting purchase for product:', product.productId)
+
     if (!isConnected) {
+      console.log('🔌 Wallet not connected, connecting...')
       // Подключаем кошелек
       try {
         await connectWallet()
+        console.log('✅ Wallet connected successfully')
         return
       } catch (err) {
+        console.error('❌ Error connecting wallet:', err)
         alert('Ошибка подключения кошелька')
         return
       }
     }
 
+    console.log('💳 Wallet connected, starting payment...')
     setPurchasingProduct(product.productId)
     setPaymentStatus('Инициализация платежа...')
 
     try {
       // Инициация платежа
+      console.log('📡 Initiating payment for product:', product.productId)
       const result = await apiRequest<PaymentInitiateResponse>('/api/payment/initiate', {
         method: 'POST',
         body: JSON.stringify({
@@ -95,29 +102,40 @@ export function ProductList({ telegramUser }: ProductListProps) {
         })
       })
 
+      console.log('📄 Payment initiation result:', result)
+
       if (result.success && result.data) {
+        console.log('✅ Payment initiated successfully, sending transaction...')
         setPaymentStatus('Ожидание подтверждения транзакции...')
 
         // Отправка транзакции через TON Connect
+        console.log('💸 Sending transaction:', result.data.transaction)
         const txResult = await sendTransaction(result.data.transaction)
 
+        console.log('📨 Transaction result:', txResult)
+
         if (txResult && txResult.boc) {
+          console.log('✅ Transaction sent successfully')
           setPaymentStatus('Транзакция отправлена. Проверка оплаты...')
 
           // Получаем hash транзакции
           const txHash = txResult.boc // В реальности здесь будет hash транзакции
+          console.log('🔍 Transaction hash:', txHash)
 
           // Запускаем проверку оплаты с задержкой
           setTimeout(() => {
             if (result.data) {
+              console.log('🔍 Starting payment verification...')
               verifyPayment(result.data.paymentId, txHash)
             }
           }, 5000) // Ждем 5 секунд для обработки транзакции
         } else {
+          console.error('❌ Failed to send transaction:', txResult)
           setPaymentStatus('❌ Ошибка отправки транзакции')
           setPurchasingProduct(null)
         }
       } else {
+        console.error('❌ Payment initiation failed:', result)
         setPaymentStatus(`❌ Ошибка: ${result.error}`)
         setPurchasingProduct(null)
       }

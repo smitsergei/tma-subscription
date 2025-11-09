@@ -1,6 +1,52 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
+// Глобальные типы для Telegram WebApp
+declare global {
+  interface Window {
+    Telegram: {
+      WebApp: {
+        initData: string
+        initDataUnsafe: {
+          query_id?: string
+          user?: {
+            id: number
+            first_name?: string
+            last_name?: string
+            username?: string
+            language_code?: string
+            is_premium?: boolean
+          }
+          auth_date?: string
+          hash?: string
+        }
+        ready: () => void
+        expand: () => void
+        close: () => void
+        enableClosingConfirmation: () => void
+        setHeaderColor: (color: string) => void
+        themeParams: {
+          bg_color?: string
+          text_color?: string
+          button_color?: string
+          button_text_color?: string
+          secondary_bg_color?: string
+          section_separator_color?: string
+        }
+        onEvent: (eventType: string, callback: () => void) => void
+        showAlert?: (message: string) => void
+        showConfirm?: (message: string, callback: (confirmed: boolean) => void) => void
+        BackButton?: {
+          show: () => void
+          hide: () => void
+          onClick: (callback: () => void) => void
+          offClick: (callback: () => void) => void
+        }
+      }
+    }
+  }
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -140,10 +186,16 @@ export async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<{ success: boolean; data?: T; error?: string }> {
   try {
+    // Получаем Telegram WebApp initData
+    const telegramWebApp = window.Telegram?.WebApp
+    const initData = telegramWebApp?.initData
+
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        // Добавляем заголовок с Telegram initData если доступен
+        ...(initData && { 'X-Telegram-Init-Data': initData }),
         ...options.headers,
       },
     })
