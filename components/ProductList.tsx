@@ -119,6 +119,18 @@ export function ProductList({ telegramUser }: ProductListProps) {
                   <span className="price-badge discount font-bold text-lg">
                     {formatPrice(product.discountPrice)}
                   </span>
+                  {product.activeDiscount && (
+                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
+                      {product.activeDiscount.type === 'PERCENTAGE'
+                        ? `-${product.activeDiscount.value}%`
+                        : `-${formatPrice(product.activeDiscount.value)}`}
+                      {' '}
+                      до {new Date(product.activeDiscount.endDate).toLocaleDateString('ru-RU', {
+                        day: 'numeric',
+                        month: 'short'
+                      })}
+                    </span>
+                  )}
                 </>
               ) : (
                 <span className="font-bold text-lg text-gray-900">

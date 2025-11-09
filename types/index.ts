@@ -28,11 +28,19 @@ export interface Product {
   price: number
   periodDays: number
   discountPrice?: number
+  originalDiscountPrice?: number // Постоянная скидка из продукта
   isTrial: boolean
   isActive: boolean
+  allowDemo?: boolean
+  demoDays?: number
   createdAt: Date
   updatedAt: Date
   channel?: Channel
+  activeDiscount?: {
+    type: 'PERCENTAGE' | 'FIXED_AMOUNT'
+    value: number
+    endDate: Date
+  }
 }
 
 // Payment types
