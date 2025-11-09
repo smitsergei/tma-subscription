@@ -130,8 +130,8 @@ export async function POST(request: NextRequest) {
       try {
         await sendPaymentNotification(
           pendingPayment.userId.toString(),
-          pendingPayment.product.name,
-          pendingPayment.product.channel.name,
+          pendingPayment.product?.name || 'Подписка',
+          pendingPayment.product?.channel?.name || 'Без названия',
           expiresAt
         )
       } catch (error) {
