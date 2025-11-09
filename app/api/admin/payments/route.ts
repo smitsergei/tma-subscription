@@ -235,8 +235,8 @@ export async function POST(request: NextRequest) {
           const newSubscription = await tx.subscription.create({
             data: {
               userId: payment.userId,
-              productId: payment.productId,
-              channelId: payment.product.channelId,
+              productId: payment.productId || undefined,
+              channelId: payment.product?.channelId || 0n,
               paymentId: payment.paymentId,
               status: 'active',
               startsAt: new Date(),
