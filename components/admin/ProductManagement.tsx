@@ -17,8 +17,9 @@ interface Product {
   isTrial?: boolean
   allowDemo?: boolean
   demoDays?: number
+  channelId: string
   channel: {
-    id: string
+    channelId: string
     name: string
     username?: string
     description?: string
@@ -152,7 +153,7 @@ function ProductCard({ product, onEdit, onDelete, onToggleStatus }: ProductCardP
           </svg>
           <div>
             <div className="font-medium text-gray-900">{product.channel.name}</div>
-            <div className="text-xs text-gray-500">ID: {product.channel.id}</div>
+            <div className="text-xs text-gray-500">ID: {product.channel.channelId}</div>
           </div>
         </div>
       </div>
@@ -201,7 +202,9 @@ export default function ProductManagement() {
     name: '',
     description: '',
     price: '',
-    channelTelegramId: '',
+    channelId: '',
+    channelName: '',
+    channelUsername: '',
     periodDays: '30',
     isActive: true,
     allowDemo: false,
@@ -212,7 +215,9 @@ export default function ProductManagement() {
     name: '',
     description: '',
     price: '',
-    channelTelegramId: '',
+    channelId: '',
+    channelName: '',
+    channelUsername: '',
     periodDays: '',
     isActive: true,
     allowDemo: false,
@@ -262,7 +267,9 @@ export default function ProductManagement() {
           name: '',
           description: '',
           price: '',
-          channelTelegramId: '',
+          channelId: '',
+          channelName: '',
+          channelUsername: '',
           periodDays: '30',
           isActive: true,
           allowDemo: false,
@@ -300,7 +307,9 @@ export default function ProductManagement() {
           name: '',
           description: '',
           price: '',
-          channelTelegramId: '',
+          channelId: '',
+          channelName: '',
+          channelUsername: '',
           periodDays: '',
           isActive: true,
           allowDemo: false,
@@ -371,7 +380,9 @@ export default function ProductManagement() {
       name: product.name,
       description: product.description,
       price: product.price.toString(),
-      channelTelegramId: product.channel.id,
+      channelId: product.channel.channelId,
+      channelName: product.channel.name,
+      channelUsername: product.channel.username || '',
       periodDays: product.periodDays.toString(),
       isActive: product.isActive,
       allowDemo: product.allowDemo || false,
@@ -457,7 +468,7 @@ export default function ProductManagement() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 font-medium">{product.channel.name}</div>
-                    <div className="text-xs text-gray-500">ID: {product.channel.id}</div>
+                    <div className="text-xs text-gray-500">ID: {product.channel.channelId}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-baseline gap-1">
@@ -538,55 +549,130 @@ export default function ProductManagement() {
       {/* Create Product Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Создать продукт</h3>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Название продукта *"
-                value={newProduct.name}
-                onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <textarea
-                placeholder="Описание"
-                value={newProduct.description}
-                onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-              />
-              <input
-                type="number"
-                placeholder="Цена (USD) *"
-                value={newProduct.price}
-                onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                step="0.01"
-              />
-              <input
-                type="text"
-                placeholder="ID канала Telegram *"
-                value={newProduct.channelTelegramId}
-                onChange={(e) => setNewProduct({...newProduct, channelTelegramId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Длительность (дни)"
-                value={newProduct.periodDays}
-                onChange={(e) => setNewProduct({...newProduct, periodDays: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="1"
-              />
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={newProduct.isActive}
-                  onChange={(e) => setNewProduct({...newProduct, isActive: e.target.checked})}
-                  className="mr-2"
-                />
-                Продукт активен
-              </label>
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold mb-6 text-gray-900">Создать новый продукт</h3>
+
+            <div className="space-y-6">
+              {/* Основная информация */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Основная информация</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Название продукта *</label>
+                    <input
+                      type="text"
+                      placeholder="Например: Premium доступ к каналу"
+                      value={newProduct.name}
+                      onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                    <textarea
+                      placeholder="Подробное описание продукта и его преимуществ"
+                      value={newProduct.description}
+                      onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Ценообразование */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Ценообразование</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Цена (USD) *</label>
+                    <input
+                      type="number"
+                      placeholder="10.00"
+                      value={newProduct.price}
+                      onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Длительность (дни) *</label>
+                    <input
+                      type="number"
+                      placeholder="30"
+                      value={newProduct.periodDays}
+                      onChange={(e) => setNewProduct({...newProduct, periodDays: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      min="1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Информация о канале */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Информация о Telegram канале</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      ID канала Telegram *
+                      <span className="text-xs text-gray-500 ml-1">(числовой ID без @)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="-1001234567890"
+                      value={newProduct.channelId}
+                      onChange={(e) => setNewProduct({...newProduct, channelId: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Получите ID через @userinfobot или из настроек канала
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Название канала</label>
+                      <input
+                        type="text"
+                        placeholder="Название канала"
+                        value={newProduct.channelName}
+                        onChange={(e) => setNewProduct({...newProduct, channelName: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Username канала</label>
+                      <input
+                        type="text"
+                        placeholder="@channel_username"
+                        value={newProduct.channelUsername}
+                        onChange={(e) => setNewProduct({...newProduct, channelUsername: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Настройки */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Настройки</h4>
+                <div className="space-y-3">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={newProduct.isActive}
+                      onChange={(e) => setNewProduct({...newProduct, isActive: e.target.checked})}
+                      className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-700">Продукт активен</span>
+                      <p className="text-sm text-gray-500">Продукт будет доступен для покупки</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
             </div>
             <div className="flex justify-end space-x-3 mt-6">
               <button
@@ -597,8 +683,8 @@ export default function ProductManagement() {
               </button>
               <button
                 onClick={createProduct}
-                disabled={!newProduct.name || !newProduct.price || !newProduct.channelTelegramId}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+                disabled={!newProduct.name || !newProduct.price || !newProduct.channelId}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
               >
                 Создать продукт
               </button>
@@ -610,55 +696,123 @@ export default function ProductManagement() {
       {/* Edit Product Modal */}
       {showEditModal && selectedProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Изменить продукт</h3>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Название продукта"
-                value={editProduct.name}
-                onChange={(e) => setEditProduct({...editProduct, name: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <textarea
-                placeholder="Описание"
-                value={editProduct.description}
-                onChange={(e) => setEditProduct({...editProduct, description: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-              />
-              <input
-                type="number"
-                placeholder="Цена (USD)"
-                value={editProduct.price}
-                onChange={(e) => setEditProduct({...editProduct, price: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                step="0.01"
-              />
-              <input
-                type="text"
-                placeholder="ID канала Telegram"
-                value={editProduct.channelTelegramId}
-                onChange={(e) => setEditProduct({...editProduct, channelTelegramId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Длительность (дни)"
-                value={editProduct.periodDays}
-                onChange={(e) => setEditProduct({...editProduct, periodDays: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="1"
-              />
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={editProduct.isActive}
-                  onChange={(e) => setEditProduct({...editProduct, isActive: e.target.checked})}
-                  className="mr-2"
-                />
-                Продукт активен
-              </label>
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold mb-6 text-gray-900">Изменить продукт</h3>
+
+            <div className="space-y-6">
+              {/* Основная информация */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Основная информация</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Название продукта</label>
+                    <input
+                      type="text"
+                      value={editProduct.name}
+                      onChange={(e) => setEditProduct({...editProduct, name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                    <textarea
+                      value={editProduct.description}
+                      onChange={(e) => setEditProduct({...editProduct, description: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Ценообразование */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Ценообразование</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Цена (USD)</label>
+                    <input
+                      type="number"
+                      value={editProduct.price}
+                      onChange={(e) => setEditProduct({...editProduct, price: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Длительность (дни)</label>
+                    <input
+                      type="number"
+                      value={editProduct.periodDays}
+                      onChange={(e) => setEditProduct({...editProduct, periodDays: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      min="1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Информация о канале */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Информация о Telegram канале</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      ID канала Telegram
+                      <span className="text-xs text-gray-500 ml-1">(числовой ID без @)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editProduct.channelId}
+                      onChange={(e) => setEditProduct({...editProduct, channelId: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      ID можно получить через @userinfobot
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Название канала</label>
+                      <input
+                        type="text"
+                        value={editProduct.channelName}
+                        onChange={(e) => setEditProduct({...editProduct, channelName: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Username канала</label>
+                      <input
+                        type="text"
+                        value={editProduct.channelUsername}
+                        onChange={(e) => setEditProduct({...editProduct, channelUsername: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Настройки */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Настройки</h4>
+                <div className="space-y-3">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editProduct.isActive}
+                      onChange={(e) => setEditProduct({...editProduct, isActive: e.target.checked})}
+                      className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-700">Продукт активен</span>
+                      <p className="text-sm text-gray-500">Продукт будет доступен для покупки</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
             </div>
             <div className="flex justify-end space-x-3 mt-6">
               <button
