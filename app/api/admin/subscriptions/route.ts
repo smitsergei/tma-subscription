@@ -216,20 +216,30 @@ export async function POST(request: NextRequest) {
         username: subscriptionData.user.username
       } : null,
       product: {
-        ...subscriptionData.product,
         productId: subscriptionData.product.productId,
+        name: subscriptionData.product.name,
+        description: subscriptionData.product.description,
         price: parseFloat(subscriptionData.product.price.toString()),
         periodDays: subscriptionData.product.periodDays,
+        discountPrice: subscriptionData.product.discountPrice ? parseFloat(subscriptionData.product.discountPrice.toString()) : null,
+        isTrial: subscriptionData.product.isTrial,
+        isActive: subscriptionData.product.isActive,
+        allowDemo: subscriptionData.product.allowDemo,
+        demoDays: subscriptionData.product.demoDays,
+        createdAt: subscriptionData.product.createdAt,
+        updatedAt: subscriptionData.product.updatedAt,
         channel: subscriptionData.product.channel ? {
-          ...subscriptionData.product.channel,
-          channelId: subscriptionData.product.channel.channelId.toString()
+          channelId: subscriptionData.product.channel.channelId.toString(),
+          name: subscriptionData.product.channel.name,
+          username: subscriptionData.product.channel.username
         } : null
       },
       channel: subscriptionData.channel ? {
         channelId: subscriptionData.channel.channelId.toString(),
         name: subscriptionData.channel.name,
         username: subscriptionData.channel.username,
-        description: subscriptionData.channel.description
+        description: subscriptionData.channel.description,
+        createdAt: subscriptionData.channel.createdAt
       } : null,
       payment: subscriptionData.payment
     }
@@ -303,20 +313,30 @@ export async function PUT(request: NextRequest) {
         username: subscriptionData.user.username
       } : null,
       product: {
-        ...subscriptionData.product,
         productId: subscriptionData.product.productId,
+        name: subscriptionData.product.name,
+        description: subscriptionData.product.description,
         price: parseFloat(subscriptionData.product.price.toString()),
         periodDays: subscriptionData.product.periodDays,
+        discountPrice: subscriptionData.product.discountPrice ? parseFloat(subscriptionData.product.discountPrice.toString()) : null,
+        isTrial: subscriptionData.product.isTrial,
+        isActive: subscriptionData.product.isActive,
+        allowDemo: subscriptionData.product.allowDemo,
+        demoDays: subscriptionData.product.demoDays,
+        createdAt: subscriptionData.product.createdAt,
+        updatedAt: subscriptionData.product.updatedAt,
         channel: subscriptionData.product.channel ? {
-          ...subscriptionData.product.channel,
-          channelId: subscriptionData.product.channel.channelId.toString()
+          channelId: subscriptionData.product.channel.channelId.toString(),
+          name: subscriptionData.product.channel.name,
+          username: subscriptionData.product.channel.username
         } : null
       },
       channel: subscriptionData.channel ? {
         channelId: subscriptionData.channel.channelId.toString(),
         name: subscriptionData.channel.name,
         username: subscriptionData.channel.username,
-        description: subscriptionData.channel.description
+        description: subscriptionData.channel.description,
+        createdAt: subscriptionData.channel.createdAt
       } : null,
       payment: subscriptionData.payment
     }
