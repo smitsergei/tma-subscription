@@ -4,27 +4,33 @@ import { useState, useEffect } from 'react'
 import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
 interface User {
-  id: string
-  telegramId: bigint
+  telegramId: string
   firstName: string
   username: string
   createdAt: string
   subscriptions: Subscription[]
-  _count: {
-    subscriptions: number
-    activeSubscriptions: number
-  }
 }
 
 interface Subscription {
-  id: string
+  subscriptionId: string
+  userId: string
+  productId: string
+  channelId: string
   status: string
-  createdAt: string
   expiresAt: string
+  createdAt: string
   product: {
+    productId: string
     name: string
     price: number
+    periodDays: number
+    channel: {
+      channelId: string
+      name: string
+      username: string | null
+    } | null
   }
+  payment: any | null
 }
 
 interface DropdownMenuProps {
@@ -137,7 +143,7 @@ function UserCard({ user, onAddSubscription, onDelete }: UserCardProps) {
             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-sm text-gray-600">{user._count.subscriptions} подписок</span>
+            <span className="text-sm text-gray-600">{user.subscriptions.length} подписок</span>
           </div>
 
           {activeSubscriptionsCount > 0 && (
@@ -157,7 +163,7 @@ function UserCard({ user, onAddSubscription, onDelete }: UserCardProps) {
           <div className="text-xs text-gray-500 mb-2">Последние подписки:</div>
           <div className="space-y-1">
             {user.subscriptions.slice(0, 2).map((sub) => (
-              <div key={sub.id} className="flex items-center justify-between text-xs">
+              <div key={sub.subscriptionId} className="flex items-center justify-between text-xs">
                 <span className="text-gray-600">{sub.product.name}</span>
                 <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${
                   sub.status === 'active'
@@ -366,7 +372,7 @@ export default function UserManagement() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={user.telegramId} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -388,10 +394,10 @@ export default function UserManagement() {
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="text-sm font-medium text-gray-900">{user._count.subscriptions}</span>
-                      {user._count.activeSubscriptions > 0 && (
+                      <span className="text-sm font-medium text-gray-900">{user.subscriptions.length}</span>
+                      {user.subscriptions.filter(sub => sub.status === 'active').length > 0 && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                          {user._count.activeSubscriptions} активных
+                          {user.subscriptions.filter(sub => sub.status === 'active').length} активных
                         </span>
                       )}
                     </div>
@@ -419,7 +425,7 @@ export default function UserManagement() {
       <div className="lg:hidden space-y-4">
         {users.map((user) => (
           <UserCard
-            key={user.id}
+            key={user.telegramId}
             user={user}
             onAddSubscription={() => addSubscription(user.telegramId.toString())}
             onDelete={() => deleteUser(user.telegramId.toString())}

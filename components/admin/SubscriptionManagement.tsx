@@ -4,19 +4,17 @@ import { useState, useEffect } from 'react'
 import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
 interface Subscription {
-  id: string
+  subscriptionId: string
   status: string
   createdAt: string
   expiresAt: string
   user: {
-    id: string
-    telegramId: bigint
+    telegramId: string
     firstName: string
-    lastName: string
     username: string
   }
   product: {
-    id: string
+    productId: string
     name: string
     price: number
     channel: {
@@ -133,7 +131,7 @@ function SubscriptionCard({ subscription, onEdit, onDelete }: SubscriptionCardPr
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900 text-lg">{subscription.product.name}</h3>
           <p className="text-gray-600 text-sm mt-1">
-            {subscription.user.firstName} {subscription.user.lastName}
+            {subscription.user.firstName}
           </p>
         </div>
         <DropdownMenu
@@ -297,7 +295,7 @@ export default function SubscriptionManagement() {
     if (!selectedSubscription) return
 
     try {
-      const response = await fetch(`/api/admin/subscriptions?id=${selectedSubscription.id}`, createAuthenticatedRequest({
+      const response = await fetch(`/api/admin/subscriptions?id=${selectedSubscription.subscriptionId}`, createAuthenticatedRequest({
         method: 'PUT',
         body: JSON.stringify(editSubscription)
       }))
@@ -445,11 +443,11 @@ export default function SubscriptionManagement() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {subscriptions.map((subscription) => (
-                <tr key={subscription.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={subscription.subscriptionId} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div>
                       <div className="font-medium text-gray-900">
-                        {subscription.user.firstName} {subscription.user.lastName}
+                        {subscription.user.firstName}
                       </div>
                       <div className="text-sm text-gray-500">
                         @{subscription.user.username || 'no_username'} ({subscription.user.telegramId.toString()})
@@ -496,7 +494,7 @@ export default function SubscriptionManagement() {
                     <DropdownMenu
                       subscription={subscription}
                       onEdit={() => openEditModal(subscription)}
-                      onDelete={() => deleteSubscription(subscription.id)}
+                      onDelete={() => deleteSubscription(subscription.subscriptionId)}
                     />
                   </td>
                 </tr>
@@ -510,10 +508,10 @@ export default function SubscriptionManagement() {
       <div className="lg:hidden space-y-4">
         {subscriptions.map((subscription) => (
           <SubscriptionCard
-            key={subscription.id}
+            key={subscription.subscriptionId}
             subscription={subscription}
             onEdit={() => openEditModal(subscription)}
-            onDelete={() => deleteSubscription(subscription.id)}
+            onDelete={() => deleteSubscription(subscription.subscriptionId)}
           />
         ))}
       </div>
@@ -641,7 +639,7 @@ export default function SubscriptionManagement() {
               <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="text-sm text-gray-600">
                   <div className="mb-1">
-                    <span className="font-medium">Пользователь:</span> {selectedSubscription.user.firstName} {selectedSubscription.user.lastName}
+                    <span className="font-medium">Пользователь:</span> {selectedSubscription.user.firstName}
                   </div>
                   <div>
                     <span className="font-medium">Продукт:</span> {selectedSubscription.product.name}
