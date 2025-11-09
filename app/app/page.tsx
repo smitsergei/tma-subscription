@@ -139,8 +139,14 @@ export default function TmaPage() {
 
       // Проверяем подключен ли кошелек
       if (!isConnected) {
-        console.log('🔗 Connecting wallet...')
-        await connectWallet()
+        console.log('🔗 Wallet not connected, connecting...')
+        try {
+          await connectWallet()
+          console.log('✅ Wallet connected successfully')
+        } catch (connectError) {
+          console.error('❌ Failed to connect wallet:', connectError)
+          throw new Error('Не удалось подключить кошелек. Попробуйте снова.')
+        }
         return
       }
 
@@ -300,12 +306,14 @@ export default function TmaPage() {
     if (initData) {
       setUser(initData)
       console.log('✅ User data parsed from URL:', initData)
+      console.log('🔗 Environment URL:', process.env.NEXT_PUBLIC_APP_URL)
       // Загружаем продукты после получения данных пользователя
       loadProducts()
       // Загружаем подписки пользователя
       loadUserSubscriptions()
     } else {
       console.log('❌ No Telegram data found in URL')
+      console.log('🔗 Environment URL:', process.env.NEXT_PUBLIC_APP_URL)
     }
 
     setIsLoading(false)
@@ -386,13 +394,20 @@ export default function TmaPage() {
                 ? `💼 Кошелек подключен: ${address?.slice(0, 4)}...${address?.slice(-4)}`
                 : tonLoading
                   ? '🔄 Подключение...'
-                  : '💳 Кошелек не подключен'
+                  : error
+                    ? `❌ ${error}`
+                    : '💳 Кошелек не подключен'
               }
             </span>
           </div>
           {!isConnected && !tonLoading && (
             <button
-              onClick={connectWallet}
+              onClick={() => {
+                console.log('🔗 Connect button clicked')
+                connectWallet().catch(err => {
+                  console.error('Connect wallet error:', err)
+                })
+              }}
               className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
             >
               🔗 Подключить кошелек
