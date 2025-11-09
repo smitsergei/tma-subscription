@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId: pendingPayment.userId,
           productId: pendingPayment.productId,
-          channelId: pendingPayment.product.channelId,
+          channelId: pendingPayment.product?.channelId || BigInt(0),
           paymentId: pendingPayment.paymentId,
           status: 'active',
           startsAt: new Date(),
