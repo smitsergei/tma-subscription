@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
         firstName: subscriptionData.user.firstName,
         username: subscriptionData.user.username
       } : null,
-      product: {
+      product: subscriptionData.product ? {
         productId: subscriptionData.product.productId,
         name: subscriptionData.product.name,
         description: subscriptionData.product.description,
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
           name: subscriptionData.product.channel.name,
           username: subscriptionData.product.channel.username
         } : null
-      },
+      } : null,
       channel: subscriptionData.channel ? {
         channelId: subscriptionData.channel.channelId.toString(),
         name: subscriptionData.channel.name,
@@ -312,7 +312,7 @@ export async function PUT(request: NextRequest) {
         firstName: subscriptionData.user.firstName,
         username: subscriptionData.user.username
       } : null,
-      product: {
+      product: subscriptionData.product ? {
         productId: subscriptionData.product.productId,
         name: subscriptionData.product.name,
         description: subscriptionData.product.description,
@@ -330,7 +330,7 @@ export async function PUT(request: NextRequest) {
           name: subscriptionData.product.channel.name,
           username: subscriptionData.product.channel.username
         } : null
-      },
+      } : null,
       channel: subscriptionData.channel ? {
         channelId: subscriptionData.channel.channelId.toString(),
         name: subscriptionData.channel.name,
