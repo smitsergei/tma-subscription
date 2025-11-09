@@ -82,9 +82,9 @@ export async function POST(request: NextRequest) {
       }
 
       finalProductId = productId
-      finalAmount = product.discountPrice && product.discountPrice < product.price
-        ? product.discountPrice
-        : product.price
+      finalAmount = product.discountPrice && Number(product.discountPrice) < Number(product.price)
+        ? Number(product.discountPrice)
+        : Number(product.price)
     } else if (amount) {
       // Если указана прямая сумма
       finalAmount = amount
