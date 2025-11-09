@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     // Создание тестового платежа
     const payment = await prisma.payment.create({
       data: {
-        userId: 123456n, // Тестовый пользователь
+        userId: BigInt(123456), // Тестовый пользователь
         productId,
         amount: amount,
         currency: 'USDT',
