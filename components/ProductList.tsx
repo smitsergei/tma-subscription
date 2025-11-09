@@ -48,12 +48,16 @@ export function ProductList({ telegramUser }: ProductListProps) {
       setPaymentStatus('Проверка оплаты...')
 
       // Для USDT используем специальный эндпоинт верификации
-      const result = await apiRequest('/api/payment/verify-usdt', {
+      const result = await fetch('/api/payment/verify-usdt', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || ''
+        },
         body: JSON.stringify({
           paymentId
         })
-      })
+      }).then(res => res.json())
 
       if (result.success) {
         setPaymentStatus('✅ Оплата прошла успешно! Подписка активирована.')
