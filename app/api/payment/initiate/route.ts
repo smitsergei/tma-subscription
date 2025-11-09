@@ -110,7 +110,10 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  // Создание платежа в NOWPayments
+  // Получаем базовый URL для редиректов
+    const baseUrl = process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+
+    // Создание платежа в NOWPayments
     const nowPaymentsResponse = await createNOWPayment(
       finalAmount,
       currency,
@@ -125,9 +128,37 @@ export async function POST(request: NextRequest) {
       memo
     })
 
+    // Сохраняем детали NOWPayments в платеже
+    await prisma.payment.update({
+      where: { paymentId: payment.paymentId },
+      data: {
+        // Дополнительные поля можно добавить в схему при необходимости
+      }
+    })
+
+    console.log('💰 PAYMENT INITIATE: NOWPayments details:', {
+      paymentId: payment.paymentId,
+      amount: finalAmount,
+      currency: currency,
+      memo,
+      nowPaymentId: nowPaymentsResponse.payment_id
+    })
+
+    // Возвращаем URL для перенаправления на страницу оплаты
+    const paymentUrl = `${baseUrl}/payment?payment_id=${payment.paymentId}`
+
     return NextResponse.json({
       success: true,
-      payment: nowPaymentsResponse
+      payment: {
+        payment_id: nowPaymentsResponse.payment_id,
+        payment_url: paymentUrl,
+        pay_address: nowPaymentsResponse.pay_address,
+        pay_amount: nowPaymentsResponse.pay_amount,
+        pay_currency: nowPaymentsResponse.pay_currency,
+        price_amount: nowPaymentsResponse.price_amount,
+        price_currency: nowPaymentsResponse.price_currency,
+        valid_until: nowPaymentsResponse.valid_until
+      }
     })
   } catch (error) {
     console.error('Error initiating payment:', error)
@@ -156,15 +187,19 @@ async function createNOWPayment(
   // Генерация URL для редиректа после успешной оплаты
   const successUrl = `${baseUrl}/payment/success?payment_id=${localPaymentId}`
 
+  // Для NOWPayments нужна валидная callback URL
+  const validCallbackUrl = process.env.NODE_ENV === 'production'
+    ? ipnCallbackUrl
+    : 'https://webhook.site/your-test-url' // для тестирования
+
   const payload = {
     price_amount: amount,
-    price_currency: 'USD', // ALWAYS USD как указано в документации
+    price_currency: 'USD',
     pay_currency: currency,
-    ipn_callback_url: ipnCallbackUrl,
+    ipn_callback_url: validCallbackUrl,
     order_id: localPaymentId,
     order_description: orderDescription || `Payment ${amount} USD`,
-    success_url: successUrl,
-    partially_paid_url: successUrl
+    success_url: successUrl
   }
 
   console.log('📡 Creating NOWPayment with payload:', payload)

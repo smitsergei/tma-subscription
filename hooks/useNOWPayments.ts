@@ -62,11 +62,11 @@ export function useNOWPayments() {
       setPaymentData(data.payment)
 
       // Если есть URL для оплаты, перенаправляем пользователя
-      if (data.payment?.invoice_url) {
-        console.log('🔄 Redirecting to payment page:', data.payment.invoice_url)
+      if (data.payment?.payment_url) {
+        console.log('🔄 Redirecting to payment page:', data.payment.payment_url)
 
-        // Открываем ссылку на оплату в новом окне
-        window.open(data.payment.invoice_url, '_blank')
+        // Перенаправляем на страницу оплаты
+        window.location.href = data.payment.payment_url
       }
 
       return data.payment
