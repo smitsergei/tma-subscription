@@ -94,12 +94,27 @@ export async function GET(request: NextRequest) {
 
     // Конвертируем BigInt в string для JSON сериализации
     const serializedProducts = products.map(product => ({
-      ...product,
       productId: product.productId.toString(),
+      name: product.name,
+      description: product.description,
+      price: parseFloat(product.price.toString()),
+      periodDays: product.periodDays,
+      isActive: product.isActive,
+      isTrial: product.isTrial,
+      discountPrice: product.discountPrice ? parseFloat(product.discountPrice.toString()) : null,
+      allowDemo: product.allowDemo,
+      demoDays: product.demoDays,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      channelId: product.channelId.toString(),
       channel: {
-        ...product.channel,
-        channelId: product.channel.channelId.toString()
-      }
+        channelId: product.channel.channelId.toString(),
+        name: product.channel.name,
+        username: product.channel.username,
+        description: product.channel.description,
+        createdAt: product.channel.createdAt
+      },
+      _count: product._count
     }))
 
     return NextResponse.json({ products: serializedProducts })
@@ -210,11 +225,25 @@ export async function POST(request: NextRequest) {
 
     // Конвертируем BigInt в string для JSON сериализации
     const serializedProduct = {
-      ...product,
       productId: product.productId.toString(),
+      name: product.name,
+      description: product.description,
+      price: parseFloat(product.price.toString()),
+      periodDays: product.periodDays,
+      isActive: product.isActive,
+      isTrial: product.isTrial,
+      discountPrice: product.discountPrice ? parseFloat(product.discountPrice.toString()) : null,
+      allowDemo: product.allowDemo,
+      demoDays: product.demoDays,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      channelId: product.channelId.toString(),
       channel: {
-        ...product.channel,
-        channelId: product.channel.channelId.toString()
+        channelId: product.channel.channelId.toString(),
+        name: product.channel.name,
+        username: product.channel.username,
+        description: product.channel.description,
+        createdAt: product.channel.createdAt
       }
     }
 
@@ -316,11 +345,25 @@ export async function PUT(request: NextRequest) {
 
     // Конвертируем BigInt в string для JSON сериализации
     const serializedProduct = {
-      ...product,
       productId: product.productId.toString(),
+      name: product.name,
+      description: product.description,
+      price: parseFloat(product.price.toString()),
+      periodDays: product.periodDays,
+      isActive: product.isActive,
+      isTrial: product.isTrial,
+      discountPrice: product.discountPrice ? parseFloat(product.discountPrice.toString()) : null,
+      allowDemo: product.allowDemo,
+      demoDays: product.demoDays,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      channelId: product.channelId.toString(),
       channel: {
-        ...product.channel,
-        channelId: product.channel.channelId.toString()
+        channelId: product.channel.channelId.toString(),
+        name: product.channel.name,
+        username: product.channel.username,
+        description: product.channel.description,
+        createdAt: product.channel.createdAt
       }
     }
 
