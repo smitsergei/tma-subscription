@@ -99,7 +99,7 @@ export function ProductList({ telegramUser }: ProductListProps) {
         setPaymentStatus('Ожидание подтверждения транзакции...')
 
         // Отправка транзакции через TON Connect
-        const txResult = await sendTransaction(result.data.transaction)
+        const txResult = await sendTransaction(result.data.transaction as any)
 
         if (txResult && txResult.boc) {
           setPaymentStatus('Транзакция отправлена. Проверка оплаты...')
