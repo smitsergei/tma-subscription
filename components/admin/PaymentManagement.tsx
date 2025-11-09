@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { formatPrice, formatDate } from '@/lib/utils'
+import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
 interface Payment {
   paymentId: string
@@ -88,7 +89,7 @@ export default function PaymentManagement() {
         ...(filters.search && { search: filters.search })
       })
 
-      const response = await fetch(`/admin/payments?${params}`)
+      const response = await fetch(`/api/admin/payments?${params}`, createAuthenticatedRequest())
       const data = await response.json()
 
       if (data.success) {
@@ -110,15 +111,14 @@ export default function PaymentManagement() {
     try {
       setActionLoading(true)
 
-      const response = await fetch('/admin/payments', {
+      const response = await fetch('/api/admin/payments', createAuthenticatedRequest({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paymentId,
           action,
           txHash: action === 'confirm' ? txHash : undefined
         })
-      })
+      }))
 
       const data = await response.json()
 
