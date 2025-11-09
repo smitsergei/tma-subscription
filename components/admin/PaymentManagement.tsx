@@ -607,31 +607,31 @@ export default function PaymentManagement() {
             <div className="space-y-3 mb-6">
               <div>
                 <label className="text-sm font-medium text-gray-700">ID платежа:</label>
-                <div className="text-sm text-gray-900 font-mono">{selectedPayment.paymentId}</div>
+                <div className="text-sm text-gray-900 font-mono">{selectedPayment?.paymentId || 'unknown'}</div>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Пользователь:</label>
                 <div className="text-sm text-gray-900">
-                  {selectedPayment.user?.firstName} (ID: {selectedPayment.userId})
+                  {selectedPayment?.user?.firstName || 'Unknown'} (ID: {selectedPayment?.userId || 'unknown'})
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Продукт:</label>
-                <div className="text-sm text-gray-900">{selectedPayment.product?.name}</div>
+                <div className="text-sm text-gray-900">{selectedPayment?.product?.name || 'Unknown'}</div>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Сумма:</label>
                 <div className="text-sm text-gray-900 font-medium">
-                  {formatPrice(selectedPayment.amount, selectedPayment.currency)}
+                  {safeExecute(() => safeFormatPrice(selectedPayment?.amount || 0, selectedPayment?.currency || 'USDT'), '0 USDT', 'formatPrice')}
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Текущий статус:</label>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedPayment.status)}`}>
-                  {getStatusText(selectedPayment.status)}
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${safeExecute(() => getStatusColor(selectedPayment?.status || 'unknown'), 'bg-gray-100 text-gray-800', 'getStatusColor')}`}>
+                  {safeExecute(() => getStatusText(selectedPayment?.status || 'unknown'), 'Unknown', 'getStatusText')}
                 </span>
               </div>
-              {selectedPayment.memo && (
+              {selectedPayment?.memo && (
                 <div>
                   <label className="text-sm font-medium text-gray-700">Memo:</label>
                   <div className="text-sm text-gray-900 font-mono">{selectedPayment.memo}</div>
@@ -639,7 +639,7 @@ export default function PaymentManagement() {
               )}
             </div>
 
-            {selectedPayment.status === 'pending' && (
+            {selectedPayment?.status === 'pending' && (
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700">TX Hash (опционально):</label>
@@ -653,7 +653,7 @@ export default function PaymentManagement() {
                   <button
                     onClick={() => {
                       const input = document.querySelector('input[placeholder="Хеш транзакции"]') as HTMLInputElement
-                      handlePaymentAction(selectedPayment.paymentId, 'confirm', input.value)
+                      handlePaymentAction(selectedPayment?.paymentId || '', 'confirm', input?.value || '')
                     }}
                     disabled={actionLoading}
                     className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 text-sm"
@@ -661,7 +661,7 @@ export default function PaymentManagement() {
                     {actionLoading ? 'Обработка...' : '✅ Подтвердить'}
                   </button>
                   <button
-                    onClick={() => handlePaymentAction(selectedPayment.paymentId, 'reject')}
+                    onClick={() => handlePaymentAction(selectedPayment?.paymentId || '', 'reject')}
                     disabled={actionLoading}
                     className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 disabled:opacity-50 text-sm"
                   >
@@ -671,10 +671,10 @@ export default function PaymentManagement() {
               </div>
             )}
 
-            {selectedPayment.status !== 'pending' && (
+            {selectedPayment?.status !== 'pending' && (
               <div className="space-y-3">
                 <button
-                  onClick={() => handlePaymentAction(selectedPayment.paymentId, 'reset')}
+                  onClick={() => handlePaymentAction(selectedPayment?.paymentId || '', 'reset')}
                   disabled={actionLoading}
                   className="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 disabled:opacity-50 text-sm"
                 >
