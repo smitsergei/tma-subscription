@@ -102,11 +102,13 @@ export async function POST(request: NextRequest) {
 
       // Добавление пользователя в Telegram канал
       try {
-        await addUserToChannel(
-          pendingPayment.userId.toString(),
-          pendingPayment.product.channel.channelId.toString(),
-          process.env.BOT_TOKEN!
-        )
+        if (pendingPayment.product?.channel) {
+          await addUserToChannel(
+            pendingPayment.userId.toString(),
+            pendingPayment.product.channel.channelId.toString(),
+            process.env.BOT_TOKEN!
+          )
+        }
         console.log('🔍 WEBHOOK: User added to channel successfully')
       } catch (error) {
         console.error('🔍 WEBHOOK: Error adding user to channel:', error)
