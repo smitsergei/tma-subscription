@@ -7,8 +7,9 @@ import SubscriptionManagement from './SubscriptionManagement'
 import DiscountManagement from './DiscountManagement'
 import PromoCodeManagement from './PromoCodeManagement'
 import DemoManagement from './DemoManagement'
+import PaymentManagement from './PaymentManagement'
 
-type TabType = 'users' | 'subscriptions' | 'products' | 'discounts' | 'promocodes' | 'demo'
+type TabType = 'users' | 'subscriptions' | 'products' | 'payments' | 'discounts' | 'promocodes' | 'demo'
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('products')
@@ -17,6 +18,7 @@ export default function AdminDashboard() {
     { id: 'users' as TabType, label: '👥 Пользователи', icon: 'users' },
     { id: 'subscriptions' as TabType, label: '📋 Подписки', icon: 'subscriptions' },
     { id: 'products' as TabType, label: '📦 Продукты', icon: 'products' },
+    { id: 'payments' as TabType, label: '💳 Платежи', icon: 'payments' },
     { id: 'discounts' as TabType, label: '💰 Скидки', icon: 'discount' },
     { id: 'promocodes' as TabType, label: '🎫 Промокоды', icon: 'promos' },
     { id: 'demo' as TabType, label: '🎓 Демо-доступ', icon: 'demo' }
@@ -30,6 +32,8 @@ export default function AdminDashboard() {
         return <SubscriptionManagement />
       case 'products':
         return <ProductManagement />
+      case 'payments':
+        return <PaymentManagement />
       case 'discounts':
         return <DiscountManagement />
       case 'promocodes':
@@ -51,7 +55,7 @@ export default function AdminDashboard() {
               🛠️ Панель администратора
             </h1>
             <p className="mt-1 text-sm text-gray-600">
-              Управление пользователями, подписками, продуктами, скидками, промокодами и демо-доступом
+              Управление пользователями, подписками, продуктами, платежами, скидками, промокодами и демо-доступом
             </p>
           </div>
         </div>
