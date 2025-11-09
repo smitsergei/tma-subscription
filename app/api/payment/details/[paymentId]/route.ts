@@ -54,6 +54,7 @@ export async function GET(
           price_currency: payment.priceCurrency || payment.currency,
           pay_amount: Number(payment.payAmount),
           pay_currency: payment.payCurrency,
+          network: payment.network || 'Unknown',
           order_id: payment.paymentId,
           order_description: payment.orderDescription || `Платеж за ${payment.product?.name || 'продукт'}`,
           created_at: payment.createdAt.toISOString(),

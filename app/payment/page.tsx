@@ -12,6 +12,7 @@ interface PaymentDetails {
   price_currency: string
   pay_amount: number
   pay_currency: string
+  network?: string
   order_id: string
   order_description: string
   created_at: string
@@ -136,6 +137,12 @@ export default function PaymentPage() {
                   <span className="text-gray-600">Сумма к оплате:</span>
                   <span className="font-medium">{payment.pay_amount} {payment.pay_currency.toUpperCase()}</span>
                 </div>
+                {payment.network && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Сеть:</span>
+                    <span className="font-medium">{payment.network}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Эквивалент:</span>
                   <span className="font-medium">{payment.price_amount} {payment.price_currency.toUpperCase()}</span>
@@ -179,8 +186,9 @@ export default function PaymentPage() {
               <ol className="text-sm text-gray-600 space-y-2">
                 <li>1. Скопируйте адрес для оплаты</li>
                 <li>2. Отправьте точную сумму {payment.pay_amount} {payment.pay_currency.toUpperCase()}</li>
-                <li>3. Дождитесь подтверждения платежа</li>
-                <li>4. Вы будете перенаправлены автоматически после успешной оплаты</li>
+                {payment.network && <li>3. Убедитесь, что используете сеть: {payment.network}</li>}
+                <li>{payment.network ? '4' : '3'}. Дождитесь подтверждения платежа</li>
+                <li>{payment.network ? '5' : '4'}. Вы будете перенаправлены автоматически после успешной оплаты</li>
               </ol>
             </div>
 

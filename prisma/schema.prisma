@@ -90,6 +90,7 @@ model Payment {
   payAddress       String?        @map("pay_address")
   payAmount        Decimal?       @map("pay_amount") @db.Decimal(20, 8)
   payCurrency      String?        @map("pay_currency")
+  network          String?        @map("network")
   validUntil       DateTime?      @map("valid_until")
   priceAmount      Decimal?       @map("price_amount") @db.Decimal(10, 2)
   priceCurrency    String?        @map("price_currency")

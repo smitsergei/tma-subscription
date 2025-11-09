@@ -18,6 +18,30 @@ function getInitData(request: NextRequest): string | null {
   return searchParams.get('initData')
 }
 
+// Функция для определения сети по коду валюты
+function getNetworkFromCurrency(currency: string): string {
+  switch (currency) {
+    case 'USDTTRC20':
+      return 'TRON (TRC20)'
+    case 'USDCTRC20':
+      return 'TRON (TRC20)'
+    case 'USDT':
+      return 'TRON (TRC20)'
+    case 'USDC':
+      return 'TRON (TRC20)'
+    case 'BTC':
+      return 'Bitcoin'
+    case 'ETH':
+      return 'Ethereum'
+    case 'LTC':
+      return 'Litecoin'
+    case 'BCH':
+      return 'Bitcoin Cash'
+    default:
+      return currency
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const initData = getInitData(request)
@@ -138,6 +162,7 @@ export async function POST(request: NextRequest) {
         payAddress: nowPaymentsResponse.pay_address,
         payAmount: nowPaymentsResponse.pay_amount ? new Decimal(nowPaymentsResponse.pay_amount.toString()) : null,
         payCurrency: nowPaymentsResponse.pay_currency,
+        network: nowPaymentsResponse.network || getNetworkFromCurrency(nowPaymentsResponse.pay_currency),
         validUntil: nowPaymentsResponse.valid_until ? new Date(nowPaymentsResponse.valid_until) : null,
         priceAmount: nowPaymentsResponse.price_amount ? new Decimal(nowPaymentsResponse.price_amount.toString()) : null,
         priceCurrency: nowPaymentsResponse.price_currency,
@@ -225,10 +250,24 @@ async function createNOWPayment(
   console.log('  IPN Callback URL:', validCallbackUrl)
   console.log('  Success URL:', successUrl)
 
+  // Определяем параметры для разных валют
+  let priceCurrency = 'USD'
+  let payCurrency = currency
+
+  if (currency === 'USDT') {
+    // Для USDT используем сеть TRON (TRC20)
+    priceCurrency = 'USD' // Цена всегда в USD для USDT
+    payCurrency = 'USDTTRC20' // USDT в сети TRON
+  } else if (currency === 'USDC') {
+    payCurrency = 'USDCTRC20' // USDC в сети TRON
+  } else {
+    priceCurrency = currency === 'USDT' ? 'USDT' : 'USD'
+  }
+
   const payload = {
     price_amount: finalAmount,
-    price_currency: currency === 'USDT' ? 'USDT' : 'USD', // Если USDT, то цена в USDT, иначе в USD
-    pay_currency: currency,
+    price_currency: priceCurrency,
+    pay_currency: payCurrency,
     ipn_callback_url: validCallbackUrl,
     order_id: localPaymentId,
     order_description: orderDescription || `Payment ${finalAmount} ${currency}`,
