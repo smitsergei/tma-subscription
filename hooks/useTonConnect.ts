@@ -72,7 +72,7 @@ export function useTonConnect() {
     setError(null)
 
     try {
-      const walletsList = await tonConnection.getWallets()
+      const walletsList = await tonConnect.getWallets()
       console.log('📱 Available wallets:', walletsList)
 
       // Показываем модальное окно выбора кошелька
