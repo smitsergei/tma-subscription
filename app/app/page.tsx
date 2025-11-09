@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useTonConnect } from '@/hooks/useTonConnect'
+import { useTonConnectSimple } from '@/hooks/useTonConnectSimple'
+import { TonConnectButton } from '@/components/TonConnectButton'
 
 // Функция для извлечения данных из URL
 function parseTelegramData() {
@@ -44,7 +45,7 @@ export default function TmaPage() {
     sendTransaction,
     isLoading: tonLoading,
     error: tonError
-  } = useTonConnect()
+  } = useTonConnectSimple()
 
   // Функция для загрузки продуктов
   const loadProducts = async () => {
@@ -385,37 +386,47 @@ export default function TmaPage() {
         </div>
 
         {/* TON Connect Status */}
-        <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center text-sm">
-            <div className={`w-2 h-2 rounded-full mr-2 ${
-              isConnected ? 'bg-green-500' : tonLoading ? 'bg-yellow-500' : 'bg-red-500'
-            }`}></div>
-            <span className="text-gray-600">
-              {isConnected
-                ? `💼 Кошелек подключен: ${address?.slice(0, 4)}...${address?.slice(-4)}`
-                : tonLoading
-                  ? '🔄 Подключение...'
-                  : tonError
-                    ? `❌ ${tonError}`
-                    : '💳 Кошелек не подключен'
-              }
-            </span>
-          </div>
-          {!isConnected && !tonLoading && (
-            <button
-              onClick={() => {
-                console.log('🔗 Connect button clicked')
-                connectWallet().catch(err => {
-                  console.error('Connect wallet error:', err)
-                })
-              }}
-              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-            >
-              🔗 Подключить кошелек
-            </button>
-          )}
-        </div>
+        <TonConnectButton
+          isConnected={isConnected}
+          isLoading={tonLoading}
+          error={tonError}
+          address={address}
+          onConnect={() => {
+            console.log('🔗 TonConnectButton: Connect requested')
+            connectWallet().catch(err => {
+              console.error('Connect wallet error:', err)
+            })
+          }}
+          onDisconnect={() => {
+            console.log('🔌 TonConnectButton: Disconnect requested')
+            // Можно добавить отключение, если нужно
+          }}
+        />
       </div>
+
+      {/* Debug Panel (только для разработки) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="px-4 py-2">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <h4 className="font-medium text-yellow-800 mb-2">🔧 Отладка TON Connect:</h4>
+            <div className="space-y-1 text-xs">
+              <div>Status: {isConnected ? 'Connected ✅' : 'Not Connected ❌'}</div>
+              <div>Address: {address || 'None'}</div>
+              <div>Loading: {tonLoading ? 'Yes ⏳' : 'No'}</div>
+              <div>Error: {tonError || 'None'}</div>
+              <button
+                onClick={() => {
+                  console.log('🔧 Debug: window.tonConnectDebug')
+                  console.log('Available window object:', Object.keys(window))
+                }}
+                className="mt-2 px-2 py-1 bg-yellow-500 text-white text-xs rounded"
+              >
+                Проверить console.log
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="px-4 py-4">
