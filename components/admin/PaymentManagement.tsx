@@ -77,6 +77,7 @@ export default function PaymentManagement() {
   // Загрузка платежей
   const loadPayments = async (page = 1) => {
     try {
+      console.log('🔍 loadPayments: Starting payment load...', { page, filters })
       setLoading(true)
       setError(null)
 
@@ -89,19 +90,29 @@ export default function PaymentManagement() {
         ...(filters.search && { search: filters.search })
       })
 
+      console.log('🔍 loadPayments: Request params:', params.toString())
+      console.log('🔍 loadPayments: Making fetch request...')
+
       const response = await fetch(`/api/admin/payments?${params}`, createAuthenticatedRequest())
+
+      console.log('🔍 loadPayments: Response status:', response.status)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
+      console.log('🔍 loadPayments: Parsing JSON response...')
       const data = await response.json()
 
+      console.log('🔍 loadPayments: Response data:', data)
+
       if (data.success) {
+        console.log('🔍 loadPayments: Success, setting payments:', data.data.payments?.length)
         setPayments(data.data.payments)
         setStats(data.data.stats)
         setPagination(data.data.pagination)
       } else {
+        console.log('🔍 loadPayments: API returned error:', data.error)
         setError(data.error || 'Ошибка загрузки платежей')
       }
     } catch (err) {
@@ -149,7 +160,13 @@ export default function PaymentManagement() {
 
   // Первоначальная загрузка
   useEffect(() => {
-    loadPayments()
+    console.log('🔍 PaymentManagement: Component mounted, starting loadPayments...')
+    try {
+      loadPayments()
+    } catch (error) {
+      console.error('🔍 PaymentManagement: Error in useEffect:', error)
+      setError(`Ошибка инициализации: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+    }
   }, [])
 
   // Обработка фильтров
