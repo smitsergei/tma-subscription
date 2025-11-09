@@ -79,6 +79,16 @@ interface Payment {
   memo: string
   createdAt: string
   updatedAt: string
+  // NOWPayments fields
+  nowPaymentId?: string
+  payAddress?: string
+  payAmount?: number
+  payCurrency?: string
+  network?: string
+  validUntil?: string
+  priceAmount?: number
+  priceCurrency?: string
+  orderDescription?: string
   user?: {
     telegramId: string
     username?: string
@@ -497,6 +507,9 @@ export default function PaymentManagement() {
                     Сумма
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Payin Address
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Статус
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -541,6 +554,34 @@ export default function PaymentManagement() {
                       <div className="text-sm font-medium text-gray-900">
                         {safeExecute(() => safeFormatPrice(payment?.amount || 0, payment?.currency || 'USDT'), '0 USDT', 'formatPrice')}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {payment?.payAddress ? (
+                        <div className="text-sm">
+                          <div className="text-gray-900 font-mono">
+                            {payment.payAddress.slice(0, 12)}...
+                          </div>
+                          {payment?.network && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {payment.network}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(payment.payAddress || '')
+                                .then(() => alert('Адрес скопирован в буфер обмена'))
+                                .catch(() => alert('Ошибка копирования'))
+                            }}
+                            className="text-blue-600 hover:text-blue-800 text-xs underline"
+                          >
+                            📋 Копировать
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500">
+                          Нет адреса
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${safeExecute(() => getStatusColor(payment?.status || 'unknown'), 'bg-gray-100 text-gray-800', 'getStatusColor')}`}>
@@ -635,6 +676,53 @@ export default function PaymentManagement() {
                 <div>
                   <label className="text-sm font-medium text-gray-700">Memo:</label>
                   <div className="text-sm text-gray-900 font-mono">{selectedPayment.memo}</div>
+                </div>
+              )}
+              {selectedPayment?.payAddress && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Payin Address:</label>
+                  <div className="text-sm text-gray-900">
+                    <div className="font-mono break-all bg-gray-50 p-2 rounded">
+                      {selectedPayment.payAddress}
+                    </div>
+                    <div className="mt-1 space-y-1">
+                      {selectedPayment?.network && (
+                        <div className="text-xs text-gray-500">
+                          Сеть: {selectedPayment.network}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500">
+                        Валюта: {selectedPayment.payCurrency || 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Сумма: {selectedPayment.payAmount || 'N/A'} {selectedPayment.payCurrency || ''}
+                      </div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(selectedPayment.payAddress || '')
+                            .then(() => alert('Адрес скопирован в буфер обмена'))
+                            .catch(() => alert('Ошибка копирования'))
+                        }}
+                        className="text-blue-600 hover:text-blue-800 text-xs underline"
+                      >
+                        📋 Копировать адрес
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {selectedPayment?.nowPaymentId && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">NOWPayments ID:</label>
+                  <div className="text-sm text-gray-900 font-mono">{selectedPayment.nowPaymentId}</div>
+                </div>
+              )}
+              {selectedPayment?.validUntil && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Действует до:</label>
+                  <div className="text-sm text-gray-900">
+                    {safeExecute(() => safeFormatDate(selectedPayment.validUntil!), 'Некорректная дата', 'formatDate')}
+                  </div>
                 </div>
               )}
             </div>
