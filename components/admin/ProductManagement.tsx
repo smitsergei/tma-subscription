@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
 interface Product {
-  id: string
   productId: string
   name: string
   description: string
@@ -227,7 +226,7 @@ export default function ProductManagement() {
   const fetchProducts = async () => {
     try {
       console.log('🔍 Fetching products...')
-      const response = await fetch('/api/admin/products-v2', createAuthenticatedRequest())
+      const response = await fetch('/api/admin/products', createAuthenticatedRequest())
 
       if (response.ok) {
         const data = await response.json()
@@ -252,9 +251,19 @@ export default function ProductManagement() {
     try {
       console.log('🔍 Creating product with data:', newProduct)
 
-      const response = await fetch('/api/admin/products-v2', createAuthenticatedRequest({
+      // API ожидает поле channelTelegramId вместо channelId
+      const requestData = {
+        name: newProduct.name,
+        description: newProduct.description,
+        price: newProduct.price,
+        channelTelegramId: newProduct.channelId,
+        periodDays: newProduct.periodDays,
+        isActive: newProduct.isActive
+      }
+
+      const response = await fetch('/api/admin/products', createAuthenticatedRequest({
         method: 'POST',
-        body: JSON.stringify(newProduct)
+        body: JSON.stringify(requestData)
       }))
 
       console.log('🔍 Response status:', response.status)
@@ -291,11 +300,21 @@ export default function ProductManagement() {
     if (!selectedProduct) return
 
     try {
-      console.log('🔍 Updating product:', selectedProduct.id)
+      console.log('🔍 Updating product:', selectedProduct.productId)
 
-      const response = await fetch(`/api/admin/products-v2?id=${selectedProduct.id}`, createAuthenticatedRequest({
+      // API ожидает поле channelTelegramId вместо channelId
+      const requestData = {
+        name: editProduct.name,
+        description: editProduct.description,
+        price: editProduct.price,
+        channelTelegramId: editProduct.channelId,
+        periodDays: editProduct.periodDays,
+        isActive: editProduct.isActive
+      }
+
+      const response = await fetch(`/api/admin/products?id=${selectedProduct.productId}`, createAuthenticatedRequest({
         method: 'PUT',
-        body: JSON.stringify(editProduct)
+        body: JSON.stringify(requestData)
       }))
 
       if (response.ok) {
@@ -333,7 +352,7 @@ export default function ProductManagement() {
     try {
       console.log('🔍 Deleting product:', productId)
 
-      const response = await fetch(`/api/admin/products-v2?id=${productId}`, createAuthenticatedRequest({
+      const response = await fetch(`/api/admin/products?id=${productId}`, createAuthenticatedRequest({
         method: 'DELETE'
       }))
 
@@ -353,9 +372,9 @@ export default function ProductManagement() {
 
   const toggleProductStatus = async (product: Product) => {
     try {
-      console.log('🔍 Toggling product status:', product.id, 'to', !product.isActive)
+      console.log('🔍 Toggling product status:', product.productId, 'to', !product.isActive)
 
-      const response = await fetch(`/api/admin/products-v2?id=${product.id}`, createAuthenticatedRequest({
+      const response = await fetch(`/api/admin/products?id=${product.productId}`, createAuthenticatedRequest({
         method: 'PUT',
         body: JSON.stringify({ isActive: !product.isActive })
       }))
@@ -447,7 +466,7 @@ export default function ProductManagement() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {products.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={product.productId} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div>
                       <div className="font-medium text-gray-900">{product.name}</div>
@@ -500,7 +519,7 @@ export default function ProductManagement() {
                     <DropdownMenu
                       product={product}
                       onEdit={() => openEditModal(product)}
-                      onDelete={() => deleteProduct(product.id)}
+                      onDelete={() => deleteProduct(product.productId)}
                       onToggleStatus={() => toggleProductStatus(product)}
                     />
                   </td>
@@ -515,10 +534,10 @@ export default function ProductManagement() {
       <div className="lg:hidden space-y-4">
         {products.map((product) => (
           <ProductCard
-            key={product.id}
+            key={product.productId}
             product={product}
             onEdit={() => openEditModal(product)}
-            onDelete={() => deleteProduct(product.id)}
+            onDelete={() => deleteProduct(product.productId)}
             onToggleStatus={() => toggleProductStatus(product)}
           />
         ))}

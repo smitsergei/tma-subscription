@@ -46,22 +46,60 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
         { username: { contains: search, mode: 'insensitive' } }
       ]
     }
 
-    // Get users without subscriptions first
+    // Get users with their subscriptions for proper filtering
     const users = await prisma.user.findMany({
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        subscriptions: {
+          select: {
+            subscriptionId: true,
+            userId: true,
+            productId: true,
+            status: true,
+            expiresAt: true,
+            createdAt: true,
+            product: {
+              select: {
+                productId: true,
+                name: true,
+                price: true,
+                periodDays: true,
+                channel: {
+                  select: {
+                    channelId: true,
+                    name: true,
+                    username: true
+                  }
+                }
+              }
+            },
+            payment: true
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
     })
 
-    // Get subscriptions separately to avoid BigInt serialization issues
+    // Filter by subscription status if provided (before counting for pagination)
+    let filteredUsers = users
+    if (status) {
+      filteredUsers = users.filter(user => {
+        const activeSubscription = user.subscriptions.find(sub => sub.status === 'active')
+        return status === 'active' ? activeSubscription : !activeSubscription
+      })
+    }
+
+    // Transform data for response (BigInt serialization)
     const usersWithSubscriptions = await Promise.all(
-      users.map(async (user) => {
+      filteredUsers.map(async (user) => {
+        // Get full subscription data if needed (to ensure we have all product details)
         const subscriptions = await prisma.subscription.findMany({
           where: { userId: user.telegramId },
           include: {
@@ -111,19 +149,54 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    const total = await prisma.user.count({ where })
-
-    // Filter by subscription status if provided
-    let filteredUsers = usersWithSubscriptions
-    if (status) {
-      filteredUsers = usersWithSubscriptions.filter(user => {
-        const activeSubscription = user.subscriptions.find(sub => sub.status === 'active')
-        return status === 'active' ? activeSubscription : !activeSubscription
+    // For accurate counting, we need to get total count based on status filter
+    let total
+    if (status === 'active') {
+      // Count users with at least one active subscription
+      total = await prisma.user.count({
+        where: {
+          ...where,
+          subscriptions: {
+            some: {
+              status: 'active'
+            }
+          }
+        }
       })
+    } else if (status === 'inactive') {
+      // Count users with no active subscriptions
+      // First get users with any active subscriptions
+      const usersWithActiveSubs = await prisma.user.findMany({
+        where: {
+          ...where,
+          subscriptions: {
+            some: {
+              status: 'active'
+            }
+          }
+        },
+        select: {
+          telegramId: true
+        }
+      })
+
+      const activeUserIds = usersWithActiveSubs.map(u => u.telegramId)
+
+      // Count users that don't have active subscriptions
+      total = await prisma.user.count({
+        where: {
+          ...where,
+          telegramId: {
+            notIn: activeUserIds
+          }
+        }
+      })
+    } else {
+      total = await prisma.user.count({ where })
     }
 
     return NextResponse.json({
-      users: filteredUsers.map(user => ({
+      users: usersWithSubscriptions.map(user => ({
         telegramId: user.telegramId,
         firstName: user.firstName,
         username: user.username,
