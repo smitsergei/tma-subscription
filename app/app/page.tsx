@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTonConnect } from '@/hooks/useTonConnect'
 
 // Функция для извлечения данных из URL
 function parseTelegramData() {
@@ -33,6 +34,16 @@ export default function TmaPage() {
   const [productsLoading, setProductsLoading] = useState(false)
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'products' | 'subscriptions'>('products')
+  const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null)
+
+  // TON Connect integration
+  const {
+    isConnected,
+    address,
+    connectWallet,
+    sendTransaction,
+    isLoading: tonLoading
+  } = useTonConnect()
 
   // Функция для загрузки продуктов
   const loadProducts = async () => {
@@ -124,15 +135,163 @@ export default function TmaPage() {
   const handlePurchase = async (product: any) => {
     try {
       console.log('🛒 Starting purchase for product:', product.productId)
+      setPurchaseLoading(product.productId)
 
-      // Здесь будет логика инициализации платежа через TON Connect
-      // Пока покажем заглушку
-      alert(`🛒 Покупка "${product.name}"暂时 недоступна\n\nВ разработке: оплата через TON Connect (USDT)`)
+      // Проверяем подключен ли кошелек
+      if (!isConnected) {
+        console.log('🔗 Connecting wallet...')
+        await connectWallet()
+        return
+      }
+
+      // Получаем Telegram init данные
+      const webAppData = parseTelegramInitData()
+      if (!webAppData) {
+        alert('❌ Ошибка: не удалось получить данные Telegram')
+        return
+      }
+
+      console.log('🔄 Initiating payment...')
+
+      // Инициализация платежа
+      const initiateResponse = await fetch('/api/payment/initiate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Telegram-Init-Data': webAppData
+        },
+        body: JSON.stringify({
+          productId: product.productId
+        })
+      })
+
+      const initiateData = await initiateResponse.json()
+
+      if (!initiateData.success) {
+        throw new Error(initiateData.error || 'Ошибка инициализации платежа')
+      }
+
+      console.log('✅ Payment initiated:', initiateData.data)
+
+      const { paymentId, transaction } = initiateData.data
+
+      // Показываем информацию о платеже
+      const confirmMessage = `Подтвердите покупку:
+
+📦 ${product.name}
+💰 Сумма: ${initiateData.data.amount} USDT
+📝 Код платежа: ${initiateData.data.memo}
+
+Подтвердите транзакцию в вашем кошельке TON`
+
+      if (!confirm(confirmMessage)) {
+        return
+      }
+
+      console.log('💳 Sending transaction...')
+
+      // Отправка транзакции через TON Connect
+      const txResult = await sendTransaction(transaction)
+
+      if (!txResult) {
+        throw new Error('Ошибка отправки транзакции')
+      }
+
+      console.log('✅ Transaction sent:', txResult)
+
+      // Показываем статус ожидания
+      alert(`✅ Транзакция отправлена!
+
+Ожидайте подтверждения платежа.
+Это может занять 1-3 минуты.
+
+📝 Код платежа: ${initiateData.data.memo}`)
+
+      // Начинаем проверку статуса платежа
+      await verifyPaymentWithPolling(paymentId, webAppData, product)
 
     } catch (error) {
       console.error('❌ Purchase error:', error)
-      alert('❌ Ошибка при оформлении подписки')
+      alert(`❌ Ошибка при оформлении подписки: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+    } finally {
+      setPurchaseLoading(null)
     }
+  }
+
+  // Функция для проверки платежа с поллингом
+  const verifyPaymentWithPolling = async (
+    paymentId: string,
+    initData: string,
+    product: any
+  ) => {
+    const maxAttempts = 30 // Проверяем 5 минут (30 попыток по 10 секунд)
+    let attempts = 0
+
+    const poll = async () => {
+      try {
+        console.log(`🔍 Checking payment status... Attempt ${attempts + 1}`)
+
+        const response = await fetch('/api/payment/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Telegram-Init-Data': initData
+          },
+          body: JSON.stringify({
+            txHash: 'polling', // Используем специальный маркер для поллинга
+            paymentId
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          // Платеж подтвержден!
+          console.log('✅ Payment confirmed!', data.data)
+
+          alert(`🎉 Оплата прошла успешно!
+
+📦 Подписка: ${product.name}
+📢 Канал: ${data.data.channelName}
+⏰ Действует до: ${new Date(data.data.expiresAt).toLocaleDateString('ru-RU')}
+
+Спасибо за покупку!`)
+
+          // Обновляем список подписок
+          if (activeTab === 'subscriptions') {
+            await loadUserSubscriptions()
+          }
+
+          return true
+        } else {
+          console.log('⏳ Payment not confirmed yet:', data.error)
+
+          attempts++
+          if (attempts < maxAttempts) {
+            setTimeout(poll, 10000) // Проверяем каждые 10 секунд
+          } else {
+            // Превышено время ожидания
+            alert(`⏰ Время ожидания платежа истекло
+
+Если вы оплатили, но подписка не активировалась:
+1. Проверьте, что транзакция прошла успешно
+2. Обновите страницу и проверьте вкладку "Мои подписки"
+3. Если проблема осталась, свяжитесь с поддержкой
+
+📝 Код платежа: ${paymentId}`)
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error polling payment:', error)
+        attempts++
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 10000)
+        }
+      }
+    }
+
+    // Начинаем поллинг
+    poll()
   }
 
   useEffect(() => {
@@ -215,6 +374,31 @@ export default function TmaPage() {
             📋 Мои подписки
           </button>
         </div>
+
+        {/* TON Connect Status */}
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex items-center text-sm">
+            <div className={`w-2 h-2 rounded-full mr-2 ${
+              isConnected ? 'bg-green-500' : tonLoading ? 'bg-yellow-500' : 'bg-red-500'
+            }`}></div>
+            <span className="text-gray-600">
+              {isConnected
+                ? `💼 Кошелек подключен: ${address?.slice(0, 4)}...${address?.slice(-4)}`
+                : tonLoading
+                  ? '🔄 Подключение...'
+                  : '💳 Кошелек не подключен'
+              }
+            </span>
+          </div>
+          {!isConnected && !tonLoading && (
+            <button
+              onClick={connectWallet}
+              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+            >
+              🔗 Подключить кошелек
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -258,15 +442,35 @@ export default function TmaPage() {
                       </div>
                       <button
                         onClick={() => handlePurchase(product)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                        disabled={!isConnected || purchaseLoading === product.productId || tonLoading}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          purchaseLoading === product.productId || tonLoading
+                            ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                            : isConnected
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                        }`}
                       >
-                        🛒 Купить
+                        {purchaseLoading === product.productId
+                          ? '⏳ Оплата...'
+                          : tonLoading
+                            ? '🔄 Подключение...'
+                            : !isConnected
+                              ? '🔗 Подключите кошелек'
+                              : '🛒 Купить'
+                        }
                       </button>
                     </div>
                   </div>
                 ))}
-                <div className="text-center text-gray-500 text-sm mt-4">
-                  💳 Оплата через TON Connect (USDT)
+                <div className="text-center text-gray-500 text-sm mt-4 space-y-1">
+                  <div>💳 Оплата через TON Connect (USDT)</div>
+                  <div className="text-xs text-gray-400">
+                    {!isConnected
+                      ? '🔗 Подключите кошелек для покупки подписок'
+                      : '✨ Готовы к покупке! Нажмите "Купить" для оформления подписки'
+                    }
+                  </div>
                 </div>
               </>
             )}
