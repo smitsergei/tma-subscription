@@ -109,7 +109,9 @@ export function ProductList({ telegramUser }: ProductListProps) {
 
           // Запускаем проверку оплаты с задержкой
           setTimeout(() => {
-            verifyPayment(result.data.paymentId!, txHash)
+            if (result.data) {
+              verifyPayment(result.data.paymentId, txHash)
+            }
           }, 5000) // Ждем 5 секунд для обработки транзакции
         } else {
           setPaymentStatus('❌ Ошибка отправки транзакции')
