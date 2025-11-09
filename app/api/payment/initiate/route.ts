@@ -200,16 +200,22 @@ async function createNOWPayment(
   }
 
   // Генерация URL для IPN callbacks
-  const baseUrl = process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  // Используем правильный production URL
+  const baseUrl = process.env.NODE_ENV === 'production'
+    ? 'https://tma-subscription.vercel.app'
+    : (process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000')
   const ipnCallbackUrl = `${baseUrl}/api/payment/nowpayments-webhook`
 
   // Генерация URL для редиректа после успешной оплаты
   const successUrl = `${baseUrl}/payment/success?payment_id=${localPaymentId}`
 
-  // Для NOWPayments нужна валидная callback URL
-  const validCallbackUrl = process.env.NODE_ENV === 'production'
-    ? ipnCallbackUrl
-    : 'https://webhook.site/your-test-url' // для тестирования
+  // Используем всегда валидный callback URL
+  const validCallbackUrl = ipnCallbackUrl
+
+  console.log('🔗 URLs being used:')
+  console.log('  Base URL:', baseUrl)
+  console.log('  IPN Callback URL:', validCallbackUrl)
+  console.log('  Success URL:', successUrl)
 
   const payload = {
     price_amount: finalAmount,
