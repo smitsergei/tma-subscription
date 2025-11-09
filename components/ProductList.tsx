@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Product } from '@/types'
+import { Product, PaymentInitiateResponse } from '@/types'
 import { apiRequest, formatPrice, formatTimeLeft } from '@/lib/utils'
 import { useTonConnect } from '@/hooks/useTonConnect'
 
@@ -88,18 +88,18 @@ export function ProductList({ telegramUser }: ProductListProps) {
 
     try {
       // Инициация платежа
-      const result = await apiRequest('/api/payment/initiate', {
+      const result = await apiRequest<PaymentInitiateResponse>('/api/payment/initiate', {
         method: 'POST',
         body: JSON.stringify({
           productId: product.productId
         })
       })
 
-      if (result.success) {
+      if (result.success && result.data) {
         setPaymentStatus('Ожидание подтверждения транзакции...')
 
         // Отправка транзакции через TON Connect
-        const txResult = await sendTransaction(result.data.transaction as any)
+        const txResult = await sendTransaction(result.data.transaction)
 
         if (txResult && txResult.boc) {
           setPaymentStatus('Транзакция отправлена. Проверка оплаты...')

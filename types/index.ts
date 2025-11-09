@@ -84,6 +84,22 @@ export interface ApiResponse<T = any> {
   message?: string
 }
 
+// Payment response types
+export interface PaymentInitiateResponse {
+  paymentId: string
+  amount: string
+  currency: string
+  memo: string
+  walletAddress: string
+  transaction: {
+    messages: Array<{
+      address: string
+      amount: string
+      payload: string
+    }>
+  }
+}
+
 // Telegram Web App types
 export interface TelegramUser {
   id: number
