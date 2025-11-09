@@ -42,7 +42,8 @@ export default function TmaPage() {
     address,
     connectWallet,
     sendTransaction,
-    isLoading: tonLoading
+    isLoading: tonLoading,
+    error: tonError
   } = useTonConnect()
 
   // Функция для загрузки продуктов
@@ -394,8 +395,8 @@ export default function TmaPage() {
                 ? `💼 Кошелек подключен: ${address?.slice(0, 4)}...${address?.slice(-4)}`
                 : tonLoading
                   ? '🔄 Подключение...'
-                  : error
-                    ? `❌ ${error}`
+                  : tonError
+                    ? `❌ ${tonError}`
                     : '💳 Кошелек не подключен'
               }
             </span>
