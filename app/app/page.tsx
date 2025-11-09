@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useTonConnectSimple } from '@/hooks/useTonConnectSimple'
-import { TonConnectButton } from '@/components/TonConnectButton'
+import { useNOWPayments } from '@/hooks/useNOWPayments'
+import { NOWPaymentsButton } from '@/components/NOWPaymentsButton'
 
 // Функция для извлечения данных из URL
 function parseTelegramData() {
@@ -37,15 +37,14 @@ export default function TmaPage() {
   const [activeTab, setActiveTab] = useState<'products' | 'subscriptions'>('products')
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null)
 
-  // TON Connect integration
+  // NOWPayments integration
   const {
-    isConnected,
-    address,
-    connectWallet,
-    sendTransaction,
-    isLoading: tonLoading,
-    error: tonError
-  } = useTonConnectSimple()
+    isLoading: paymentLoading,
+    error: paymentError,
+    initiatePayment,
+    paymentData,
+    clearPaymentData
+  } = useNOWPayments()
 
   // Функция для загрузки продуктов
   const loadProducts = async () => {
@@ -139,18 +138,10 @@ export default function TmaPage() {
       console.log('🛒 Starting purchase for product:', product.productId)
       setPurchaseLoading(product.productId)
 
-      // Проверяем подключен ли кошелек
-      if (!isConnected) {
-        console.log('🔗 Wallet not connected, connecting...')
-        try {
-          await connectWallet()
-          console.log('✅ Wallet connected successfully')
-        } catch (connectError) {
-          console.error('❌ Failed to connect wallet:', connectError)
-          throw new Error('Не удалось подключить кошелек. Попробуйте снова.')
-        }
-        return
-      }
+      // Определяем итоговую цену
+      const finalPrice = product.discountPrice && product.discountPrice < product.price
+        ? product.discountPrice
+        : product.price
 
       // Получаем Telegram init данные
       const webAppData = parseTelegramInitData()
@@ -159,64 +150,36 @@ export default function TmaPage() {
         return
       }
 
-      console.log('🔄 Initiating payment...')
+      console.log('🔄 Initiating NOWPayment...')
 
-      // Инициализация платежа
-      const initiateResponse = await fetch('/api/payment/initiate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Telegram-Init-Data': webAppData
-        },
-        body: JSON.stringify({
-          productId: product.productId
-        })
-      })
+      // Создаем платеж через NOWPayments
+      const paymentResult = await initiatePayment(
+        finalPrice,
+        'USDT',
+        `Оплата подписки: ${product.name}`
+      )
 
-      const initiateData = await initiateResponse.json()
-
-      if (!initiateData.success) {
-        throw new Error(initiateData.error || 'Ошибка инициализации платежа')
+      if (!paymentResult) {
+        throw new Error('Ошибка создания платежа')
       }
 
-      console.log('✅ Payment initiated:', initiateData.data)
+      console.log('✅ NOWPayment created:', paymentResult)
 
-      const { paymentId, transaction } = initiateData.data
-
-      // Показываем информацию о платеже
-      const confirmMessage = `Подтвердите покупку:
+      // Показываем информацию об успешном создании платежа
+      alert(`✅ Платеж создан!
 
 📦 ${product.name}
-💰 Сумма: ${initiateData.data.amount} USDT
-📝 Код платежа: ${initiateData.data.memo}
+💰 Сумма: ${finalPrice} USD
+💳 Вы будете перенаправлены на страницу оплаты NOWPayments
 
-Подтвердите транзакцию в вашем кошельке TON`
+Следуйте инструкциям на странице оплаты для завершения транзакции.`)
 
-      if (!confirm(confirmMessage)) {
-        return
-      }
-
-      console.log('💳 Sending transaction...')
-
-      // Отправка транзакции через TON Connect
-      const txResult = await sendTransaction(transaction)
-
-      if (!txResult) {
-        throw new Error('Ошибка отправки транзакции')
-      }
-
-      console.log('✅ Transaction sent:', txResult)
-
-      // Показываем статус ожидания
-      alert(`✅ Транзакция отправлена!
-
-Ожидайте подтверждения платежа.
-Это может занять 1-3 минуты.
-
-📝 Код платежа: ${initiateData.data.memo}`)
-
-      // Начинаем проверку статуса платежа
-      await verifyPaymentWithPolling(paymentId, webAppData, product)
+      // Обновляем список подписок после небольшой задержки
+      setTimeout(() => {
+        if (activeTab === 'subscriptions') {
+          loadUserSubscriptions()
+        }
+      }, 5000)
 
     } catch (error) {
       console.error('❌ Purchase error:', error)
@@ -226,82 +189,7 @@ export default function TmaPage() {
     }
   }
 
-  // Функция для проверки платежа с поллингом
-  const verifyPaymentWithPolling = async (
-    paymentId: string,
-    initData: string,
-    product: any
-  ) => {
-    const maxAttempts = 30 // Проверяем 5 минут (30 попыток по 10 секунд)
-    let attempts = 0
-
-    const poll = async () => {
-      try {
-        console.log(`🔍 Checking payment status... Attempt ${attempts + 1}`)
-
-        const response = await fetch('/api/payment/verify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Telegram-Init-Data': initData
-          },
-          body: JSON.stringify({
-            txHash: 'polling', // Используем специальный маркер для поллинга
-            paymentId
-          })
-        })
-
-        const data = await response.json()
-
-        if (data.success) {
-          // Платеж подтвержден!
-          console.log('✅ Payment confirmed!', data.data)
-
-          alert(`🎉 Оплата прошла успешно!
-
-📦 Подписка: ${product.name}
-📢 Канал: ${data.data.channelName}
-⏰ Действует до: ${new Date(data.data.expiresAt).toLocaleDateString('ru-RU')}
-
-Спасибо за покупку!`)
-
-          // Обновляем список подписок
-          if (activeTab === 'subscriptions') {
-            await loadUserSubscriptions()
-          }
-
-          return true
-        } else {
-          console.log('⏳ Payment not confirmed yet:', data.error)
-
-          attempts++
-          if (attempts < maxAttempts) {
-            setTimeout(poll, 10000) // Проверяем каждые 10 секунд
-          } else {
-            // Превышено время ожидания
-            alert(`⏰ Время ожидания платежа истекло
-
-Если вы оплатили, но подписка не активировалась:
-1. Проверьте, что транзакция прошла успешно
-2. Обновите страницу и проверьте вкладку "Мои подписки"
-3. Если проблема осталась, свяжитесь с поддержкой
-
-📝 Код платежа: ${paymentId}`)
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error polling payment:', error)
-        attempts++
-        if (attempts < maxAttempts) {
-          setTimeout(poll, 10000)
-        }
-      }
-    }
-
-    // Начинаем поллинг
-    poll()
-  }
-
+  
   useEffect(() => {
     const initData = parseTelegramData()
 
@@ -385,39 +273,40 @@ export default function TmaPage() {
           </button>
         </div>
 
-        {/* TON Connect Status */}
-        <TonConnectButton
-          isConnected={isConnected}
-          isLoading={tonLoading}
-          error={tonError}
-          address={address}
-          onConnect={() => {
-            console.log('🔗 TonConnectButton: Connect requested')
-            connectWallet().catch(err => {
-              console.error('Connect wallet error:', err)
-            })
-          }}
-          onDisconnect={() => {
-            console.log('🔌 TonConnectButton: Disconnect requested')
-            // Можно добавить отключение, если нужно
-          }}
-        />
+        {/* NOWPayments Status */}
+        <div className="mt-3">
+          <NOWPaymentsButton
+            isLoading={paymentLoading}
+            error={paymentError}
+            onPayment={(amount, currency) => {
+              console.log(`💳 Payment requested: ${amount} ${currency}`)
+              initiatePayment(amount, currency, 'Пополнение баланса').catch(err => {
+                console.error('Payment error:', err)
+              })
+            }}
+          />
+        </div>
       </div>
 
       {/* Debug Panel (только для разработки) */}
       {process.env.NODE_ENV === 'development' && (
         <div className="px-4 py-2">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <h4 className="font-medium text-yellow-800 mb-2">🔧 Отладка TON Connect:</h4>
+            <h4 className="font-medium text-yellow-800 mb-2">🔧 Отладка NOWPayments:</h4>
             <div className="space-y-1 text-xs">
-              <div>Status: {isConnected ? 'Connected ✅' : 'Not Connected ❌'}</div>
-              <div>Address: {address || 'None'}</div>
-              <div>Loading: {tonLoading ? 'Yes ⏳' : 'No'}</div>
-              <div>Error: {tonError || 'None'}</div>
+              <div>Loading: {paymentLoading ? 'Yes ⏳' : 'No'}</div>
+              <div>Error: {paymentError || 'None'}</div>
+              <div>Payment Data: {paymentData ? `ID: ${paymentData.payment_id}` : 'None'}</div>
               <button
                 onClick={() => {
-                  console.log('🔧 Debug: window.tonConnectDebug')
-                  console.log('Available window object:', Object.keys(window))
+                  console.log('🔧 Debug: NOWPayments data')
+                  console.log('Payment loading:', paymentLoading)
+                  console.log('Payment error:', paymentError)
+                  console.log('Payment data:', paymentData)
+                  console.log('Environment variables:', {
+                    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+                    NODE_ENV: process.env.NODE_ENV
+                  })
                 }}
                 className="mt-2 px-2 py-1 bg-yellow-500 text-white text-xs rounded"
               >
@@ -469,34 +358,27 @@ export default function TmaPage() {
                       </div>
                       <button
                         onClick={() => handlePurchase(product)}
-                        disabled={!isConnected || purchaseLoading === product.productId || tonLoading}
+                        disabled={purchaseLoading === product.productId || paymentLoading}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          purchaseLoading === product.productId || tonLoading
+                          purchaseLoading === product.productId || paymentLoading
                             ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                            : isConnected
-                              ? 'bg-blue-600 text-white hover:bg-blue-700'
-                              : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                            : 'bg-purple-600 text-white hover:bg-purple-700'
                         }`}
                       >
                         {purchaseLoading === product.productId
                           ? '⏳ Оплата...'
-                          : tonLoading
-                            ? '🔄 Подключение...'
-                            : !isConnected
-                              ? '🔗 Подключите кошелек'
-                              : '🛒 Купить'
+                          : paymentLoading
+                            ? '🔄 Создание платежа...'
+                            : '💳 Купить'
                         }
                       </button>
                     </div>
                   </div>
                 ))}
                 <div className="text-center text-gray-500 text-sm mt-4 space-y-1">
-                  <div>💳 Оплата через TON Connect (USDT)</div>
+                  <div>💳 Оплата через NOWPayments</div>
                   <div className="text-xs text-gray-400">
-                    {!isConnected
-                      ? '🔗 Подключите кошелек для покупки подписок'
-                      : '✨ Готовы к покупке! Нажмите "Купить" для оформления подписки'
-                    }
+                    Поддерживаем Bitcoin, Ethereum, USDT, USDC и другие криптовалюты
                   </div>
                 </div>
               </>

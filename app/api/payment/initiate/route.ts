@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData, generatePaymentMemo } from '@/lib/utils'
-import { Address, beginCell, toNano } from '@ton/ton'
 
 interface InitiatePaymentRequest {
-  productId: string
+  productId?: string
+  amount?: number
+  currency?: string
+  orderDescription?: string
 }
 
 function getInitData(request: NextRequest): string | null {
@@ -33,14 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: InitiatePaymentRequest = await request.json()
-    const { productId } = body
-
-    if (!productId) {
-      return NextResponse.json(
-        { success: false, error: 'ID продукта обязателен' },
-        { status: 400 }
-      )
-    }
+    const { productId, amount, currency = 'USDT', orderDescription } = body
 
     // Получение пользователя из initData
     const urlParams = new URLSearchParams(initData)
@@ -54,19 +49,6 @@ export async function POST(request: NextRequest) {
 
     const user = JSON.parse(decodeURIComponent(userStr))
     const telegramId = BigInt(user.id)
-
-    // Проверка существования продукта
-    const product = await prisma.product.findUnique({
-      where: { productId },
-      include: { channel: true }
-    })
-
-    if (!product || !product.isActive) {
-      return NextResponse.json(
-        { success: false, error: 'Продукт не найден или неактивен' },
-        { status: 404 }
-      )
-    }
 
     // Создание или обновление пользователя
     await prisma.user.upsert({
@@ -82,66 +64,63 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Определение итоговой цены
-    const finalPrice = product.discountPrice && product.discountPrice < product.price
-      ? product.discountPrice
-      : product.price
+    let finalAmount: number
+    let finalProductId: string | null = null
+
+    // Если указан productId, используем данные продукта
+    if (productId) {
+      const product = await prisma.product.findUnique({
+        where: { productId },
+        include: { channel: true }
+      })
+
+      if (!product || !product.isActive) {
+        return NextResponse.json(
+          { success: false, error: 'Продукт не найден или неактивен' },
+          { status: 404 }
+        )
+      }
+
+      finalProductId = productId
+      finalAmount = product.discountPrice && product.discountPrice < product.price
+        ? product.discountPrice
+        : product.price
+    } else if (amount) {
+      // Если указана прямая сумма
+      finalAmount = amount
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'Необходимо указать productId или amount' },
+        { status: 400 }
+      )
+    }
 
     // Генерация уникального memo для платежа
     const memo = generatePaymentMemo()
 
-    // Создание платежа
+    // Создание платежа в нашей базе данных
     const payment = await prisma.payment.create({
       data: {
         userId: telegramId,
-        productId,
-        amount: finalPrice,
-        currency: 'USDT',
+        productId: finalProductId || 'custom',
+        amount: finalAmount,
+        currency,
         status: 'pending',
         memo
       }
     })
 
-    // Расчет суммы для транзакции (в наноTON для комиссии)
-    const commissionInNanoTON = toNano('0.1') // Комиссия сети ~0.1 TON
-
-    // Для USDT используем jetton transfer
-    // Адрес USDT в TON сети
-    const usdtMasterAddress = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'
-
-    // Создаем payload для jetton transfer
-    const jettonTransferPayload = beginCell()
-      .storeUint(0xf8a7ea5, 32) // op code для jetton transfer
-      .storeUint(0, 64) // query_id
-      .storeCoins(toNano(finalPrice.toString())) // amount (jetton amount с decimals)
-      .storeAddress(Address.parse(process.env.TON_WALLET_ADDRESS!)) // destination
-      .storeAddress(Address.parse(process.env.TON_WALLET_ADDRESS!)) // response_destination
-      .storeUint(0, 1) // custom_payload
-      .storeCoins(toNano('0.001')) // forward_ton_amount
-      .storeUint(1, 1) // forward_payload type (cell)
-      .storeUint(0, 32) // flags для text comment
-      .storeBuffer(Buffer.from(memo, 'utf8')) // comment с memo как buffer
-      .endCell()
+    // Создание платежа в NOWPayments
+    const nowPaymentsResponse = await createNOWPayment(
+      finalAmount,
+      currency,
+      payment.paymentId,
+      orderDescription
+    )
 
     return NextResponse.json({
       success: true,
-      data: {
-        paymentId: payment.paymentId,
-        amount: finalPrice.toString(),
-        currency: 'USDT',
-        memo,
-        walletAddress: process.env.TON_WALLET_ADDRESS,
-        // Данные для транзакции TON Connect (USDT jetton transfer)
-        transaction: {
-          messages: [
-            {
-              address: usdtMasterAddress,
-              amount: commissionInNanoTON.toString(),
-              payload: jettonTransferPayload.toBoc().toString('base64')
-            }
-          ]
-        }
-      }
+      payment: nowPaymentsResponse
     })
   } catch (error) {
     console.error('Error initiating payment:', error)
@@ -150,4 +129,56 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+async function createNOWPayment(
+  amount: number,
+  currency: string,
+  localPaymentId: string,
+  orderDescription?: string
+) {
+  const apiKey = process.env.NOWPAYMENTS_API_KEY
+  if (!apiKey) {
+    throw new Error('NOWPayments API ключ не настроен')
+  }
+
+  // Генерация URL для IPN callbacks
+  const baseUrl = process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  const ipnCallbackUrl = `${baseUrl}/api/payment/nowpayments-webhook`
+
+  // Генерация URL для редиректа после успешной оплаты
+  const successUrl = `${baseUrl}/payment/success?payment_id=${localPaymentId}`
+
+  const payload = {
+    price_amount: amount,
+    price_currency: 'USD', // ALWAYS USD как указано в документации
+    pay_currency: currency,
+    ipn_callback_url: ipnCallbackUrl,
+    order_id: localPaymentId,
+    order_description: orderDescription || `Payment ${amount} USD`,
+    success_url: successUrl,
+    partially_paid_url: successUrl
+  }
+
+  console.log('📡 Creating NOWPayment with payload:', payload)
+
+  const response = await fetch('https://api.nowpayments.io/v1/payment', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload)
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('❌ NOWPayments API error:', response.status, errorText)
+    throw new Error(`NOWPayments API error: ${response.status} - ${errorText}`)
+  }
+
+  const data = await response.json()
+  console.log('✅ NOWPayment created:', data)
+
+  return data
 }

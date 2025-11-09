@@ -142,7 +142,49 @@ export interface TelegramWebApp {
   }
 }
 
-// TON Connect types
+// NOWPayments types
+export interface NOWPayment {
+  payment_id: string
+  payment_amount: number
+  pay_amount: number
+  pay_currency: string
+  order_id: string
+  order_description: string
+  purchase_id: string
+  invoice_id: string
+  updated_at: string
+  created_at: string
+  expiration_estimate_date: string
+  ipn_callback_url: string
+  success_url: string
+  partially_paid_url: string
+  payment_status: 'waiting' | 'confirming' | 'confirmed' | 'sending' | 'finished' | 'failed' | 'partially_paid' | 'refunded'
+  payment_currency: string
+  price_amount: number
+  price_currency: string
+  pay_address?: string
+  transaction_id?: string
+  fee?: number
+}
+
+export interface NOWPaymentStatus {
+  payment_id: string
+  payment_status: string
+  pay_address?: string
+  price_amount: number
+  price_currency: string
+  pay_amount: number
+  pay_currency: string
+  order_id: string
+  order_description: string
+  created_at: string
+  updated_at: string
+  expiration_estimate_date: string
+  transaction_id?: string
+  fee?: number
+}
+
+// Legacy TON Connect types (оставлены для совместимости)
 export interface TonConnection {
   connect: () => Promise<void>
   disconnect: () => Promise<void>

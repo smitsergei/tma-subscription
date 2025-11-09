@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Product, PaymentInitiateResponse } from '@/types'
+import { Product, NOWPayment } from '@/types'
 import { apiRequest, formatPrice, formatTimeLeft } from '@/lib/utils'
-import { useTonConnect } from '@/hooks/useTonConnect'
+import { useNOWPayments } from '@/hooks/useNOWPayments'
 
 interface ProductListProps {
   telegramUser?: any
@@ -17,12 +17,12 @@ export function ProductList({ telegramUser }: ProductListProps) {
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null)
 
   const {
-    isConnected,
-    address,
-    connectWallet,
-    sendTransaction,
-    isLoading: tonLoading
-  } = useTonConnect()
+    isLoading: paymentLoading,
+    error: paymentError,
+    initiatePayment,
+    paymentData,
+    clearPaymentData
+  } = useNOWPayments()
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -74,77 +74,56 @@ export function ProductList({ telegramUser }: ProductListProps) {
   const handlePurchase = useCallback(async (product: Product) => {
     console.log('🚀 Starting purchase for product:', product.productId)
 
-    if (!isConnected) {
-      console.log('🔌 Wallet not connected, connecting...')
-      // Подключаем кошелек
-      try {
-        await connectWallet()
-        console.log('✅ Wallet connected successfully')
-        return
-      } catch (err) {
-        console.error('❌ Error connecting wallet:', err)
-        alert('Ошибка подключения кошелька')
-        return
-      }
-    }
-
-    console.log('💳 Wallet connected, starting payment...')
     setPurchasingProduct(product.productId)
-    setPaymentStatus('Инициализация платежа...')
+    setPaymentStatus('Создание платежа...')
 
     try {
-      // Инициация платежа
-      console.log('📡 Initiating payment for product:', product.productId)
-      const result = await apiRequest<PaymentInitiateResponse>('/api/payment/initiate', {
-        method: 'POST',
-        body: JSON.stringify({
-          productId: product.productId
-        })
-      })
+      // Определяем итоговую цену
+      const finalPrice = product.discountPrice && product.discountPrice < product.price
+        ? product.discountPrice
+        : product.price
 
-      console.log('📄 Payment initiation result:', result)
+      console.log('💳 Starting NOWPayments payment...')
 
-      if (result.success && result.data) {
-        console.log('✅ Payment initiated successfully, sending transaction...')
-        setPaymentStatus('Ожидание подтверждения транзакции...')
+      // Создаем платеж через NOWPayments
+      const paymentResult = await initiatePayment(
+        finalPrice,
+        'USDT',
+        `Оплата подписки: ${product.name}`
+      )
 
-        // Отправка транзакции через TON Connect
-        console.log('💸 Sending transaction:', result.data.transaction)
-        const txResult = await sendTransaction(result.data.transaction)
+      if (paymentResult) {
+        console.log('✅ NOWPayment created:', paymentResult)
+        setPaymentStatus('✅ Платеж создан! Вы будете перенаправлены на страницу оплаты.')
 
-        console.log('📨 Transaction result:', txResult)
+        // Показываем сообщение об успехе
+        alert(`✅ Платеж успешно создан!
 
-        if (txResult && txResult.boc) {
-          console.log('✅ Transaction sent successfully')
-          setPaymentStatus('Транзакция отправлена. Проверка оплаты...')
+📦 ${product.name}
+💰 Сумма: ${finalPrice} USD
+💳 Вы будете перенаправлены на страницу оплаты NOWPayments
 
-          // Получаем hash транзакции
-          const txHash = txResult.boc // В реальности здесь будет hash транзакции
-          console.log('🔍 Transaction hash:', txHash)
+Следуйте инструкциям на странице оплаты для завершения транзакции.`)
 
-          // Запускаем проверку оплаты с задержкой
-          setTimeout(() => {
-            if (result.data) {
-              console.log('🔍 Starting payment verification...')
-              verifyPayment(result.data.paymentId, txHash)
-            }
-          }, 5000) // Ждем 5 секунд для обработки транзакции
-        } else {
-          console.error('❌ Failed to send transaction:', txResult)
-          setPaymentStatus('❌ Ошибка отправки транзакции')
-          setPurchasingProduct(null)
-        }
+        // Очищаем статус через несколько секунд
+        setTimeout(() => {
+          setPaymentStatus(null)
+        }, 5000)
       } else {
-        console.error('❌ Payment initiation failed:', result)
-        setPaymentStatus(`❌ Ошибка: ${result.error}`)
-        setPurchasingProduct(null)
+        throw new Error('Ошибка создания платежа')
       }
     } catch (err) {
-      console.error('Payment error:', err)
-      setPaymentStatus('❌ Ошибка при оплате')
+      console.error('❌ Payment error:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка при оплате'
+      setPaymentStatus(`❌ ${errorMessage}`)
+      alert(`❌ Ошибка при оформлении подписки: ${errorMessage}`)
+    } finally {
       setPurchasingProduct(null)
+      setTimeout(() => {
+        setPaymentStatus(null)
+      }, 3000)
     }
-  }, [isConnected, connectWallet, sendTransaction, verifyPayment])
+  }, [initiatePayment])
 
   if (isLoading) {
     return (
@@ -268,26 +247,24 @@ export function ProductList({ telegramUser }: ProductListProps) {
             <button
               onClick={() => handlePurchase(product)}
               className="tg-button text-sm px-4 py-2 flex items-center gap-2"
-              disabled={!product.isActive || purchasingProduct === product.productId || tonLoading}
+              disabled={!product.isActive || purchasingProduct === product.productId || paymentLoading}
             >
               {purchasingProduct === product.productId ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   Обработка...
                 </>
-              ) : !isConnected ? (
+              ) : paymentLoading ? (
                 <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Подключить кошелек
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Создание платежа...
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
-                  Купить за USDT
+                  Оплатить через NOWPayments
                 </>
               )}
             </button>

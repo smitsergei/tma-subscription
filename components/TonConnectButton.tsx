@@ -25,7 +25,7 @@ export function TonConnectButton({
     console.log('🔗 TonConnectButton: Connect clicked')
     try {
       // Показываем инструкции для Telegram
-      if (window.Telegram?.WebApp) {
+      if (window.Telegram?.WebApp && window.Telegram.WebApp.showConfirm) {
         window.Telegram.WebApp.showConfirm(
           'Для подключения кошелька TON вам нужно:\n\n1. Открыть мобильный Telegram\n2. Нажать на ссылку ниже\n3. Выбрать кошелек (Tonkeeper, MyTonWallet и т.д.)\n\nПродолжить?',
           (confirmed: boolean) => {

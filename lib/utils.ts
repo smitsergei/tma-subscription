@@ -221,3 +221,64 @@ export async function apiRequest<T>(
     }
   }
 }
+
+// Проверка подписи NOWPayments IPN
+export async function verifyNOWPaymentsIPN(
+  ipnData: any,
+  signature: string,
+  ipnSecret: string
+): Promise<boolean> {
+  try {
+    // Создаем строку для HMAC
+    const sortedKeys = Object.keys(ipnData).sort()
+    const message = sortedKeys
+      .map(key => `${key}:${ipnData[key]}`)
+      .join(';')
+
+    // Для проверки подписи в Node.js используем crypto
+    const crypto = require('crypto')
+    const hmac = crypto
+      .createHmac('sha512', ipnSecret)
+      .update(message)
+      .digest('hex')
+
+    return hmac === signature.toLowerCase()
+  } catch (error) {
+    console.error('Error verifying NOWPayments IPN signature:', error)
+    return false
+  }
+}
+
+// Получение поддерживаемых криптовалют NOWPayments
+export async function getNOWPaymentsSupportedCurrencies(): Promise<string[]> {
+  try {
+    const apiKey = process.env.NOWPAYMENTS_API_KEY
+    if (!apiKey) {
+      throw new Error('NOWPayments API ключ не настроен')
+    }
+
+    const response = await fetch('https://api.nowpayments.io/v1/currencies', {
+      method: 'GET',
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json',
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    // Возвращаем только активные криптовалюты
+    return data.currencies
+      .filter((currency: any) => currency.active)
+      .map((currency: any) => currency.ticker)
+      .sort()
+  } catch (error) {
+    console.error('Error fetching NOWPayments currencies:', error)
+    // Возвращаем популярные валюты по умолчанию
+    return ['BTC', 'ETH', 'USDT', 'USDC', 'LTC', 'BCH']
+  }
+}
