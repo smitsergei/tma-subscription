@@ -218,7 +218,7 @@ export async function PUT(request: NextRequest) {
 
     const { status, expiresAt } = await request.json()
 
-    const subscription = await prisma.subscription.update({
+    const subscriptionData = await prisma.subscription.update({
       where: { subscriptionId },
       data: {
         ...(status && { status }),
@@ -226,9 +226,55 @@ export async function PUT(request: NextRequest) {
       },
       include: {
         user: true,
-        product: true
+        product: {
+          include: {
+            channel: {
+              select: {
+                channelId: true,
+                name: true,
+                username: true
+              }
+            }
+          }
+        },
+        channel: true,
+        payment: true
       }
     })
+
+    // Serialize BigInt fields
+    const subscription = {
+      subscriptionId: subscriptionData.subscriptionId,
+      userId: subscriptionData.userId.toString(),
+      productId: subscriptionData.productId,
+      channelId: subscriptionData.channelId.toString(),
+      status: subscriptionData.status,
+      expiresAt: subscriptionData.expiresAt,
+      createdAt: subscriptionData.createdAt,
+      updatedAt: subscriptionData.updatedAt,
+      user: subscriptionData.user ? {
+        telegramId: subscriptionData.user.telegramId.toString(),
+        firstName: subscriptionData.user.firstName,
+        username: subscriptionData.user.username
+      } : null,
+      product: {
+        ...subscriptionData.product,
+        productId: subscriptionData.product.productId,
+        price: parseFloat(subscriptionData.product.price.toString()),
+        periodDays: subscriptionData.product.periodDays,
+        channel: subscriptionData.product.channel ? {
+          ...subscriptionData.product.channel,
+          channelId: subscriptionData.product.channel.channelId.toString()
+        } : null
+      },
+      channel: subscriptionData.channel ? {
+        channelId: subscriptionData.channel.channelId.toString(),
+        name: subscriptionData.channel.name,
+        username: subscriptionData.channel.username,
+        description: subscriptionData.channel.description
+      } : null,
+      payment: subscriptionData.payment
+    }
 
     return NextResponse.json({ subscription })
 
