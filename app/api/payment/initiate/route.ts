@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       .storeCoins(toNano('0.001')) // forward_ton_amount
       .storeUint(1, 1) // forward_payload type (cell)
       .storeUint(0, 32) // flags для text comment
-      .storeString(memo) // comment с memo
+      .storeBuffer(Buffer.from(memo, 'utf8')) // comment с memo как buffer
       .endCell()
 
     return NextResponse.json({
