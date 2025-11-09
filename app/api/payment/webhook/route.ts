@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
       // Создаем подписку
       const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + pendingPayment.product.periodDays)
+      expiresAt.setDate(expiresAt.getDate() + (pendingPayment.product?.periodDays || 30))
 
       const subscription = await prisma.subscription.create({
         data: {
