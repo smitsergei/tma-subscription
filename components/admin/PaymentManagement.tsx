@@ -1,8 +1,73 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { formatPrice, formatDate } from '@/lib/utils'
 import { createAuthenticatedRequest } from '@/utils/telegramAuth'
+
+// Безопасная обертка для функций, которые могут вызывать ошибки
+function safeExecute<T>(fn: () => T, fallback: T, errorContext: string): T {
+  try {
+    const result = fn()
+    console.log(`🔍 SAFE EXECUTE: ${errorContext} - Success`)
+    return result
+  } catch (error) {
+    console.error(`🔍 SAFE EXECUTE: ${errorContext} - Error:`, error)
+    return fallback
+  }
+}
+
+// Безопасное создание состояния с fallback значениями
+function createSafeState() {
+  console.log('🔍 SAFE STATE: Creating initial safe state...')
+  return {
+    payments: [] as any[],
+    loading: true,
+    error: null as string | null,
+    filters: {
+      status: '',
+      userId: '',
+      productId: '',
+      search: ''
+    },
+    pagination: {
+      page: 1,
+      limit: 50,
+      total: 0,
+      pages: 0
+    },
+    stats: {
+      total: 0,
+      pending: 0,
+      success: 0,
+      failed: 0
+    },
+    selectedPayment: null as any,
+    showModal: false,
+    actionLoading: false
+  }
+}
+
+// Безопасные функции форматирования
+function safeFormatPrice(price: number, currency: string = 'USDT'): string {
+  try {
+    return `${price} ${currency}`
+  } catch (error) {
+    console.error('🔍 SAFE FORMAT: Price formatting error:', error)
+    return `${price || 0} ${currency}`
+  }
+}
+
+function safeFormatDate(date: string | Date): string {
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    if (isNaN(dateObj.getTime())) {
+      throw new Error('Invalid date')
+    }
+    return dateObj.toLocaleDateString('ru-RU')
+  } catch (error) {
+    console.error('🔍 SAFE FORMAT: Date formatting error:', error)
+    return 'Некорректная дата'
+  }
+}
 
 interface Payment {
   paymentId: string
@@ -48,10 +113,16 @@ interface PaymentsResponse {
 }
 
 export default function PaymentManagement() {
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  console.log('🔍 PaymentManagement: Component initializing...')
+
+  // Используем безопасную инициализацию состояния
+  const safeState = createSafeState()
+  const [payments, setPayments] = useState<Payment[]>(safeState.payments)
+  const [loading, setLoading] = useState<boolean>(safeState.loading)
+  const [error, setError] = useState<string | null>(safeState.error)
   const [stats, setStats] = useState<PaymentsResponse['stats'] | null>(null)
+
+  console.log('🔍 PaymentManagement: Basic state initialized safely')
 
   // Фильтры
   const [filters, setFilters] = useState({
@@ -81,6 +152,14 @@ export default function PaymentManagement() {
       setLoading(true)
       setError(null)
 
+      // Проверяем доступность функций
+      if (typeof window === 'undefined') {
+        console.log('🔍 loadPayments: Running on server, skipping')
+        return
+      }
+
+      console.log('🔍 loadPayments: Window available, URL:', window.location?.href)
+
       const params = new URLSearchParams({
         page: page.toString(),
         limit: pagination.limit.toString(),
@@ -91,32 +170,73 @@ export default function PaymentManagement() {
       })
 
       console.log('🔍 loadPayments: Request params:', params.toString())
-      console.log('🔍 loadPayments: Making fetch request...')
 
-      const response = await fetch(`/api/admin/payments?${params}`, createAuthenticatedRequest())
+      // Проверяем аутентификацию перед запросом
+      let authRequest
+      try {
+        authRequest = createAuthenticatedRequest()
+        console.log('🔍 loadPayments: Auth request created successfully')
+        console.log('🔍 loadPayments: Auth headers:', authRequest.headers)
+      } catch (authError) {
+        console.error('🔍 loadPayments: Error creating auth request:', authError)
+        throw new Error(`Ошибка аутентификации: ${authError instanceof Error ? authError.message : 'Неизвестная ошибка'}`)
+      }
+
+      console.log('🔍 loadPayments: Making fetch request to /api/admin/payments')
+
+      const response = await fetch(`/api/admin/payments?${params}`, authRequest)
 
       console.log('🔍 loadPayments: Response status:', response.status)
+      console.log('🔍 loadPayments: Response headers:', Object.fromEntries(response.headers.entries()))
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        console.log('🔍 loadPayments: Response not OK, reading error text...')
+        const errorText = await response.text()
+        console.log('🔍 loadPayments: Error response text:', errorText)
+        throw new Error(`HTTP ${response.status}: ${errorText || 'Server error'}`)
       }
 
       console.log('🔍 loadPayments: Parsing JSON response...')
-      const data = await response.json()
 
-      console.log('🔍 loadPayments: Response data:', data)
+      let data
+      try {
+        const text = await response.text()
+        console.log('🔍 loadPayments: Raw response text:', text.substring(0, 200) + '...')
+        data = JSON.parse(text)
+      } catch (parseError) {
+        console.error('🔍 loadPayments: JSON parse error:', parseError)
+        throw new Error('Ошибка парсинга ответа сервера')
+      }
+
+      console.log('🔍 loadPayments: Parsed data structure:', {
+        hasSuccess: 'success' in data,
+        success: data.success,
+        hasData: 'data' in data,
+        dataType: typeof data.data
+      })
 
       if (data.success) {
-        console.log('🔍 loadPayments: Success, setting payments:', data.data.payments?.length)
-        setPayments(data.data.payments)
-        setStats(data.data.stats)
-        setPagination(data.data.pagination)
+        console.log('🔍 loadPayments: Success, setting payments:', data.data?.payments?.length)
+        console.log('🔍 loadPayments: Payments sample:', data.data?.payments?.slice(0, 2))
+
+        if (data.data?.payments) {
+          setPayments(data.data.payments)
+          setStats(data.data.stats || { total: 0, pending: 0, success: 0, failed: 0 })
+          setPagination(data.data.pagination || { page: 1, limit: 50, total: 0, pages: 0 })
+        } else {
+          console.warn('🔍 loadPayments: No payments in response data')
+          setPayments([])
+          setStats({ total: 0, pending: 0, success: 0, failed: 0 })
+          setPagination({ page: 1, limit: 50, total: 0, pages: 0 })
+        }
       } else {
         console.log('🔍 loadPayments: API returned error:', data.error)
         setError(data.error || 'Ошибка загрузки платежей')
       }
     } catch (err) {
-      console.error('PaymentManagement error:', err)
+      console.error('🔍 PaymentManagement: Load payments error:', err)
+      console.error('🔍 PaymentManagement: Error type:', typeof err)
+      console.error('🔍 PaymentManagement: Error message:', err instanceof Error ? err.message : String(err))
       setError(`Ошибка загрузки платежей: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`)
     } finally {
       setLoading(false)
@@ -160,12 +280,43 @@ export default function PaymentManagement() {
 
   // Первоначальная загрузка
   useEffect(() => {
-    console.log('🔍 PaymentManagement: Component mounted, starting loadPayments...')
-    try {
-      loadPayments()
-    } catch (error) {
-      console.error('🔍 PaymentManagement: Error in useEffect:', error)
-      setError(`Ошибка инициализации: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+    console.log('🔍 PaymentManagement: Component mounting...')
+
+    // Добавляем задержку для гарантии загрузки Telegram WebApp
+    const timer = setTimeout(() => {
+      console.log('🔍 PaymentManagement: Timer triggered, starting loadPayments...')
+
+      // Проверяем доступность окружения
+      if (typeof window === 'undefined') {
+        console.log('🔍 PaymentManagement: Server-side rendering, skipping loadPayments')
+        return
+      }
+
+      console.log('🔍 PaymentManagement: Client-side, URL:', window.location?.href)
+      console.log('🔍 PaymentManagement: Telegram WebApp available:', !!(window as any).Telegram?.WebApp)
+
+      try {
+        loadPayments()
+      } catch (error) {
+        console.error('🔍 PaymentManagement: Error in useEffect loadPayments:', error)
+        console.error('🔍 PaymentManagement: Error details:', {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          name: error instanceof Error ? error.name : undefined
+        })
+
+        setError(`Ошибка инициализации: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+
+        // Устанавливаем пустые данные для предотвращения ошибок рендера
+        setPayments([])
+        setStats({ total: 0, pending: 0, success: 0, failed: 0 })
+        setPagination({ page: 1, limit: 50, total: 0, pages: 0 })
+      }
+    }, 100) // Небольшая задержка для инициализации Telegram WebApp
+
+    return () => {
+      console.log('🔍 PaymentManagement: Component unmounting, clearing timer')
+      clearTimeout(timer)
     }
   }, [])
 
@@ -196,6 +347,36 @@ export default function PaymentManagement() {
       default: return status
     }
   }
+
+  // Если есть критическая ошибка, показываем ее
+  if (error && !loading) {
+    console.log('🔍 PaymentManagement: Rendering error state:', error)
+    return (
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">💳 Управление платежами</h1>
+          <p className="text-gray-600">Просмотр и управление всеми платежами системы</p>
+        </div>
+
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-red-800 mb-2">⚠️ Ошибка загрузки</h2>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={() => {
+              console.log('🔍 PaymentManagement: Retry button clicked')
+              setError(null)
+              loadPayments(1)
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+          >
+            🔄 Попробовать снова
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  console.log('🔍 PaymentManagement: Rendering main component, loading:', loading, 'payments count:', payments?.length)
 
   return (
     <div className="p-6">
@@ -327,61 +508,62 @@ export default function PaymentManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {payments.map((payment) => (
-                  <tr key={payment.paymentId} className="hover:bg-gray-50">
+                {safeExecute(() => payments.map((payment) => (
+                  <tr key={payment?.paymentId || 'unknown'} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-mono text-gray-900">
-                        {payment.paymentId.slice(0, 8)}...
+                        {safeExecute(() => (payment?.paymentId || 'unknown').slice(0, 8), 'unknown', 'paymentId slice')}...
                       </div>
-                      {payment.memo && (
+                      {payment?.memo && (
                         <div className="text-xs text-gray-500 mt-1">
-                          Memo: {payment.memo.slice(0, 12)}...
+                          Memo: {safeExecute(() => payment.memo.slice(0, 12), '...', 'memo slice')}...
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {payment.user?.firstName || 'Unknown'}
+                        {payment?.user?.firstName || 'Unknown'}
                       </div>
                       <div className="text-xs text-gray-500">
-                        ID: {payment.userId}
-                        {payment.user?.username && ` (@${payment.user.username})`}
+                        ID: {payment?.userId || 'unknown'}
+                        {payment?.user?.username && ` (@${payment.user.username})`}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {payment.product?.name || 'Unknown'}
+                        {payment?.product?.name || 'Unknown'}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {payment.product?.periodDays} дней
+                        {payment?.product?.periodDays || 0} дней
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {formatPrice(payment.amount, payment.currency)}
+                        {safeExecute(() => safeFormatPrice(payment?.amount || 0, payment?.currency || 'USDT'), '0 USDT', 'formatPrice')}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.status)}`}>
-                        {getStatusText(payment.status)}
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${safeExecute(() => getStatusColor(payment?.status || 'unknown'), 'bg-gray-100 text-gray-800', 'getStatusColor')}`}>
+                        {safeExecute(() => getStatusText(payment?.status || 'unknown'), 'Unknown', 'getStatusText')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(payment.createdAt)}
+                      {safeExecute(() => safeFormatDate(payment?.createdAt || new Date()), 'Некорректная дата', 'formatDate')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
-                        onClick={() => {
+                        onClick={() => safeExecute(() => {
+                          console.log('🔍 PaymentManagement: Management button clicked for payment:', payment?.paymentId)
                           setSelectedPayment(payment)
                           setShowModal(true)
-                        }}
+                        }, undefined, 'setSelectedPayment')}
                         className="text-blue-600 hover:text-blue-900"
                       >
                         Управление
                       </button>
                     </td>
                   </tr>
-                ))}
+                )), [], 'Error rendering payments list')}
               </tbody>
             </table>
           </div>

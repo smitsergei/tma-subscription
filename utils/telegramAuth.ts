@@ -89,26 +89,50 @@ export function getTelegramUser(): any | null {
 
 // Функция для создания аутентифицированного запроса (реальные или тестовые данные)
 export function createAuthenticatedRequest(options: RequestInit = {}): RequestInit {
-  let initData = getTelegramInitData()
+  console.log('🔍 AUTH REQUEST: Starting authentication...')
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...((options.headers as Record<string, string>) || {}),
-  }
+  try {
+    let initData = getTelegramInitData()
 
-  if (initData) {
-    headers['x-telegram-init-data'] = initData
-    console.log('🔍 AUTH REQUEST: Using real Telegram init data, length:', initData.length)
-  } else {
-    // Если нет реальных данных, используем тестовые для админ-панели
-    console.log('🔍 AUTH REQUEST: No real Telegram data, using test admin data')
-    const testAdminData = createTestInitData()
-    headers['x-telegram-init-data'] = testAdminData
-  }
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...((options.headers as Record<string, string>) || {}),
+    }
 
-  return {
-    ...options,
-    headers,
+    if (initData && initData.trim() !== '') {
+      headers['x-telegram-init-data'] = initData
+      console.log('🔍 AUTH REQUEST: Using Telegram init data, length:', initData.length)
+    } else {
+      // Если нет реальных данных, используем тестовые для админ-панели
+      console.log('🔍 AUTH REQUEST: No valid Telegram data, using test admin data')
+      const testAdminData = createTestInitData()
+      headers['x-telegram-init-data'] = testAdminData
+      console.log('🔍 AUTH REQUEST: Test data prepared, length:', testAdminData.length)
+    }
+
+    const request = {
+      ...options,
+      headers,
+    }
+
+    console.log('🔍 AUTH REQUEST: Request object created successfully')
+    console.log('🔍 AUTH REQUEST: Headers:', Object.keys(request.headers))
+
+    return request
+  } catch (error) {
+    console.error('🔍 AUTH REQUEST: Error creating authenticated request:', error)
+
+    // Fallback - всегда возвращаем валидный запрос с тестовыми данными
+    const fallbackHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-telegram-init-data': createTestInitData(),
+      ...((options.headers as Record<string, string>) || {}),
+    }
+
+    return {
+      ...options,
+      headers: fallbackHeaders,
+    }
   }
 }
 
