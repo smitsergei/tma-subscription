@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
         firstName: sub.user.firstName,
         username: sub.user.username
       } : null,
-      product: {
+      product: sub.product ? {
         ...sub.product,
         productId: sub.product.productId,
         price: parseFloat(sub.product.price.toString()),
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
           ...sub.product.channel,
           channelId: sub.product.channel.channelId.toString()
         } : null
-      },
+      } : null,
       channel: sub.channel ? {
         channelId: sub.channel.channelId.toString(),
         name: sub.channel.name,
