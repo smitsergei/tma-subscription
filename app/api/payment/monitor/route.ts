@@ -239,7 +239,7 @@ export async function GET(request: NextRequest) {
         currency: p.currency,
         memo: p.memo,
         createdAt: p.createdAt,
-        productName: p.product.name
+        productName: p.product?.name || 'Без названия'
       }))
     })
   } catch (error) {
