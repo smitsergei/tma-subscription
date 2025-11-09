@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { name, description, price, channelTelegramId, periodDays, isActive } = await request.json()
+    const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive } = await request.json()
 
     console.log('🔍 API: Creating product with data:', {
       name: !!name,
@@ -186,13 +186,29 @@ export async function POST(request: NextRequest) {
         channel = await prisma.channel.create({
           data: {
             channelId: BigInt(cleanChannelId),
-            name: `Channel ${channelTelegramId}`,
+            name: channelName || `Channel ${channelTelegramId}`,
+            username: channelUsername || null,
           }
         })
         console.log('🔍 API: Channel created successfully:', channel.channelId.toString())
       } catch (channelError) {
         console.error('🔍 API: Error creating channel:', channelError)
         throw new Error(`Failed to create channel: ${channelError instanceof Error ? channelError.message : 'Unknown error'}`)
+      }
+    } else if (channelName || channelUsername) {
+      console.log('🔍 API: Updating existing channel with new data...')
+      try {
+        channel = await prisma.channel.update({
+          where: { channelId: BigInt(cleanChannelId) },
+          data: {
+            ...(channelName && { name: channelName }),
+            ...(channelUsername !== undefined && { username: channelUsername }),
+          }
+        })
+        console.log('🔍 API: Channel updated successfully:', channel.channelId.toString())
+      } catch (channelError) {
+        console.error('🔍 API: Error updating channel:', channelError)
+        throw new Error(`Failed to update channel: ${channelError instanceof Error ? channelError.message : 'Unknown error'}`)
       }
     } else {
       console.log('🔍 API: Found existing channel:', channel.channelId.toString())
@@ -302,7 +318,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const { name, description, price, channelTelegramId, periodDays, isActive } = await request.json()
+    const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive } = await request.json()
 
     // Handle channel change if provided
     let updateData: any = {}
@@ -327,7 +343,17 @@ export async function PUT(request: NextRequest) {
         channel = await prisma.channel.create({
           data: {
             channelId: BigInt(cleanChannelId),
-            name: `Channel ${channelTelegramId}`,
+            name: channelName || `Channel ${channelTelegramId}`,
+            username: channelUsername || null,
+          }
+        })
+      } else if (channelName || channelUsername) {
+        // Update existing channel if name or username is provided
+        channel = await prisma.channel.update({
+          where: { channelId: BigInt(cleanChannelId) },
+          data: {
+            ...(channelName && { name: channelName }),
+            ...(channelUsername !== undefined && { username: channelUsername }),
           }
         })
       }

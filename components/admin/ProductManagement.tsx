@@ -310,6 +310,8 @@ export default function ProductManagement() {
         description: newProduct.description,
         price: newProduct.price,
         channelTelegramId: newProduct.channelId,
+        channelName: newProduct.channelName,
+        channelUsername: newProduct.channelUsername,
         periodDays: newProduct.periodDays,
         isActive: newProduct.isActive
       }
@@ -361,6 +363,8 @@ export default function ProductManagement() {
         description: editProduct.description,
         price: editProduct.price,
         channelTelegramId: editProduct.channelId,
+        channelName: editProduct.channelName,
+        channelUsername: editProduct.channelUsername,
         periodDays: editProduct.periodDays,
         isActive: editProduct.isActive
       }
