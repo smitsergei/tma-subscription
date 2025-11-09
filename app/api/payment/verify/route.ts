@@ -108,56 +108,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Создание подписки
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + payment.product.periodDays)
-
-    const subscription = await prisma.subscription.create({
-      data: {
-        userId: payment.userId,
-        productId: payment.productId,
-        channelId: payment.product.channelId,
-        paymentId: payment.paymentId,
-        status: 'active',
-        startsAt: new Date(),
-        expiresAt
-      }
-    })
-
-    // Добавление пользователя в Telegram канал
-    try {
-      await addUserToChannel(
-        payment.userId.toString(),
-        payment.product.channel.channelId.toString(),
-        process.env.BOT_TOKEN!
-      )
-      console.log('✅ VERIFY: User added to channel successfully')
-    } catch (error) {
-      console.error('🔍 VERIFY: Error adding user to channel:', error)
-      // Не прерываем процесс, если не удалось добавить в канал
-    }
-
-    // Обновление статуса платежа
-    await prisma.payment.update({
-      where: { paymentId },
-      data: {
-        status: 'success',
-        txHash
-      }
-    })
-
-    // Отправляем уведомление пользователю
-    try {
-      await sendPaymentNotification(
-        payment.userId.toString(),
-        payment.product.name,
-        payment.product.channel.name,
-        expiresAt
-      )
-      console.log('✅ VERIFY: Notification sent successfully')
-    } catch (error) {
-      console.error('🔍 VERIFY: Error sending notification:', error)
-    }
+    // Обработка подтвержденного платежа
+    await processConfirmedPayment(payment, txHash)
 
     return NextResponse.json({
       success: true,
@@ -221,7 +173,14 @@ async function verifyTonTransaction(txHash: string, payment: any): Promise<boole
 
     // Поиск нужной транзакции
     const targetTransaction = data.result.find((tx: any) => {
-      // Проверяем hash транзакции
+      // Для поллинга ищем по memo вместо hash
+      if (txHash === 'polling') {
+        // Проверяем memo в сообщении
+        const message = tx.in_msg?.message || ''
+        return message === payment.memo
+      }
+
+      // Для обычной проверки по hash
       const transactionHash = tx.transaction_id?.hash
       if (!transactionHash) return false
 
@@ -371,6 +330,63 @@ ${inviteData.result.invite_link}
   } catch (error) {
     console.error('🔍 VERIFY: Error managing channel membership:', error)
     throw error
+  }
+}
+
+async function processConfirmedPayment(payment: any, txHash: string): Promise<void> {
+  console.log('✅ VERIFY: Processing confirmed payment:', payment.paymentId)
+
+  // Создание подписки
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + payment.product.periodDays)
+
+  const subscription = await prisma.subscription.create({
+    data: {
+      userId: payment.userId,
+      productId: payment.productId,
+      channelId: payment.product.channelId,
+      paymentId: payment.paymentId,
+      status: 'active',
+      startsAt: new Date(),
+      expiresAt
+    }
+  })
+
+  console.log('✅ VERIFY: Subscription created:', subscription.subscriptionId)
+
+  // Добавление пользователя в Telegram канал
+  try {
+    await addUserToChannel(
+      payment.userId.toString(),
+      payment.product.channel.channelId.toString(),
+      process.env.BOT_TOKEN!
+    )
+    console.log('✅ VERIFY: User added to channel successfully')
+  } catch (error) {
+    console.error('🔍 VERIFY: Error adding user to channel:', error)
+    // Не прерываем процесс, если не удалось добавить в канал
+  }
+
+  // Обновление статуса платежа
+  await prisma.payment.update({
+    where: { paymentId: payment.paymentId },
+    data: {
+      status: 'success',
+      txHash
+    }
+  })
+
+  // Отправляем уведомление пользователю
+  try {
+    await sendPaymentNotification(
+      payment.userId.toString(),
+      payment.product.name,
+      payment.product.channel.name,
+      expiresAt
+    )
+    console.log('✅ VERIFY: Notification sent successfully')
+  } catch (error) {
+    console.error('🔍 VERIFY: Error sending notification:', error)
   }
 }
 
