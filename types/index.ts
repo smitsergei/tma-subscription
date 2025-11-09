@@ -146,16 +146,21 @@ export interface TelegramWebApp {
 export interface TonConnection {
   connect: () => Promise<void>
   disconnect: () => Promise<void>
-  sendTransaction: (transaction: any) => Promise<any>
+  sendTransaction: (transaction: PaymentTransaction) => Promise<any>
   isConnected: boolean
   address?: string
 }
 
 export interface PaymentTransaction {
-  address: string
-  amount: string // в наноTON
+  address?: string
+  amount?: string // в наноTON
   payload?: string
   stateInit?: string
+  messages?: Array<{
+    address: string
+    amount: string
+    payload: string
+  }>
 }
 
 // Form types
