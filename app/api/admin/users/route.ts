@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
             status: sub.status,
             expiresAt: sub.expiresAt,
             createdAt: sub.createdAt,
-            product: {
+            product: sub.product ? {
               ...sub.product,
               productId: sub.product.productId,
               price: parseFloat(sub.product.price.toString()),
@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
                 ...sub.product.channel,
                 channelId: sub.product.channel.channelId.toString()
               } : null
-            },
+            } : null,
             payment: sub.payment
           }))
         }
