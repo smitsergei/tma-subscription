@@ -181,6 +181,24 @@ async function createNOWPayment(
     throw new Error('NOWPayments API ключ не настроен')
   }
 
+  // Проверяем минимальные суммы для разных валют
+  const MIN_AMOUNTS: { [key: string]: number } = {
+    'USDT': 1,  // Минимум 1 USDT
+    'USDC': 1,  // Минимум 1 USDC
+    'BTC': 0.00001, // Минимум для BTC
+    'ETH': 0.001,   // Минимум для ETH
+    'LTC': 0.01,    // Минимум для LTC
+    'BCH': 0.01     // Минимум для BCH
+  }
+
+  // Проверяем и корректируем сумму если необходимо
+  const minAmount = MIN_AMOUNTS[currency] || 10
+  const finalAmount = Math.max(amount, minAmount)
+
+  if (finalAmount !== amount) {
+    console.log(`💰 Amount adjusted from $${amount} to $${finalAmount} for ${currency} (minimum: $${minAmount})`)
+  }
+
   // Генерация URL для IPN callbacks
   const baseUrl = process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
   const ipnCallbackUrl = `${baseUrl}/api/payment/nowpayments-webhook`
@@ -194,13 +212,14 @@ async function createNOWPayment(
     : 'https://webhook.site/your-test-url' // для тестирования
 
   const payload = {
-    price_amount: amount,
-    price_currency: 'USD',
+    price_amount: finalAmount,
+    price_currency: currency === 'USDT' ? 'USDT' : 'USD', // Если USDT, то цена в USDT, иначе в USD
     pay_currency: currency,
     ipn_callback_url: validCallbackUrl,
     order_id: localPaymentId,
-    order_description: orderDescription || `Payment ${amount} USD`,
+    order_description: orderDescription || `Payment ${finalAmount} ${currency}`,
     success_url: successUrl
+    // Убираем partially_paid_url - он не поддерживается
   }
 
   console.log('📡 Creating NOWPayment with payload:', payload)
@@ -217,6 +236,7 @@ async function createNOWPayment(
   if (!response.ok) {
     const errorText = await response.text()
     console.error('❌ NOWPayments API error:', response.status, errorText)
+
     throw new Error(`NOWPayments API error: ${response.status} - ${errorText}`)
   }
 

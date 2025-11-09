@@ -16,7 +16,7 @@ interface NOWPaymentData {
   expiration_estimate_date: string
   ipn_callback_url: string
   success_url: string
-  partially_paid_url: string
+  // partially_paid_url удален - не поддерживается NOWPayments
   payment_status: string
   payment_currency: string
   price_amount: number

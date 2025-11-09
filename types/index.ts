@@ -157,7 +157,7 @@ export interface NOWPayment {
   expiration_estimate_date: string
   ipn_callback_url: string
   success_url: string
-  partially_paid_url: string
+  // partially_paid_url удален - не поддерживается NOWPayments
   payment_status: 'waiting' | 'confirming' | 'confirmed' | 'sending' | 'finished' | 'failed' | 'partially_paid' | 'refunded'
   payment_currency: string
   price_amount: number
