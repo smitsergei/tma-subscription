@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
 
+// Хелпер для безопасной JSON сериализации с BigInt поддержкой
+function safeJsonStringify(obj: any): string {
+  return JSON.stringify(obj, (_, value) => {
+    if (typeof value === 'bigint') {
+      return value.toString()
+    }
+    return value
+  })
+}
+
 async function checkAdminAuth(request: NextRequest): Promise<boolean> {
   const initData = request.headers.get('x-telegram-init-data')
   if (!initData) return false
@@ -136,7 +146,7 @@ export async function GET(request: NextRequest) {
       failed: stats.find(s => s.status === 'failed')?._count.status || 0
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         payments: formattedPayments,
@@ -148,6 +158,11 @@ export async function GET(request: NextRequest) {
         },
         stats: statusStats
       }
+    }
+
+    return new Response(safeJsonStringify(responseData), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
@@ -345,7 +360,7 @@ export async function POST(request: NextRequest) {
     // Логирование действия администратора
     console.log(`🔧 ADMIN: Payment ${paymentId} ${action}ed by admin`)
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         payment: {
@@ -354,6 +369,11 @@ export async function POST(request: NextRequest) {
         },
         message: `Платеж успешно ${action === 'confirm' ? 'подтвержден' : action === 'reject' ? 'отклонен' : 'сброшен'}`
       }
+    }
+
+    return new Response(safeJsonStringify(responseData), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
