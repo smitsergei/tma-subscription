@@ -155,6 +155,12 @@ export default function PaymentManagement() {
   const [showModal, setShowModal] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
 
+  // Состояние для поиска пользователей
+  const [userSearch, setUserSearch] = useState('')
+  const [userSearchLoading, setUserSearchLoading] = useState(false)
+  const [users, setUsers] = useState<any[]>([])
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+
   // Загрузка платежей
   const loadPayments = async (page = 1) => {
     try {
@@ -253,6 +259,28 @@ export default function PaymentManagement() {
     }
   }
 
+  // Поиск пользователей
+  const fetchUsers = async (searchTerm: string) => {
+    try {
+      setUserSearchLoading(true)
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '20',
+        ...(searchTerm && { search: searchTerm })
+      })
+
+      const response = await fetch(`/api/admin/users?${params}`, createAuthenticatedRequest())
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data.users || [])
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    } finally {
+      setUserSearchLoading(false)
+    }
+  }
+
   // Действие с платежом
   const handlePaymentAction = async (paymentId: string, action: 'confirm' | 'reject' | 'reset', txHash?: string) => {
     try {
@@ -337,6 +365,47 @@ export default function PaymentManagement() {
     }, 500)
     return () => clearTimeout(timeoutId)
   }, [filters, pagination.limit])
+
+  // Поиск пользователей
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (userSearch.trim()) {
+        fetchUsers(userSearch)
+      } else {
+        setUsers([])
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [userSearch])
+
+  // Закрытие dropdown при клике вне компонента
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('.user-search-container')) {
+        setShowUserDropdown(false)
+      }
+    }
+
+    if (showUserDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showUserDropdown])
+
+  const selectUser = (user: any) => {
+    setFilters({ ...filters, userId: user.telegramId.toString() })
+    setUserSearch(`${user.firstName} ${user.username ? '@' + user.username : ''}`)
+    setShowUserDropdown(false)
+  }
+
+  const clearUserFilter = () => {
+    setFilters({ ...filters, userId: '' })
+    setUserSearch('')
+    setUsers([])
+    setShowUserDropdown(false)
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -432,15 +501,74 @@ export default function PaymentManagement() {
               <option value="failed">Отклонен</option>
             </select>
           </div>
-          <div>
+          <div className="relative user-search-container">
             <label className="block text-sm font-medium text-gray-700 mb-1">ID пользователя</label>
-            <input
-              type="text"
-              value={filters.userId}
-              onChange={(e) => setFilters({ ...filters, userId: e.target.value })}
-              placeholder="Telegram ID"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={userSearch}
+                onChange={(e) => {
+                  setUserSearch(e.target.value)
+                  setShowUserDropdown(true)
+                  // Если поле очистили, также очищаем фильтр
+                  if (!e.target.value.trim()) {
+                    setFilters({ ...filters, userId: '' })
+                  }
+                }}
+                onFocus={() => setShowUserDropdown(true)}
+                placeholder="Начните вводить имя или username..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {userSearchLoading && (
+                <div className="absolute right-3 top-2.5">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                </div>
+              )}
+              {filters.userId && userSearch && (
+                <button
+                  type="button"
+                  onClick={clearUserFilter}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* User Dropdown */}
+            {showUserDropdown && userSearch.trim() && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {users.length > 0 ? (
+                  users.map((user) => (
+                    <div
+                      key={user.telegramId}
+                      onClick={() => selectUser(user)}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-medium text-sm">
+                            {user.firstName?.[0]?.toUpperCase() || 'U'}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{user.firstName}</div>
+                          <div className="text-sm text-gray-500">
+                            @{user.username || 'no_username'} • ID: {user.telegramId}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : !userSearchLoading ? (
+                  <div className="px-3 py-4 text-center text-gray-500 text-sm">
+                    Пользователи не найдены
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ID продукта</label>
