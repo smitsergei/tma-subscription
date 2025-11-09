@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Обработка подтвержденного платежа
-    await processConfirmedPayment(payment, txHash)
+    const subscription = await processConfirmedPayment(payment, txHash)
 
     return NextResponse.json({
       success: true,
@@ -333,7 +333,7 @@ ${inviteData.result.invite_link}
   }
 }
 
-async function processConfirmedPayment(payment: any, txHash: string): Promise<void> {
+async function processConfirmedPayment(payment: any, txHash: string): Promise<any> {
   console.log('✅ VERIFY: Processing confirmed payment:', payment.paymentId)
 
   // Создание подписки
@@ -388,6 +388,8 @@ async function processConfirmedPayment(payment: any, txHash: string): Promise<vo
   } catch (error) {
     console.error('🔍 VERIFY: Error sending notification:', error)
   }
+
+  return subscription
 }
 
 async function sendPaymentNotification(
