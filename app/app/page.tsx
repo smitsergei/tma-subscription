@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNOWPayments } from '@/hooks/useNOWPayments'
+import PaymentTab from '@/components/PaymentTab'
 
 // Функция для извлечения данных из URL
 function parseTelegramData() {
@@ -274,8 +275,12 @@ export default function TmaPage() {
             📋 Мои подписки
           </button>
           <button
-            onClick={() => window.open('/payments', '_blank')}
-            className="flex-1 py-2 px-3 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+            onClick={() => setActiveTab('payments')}
+            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'payments'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
           >
             💳 Платежи
           </button>
@@ -437,6 +442,9 @@ export default function TmaPage() {
               </>
             )}
           </div>
+        )}
+        {activeTab === 'payments' && (
+          <PaymentTab parseTelegramInitData={parseTelegramInitData} />
         )}
       </div>
     </div>
