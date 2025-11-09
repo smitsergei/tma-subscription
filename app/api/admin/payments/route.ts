@@ -236,7 +236,7 @@ export async function POST(request: NextRequest) {
             data: {
               userId: payment.userId,
               productId: payment.productId || undefined,
-              channelId: payment.product?.channelId || 0n,
+              channelId: payment.product?.channelId || BigInt(0),
               paymentId: payment.paymentId,
               status: 'active',
               startsAt: new Date(),
