@@ -31,7 +31,8 @@ export function useNOWPayments() {
   const initiatePayment = useCallback(async (
     amount: number,
     currency: string,
-    orderDescription?: string
+    orderDescription?: string,
+    productId?: string
   ): Promise<NOWPaymentData | null> => {
     console.log(`💳 Initiating NOWPayments payment: ${amount} ${currency}`)
     setIsLoading(true)
@@ -46,6 +47,7 @@ export function useNOWPayments() {
         body: JSON.stringify({
           amount,
           currency,
+          productId,
           orderDescription: orderDescription || `Оплата подписки ${amount} ${currency}`
         }),
       })

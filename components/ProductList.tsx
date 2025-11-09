@@ -104,7 +104,8 @@ export function ProductList({ telegramUser }: ProductListProps) {
       const paymentResult = await initiatePayment(
         Math.max(finalPrice, 10), // Минимальная сумма $10
         currency,
-        `Оплата подписки: ${product.name}`
+        `Оплата подписки: ${product.name}`,
+        product.productId
       )
 
       if (paymentResult) {

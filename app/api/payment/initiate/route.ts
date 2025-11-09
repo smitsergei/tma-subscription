@@ -99,10 +99,11 @@ export async function POST(request: NextRequest) {
     const memo = generatePaymentMemo()
 
     // Создание платежа в нашей базе данных
+    // Если productId не указан, это платеж без привязки к продукту
     const payment = await prisma.payment.create({
       data: {
         userId: telegramId,
-        productId: finalProductId || 'custom',
+        productId: finalProductId || null, // null для платежей без продукта
         amount: finalAmount,
         currency,
         status: 'pending',
