@@ -223,6 +223,59 @@ export default function ProductManagement() {
     demoDays: '7'
   })
 
+  // Функция для получения информации о канале по ID
+  const fetchChannelInfo = async (channelId: string): Promise<{name: string, username: string | null} | null> => {
+    if (!channelId.trim()) return null
+
+    try {
+      console.log('🔍 Fetching channel info for ID:', channelId)
+      const response = await fetch(`/api/admin/channels/${channelId}`, createAuthenticatedRequest())
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.channel) {
+          console.log('✅ Found channel:', data.channel.name)
+          return {
+            name: data.channel.name,
+            username: data.channel.username
+          }
+        }
+      }
+      return null
+    } catch (error) {
+      console.error('❌ Error fetching channel info:', error)
+      return null
+    }
+  }
+
+  // Функция для обновления названия канала при изменении ID
+  const handleChannelIdChange = async (value: string, isNewProduct = true) => {
+    if (isNewProduct) {
+      setNewProduct(prev => ({ ...prev, channelId: value }))
+    } else {
+      setEditProduct(prev => ({ ...prev, channelId: value }))
+    }
+
+    if (value.trim()) {
+      const channelInfo = await fetchChannelInfo(value.trim())
+      if (channelInfo) {
+        if (isNewProduct) {
+          setNewProduct(prev => ({
+            ...prev,
+            channelName: channelInfo.name,
+            channelUsername: channelInfo.username || ''
+          }))
+        } else {
+          setEditProduct(prev => ({
+            ...prev,
+            channelName: channelInfo.name,
+            channelUsername: channelInfo.username || ''
+          }))
+        }
+      }
+    }
+  }
+
   const fetchProducts = async () => {
     try {
       console.log('🔍 Fetching products...')
@@ -642,23 +695,29 @@ export default function ProductManagement() {
                       type="text"
                       placeholder="-1001234567890"
                       value={newProduct.channelId}
-                      onChange={(e) => setNewProduct({...newProduct, channelId: e.target.value})}
+                      onChange={(e) => handleChannelIdChange(e.target.value, true)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Получите ID через @userinfobot или из настроек канала
+                      💡 Название канала определится автоматически по ID
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Название канала</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Название канала
+                        <span className="text-xs text-gray-500 ml-1">(авто, можно изменить)</span>
+                      </label>
                       <input
                         type="text"
-                        placeholder="Название канала"
+                        placeholder="Определится автоматически..."
                         value={newProduct.channelName}
                         onChange={(e) => setNewProduct({...newProduct, channelName: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        📝 Можно ввести вручную или оставить автозаполнение
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Username канала</label>
@@ -784,22 +843,29 @@ export default function ProductManagement() {
                     <input
                       type="text"
                       value={editProduct.channelId}
-                      onChange={(e) => setEditProduct({...editProduct, channelId: e.target.value})}
+                      onChange={(e) => handleChannelIdChange(e.target.value, false)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      ID можно получить через @userinfobot
+                      💡 При изменении ID название обновится автоматически
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Название канала</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Название канала
+                        <span className="text-xs text-gray-500 ml-1">(можно изменить)</span>
+                      </label>
                       <input
                         type="text"
+                        placeholder="Текущее название канала..."
                         value={editProduct.channelName}
                         onChange={(e) => setEditProduct({...editProduct, channelName: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        📝 Можно изменить вручную или оставить как есть
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Username канала</label>
