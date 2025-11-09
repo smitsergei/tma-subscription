@@ -1,0 +1,7 @@
+{
+  "url": "http://localhost:3008",
+  "name": "TMA Подписка (Local)",
+  "iconUrl": "http://localhost:3008/icon.png",
+  "termsOfUseUrl": "http://localhost:3008/terms",
+  "privacyPolicyUrl": "http://localhost:3008/privacy"
+}

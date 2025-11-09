@@ -21,8 +21,20 @@ export function useTonConnect() {
         // Динамический импорт TON Connect SDK
         const { TonConnect } = await import('@tonconnect/sdk')
 
+        const isLocalhost = process.env.NEXT_PUBLIC_APP_URL?.includes('localhost')
+        const isNgrok = process.env.NEXT_PUBLIC_APP_URL?.includes('ngrok')
+
+        let manifestFile
+        if (isNgrok) {
+          manifestFile = 'tonconnect-manifest-ngrok.json'
+        } else if (isLocalhost) {
+          manifestFile = 'tonconnect-manifest-local.json'
+        } else {
+          manifestFile = 'tonconnect-manifest.json'
+        }
+
         const tonConnection = new TonConnect({
-          manifestUrl: `${process.env.NEXT_PUBLIC_APP_URL}/tonconnect-manifest.json`,
+          manifestUrl: `${process.env.NEXT_PUBLIC_APP_URL}/${manifestFile}`,
         })
 
         setConnection({
