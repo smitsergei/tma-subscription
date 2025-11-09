@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useNOWPayments } from '@/hooks/useNOWPayments'
-import { NOWPaymentsButton } from '@/components/NOWPaymentsButton'
 
 // Функция для извлечения данных из URL
 function parseTelegramData() {
@@ -156,7 +155,8 @@ export default function TmaPage() {
       const paymentResult = await initiatePayment(
         finalPrice,
         'USDT',
-        `Оплата подписки: ${product.name}`
+        `Оплата подписки: ${product.name}`,
+        product.productId
       )
 
       if (!paymentResult) {
@@ -273,20 +273,7 @@ export default function TmaPage() {
           </button>
         </div>
 
-        {/* NOWPayments Status */}
-        <div className="mt-3">
-          <NOWPaymentsButton
-            isLoading={paymentLoading}
-            error={paymentError}
-            onPayment={(amount, currency) => {
-              console.log(`💳 Payment requested: ${amount} ${currency}`)
-              initiatePayment(amount, currency, 'Пополнение баланса').catch(err => {
-                console.error('Payment error:', err)
-              })
-            }}
-          />
         </div>
-      </div>
 
       {/* Debug Panel (только для разработки) */}
       {process.env.NODE_ENV === 'development' && (
