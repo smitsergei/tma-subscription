@@ -97,7 +97,7 @@ model Payment {
 model Subscription {
   subscriptionId String   @id @default(cuid()) @map("subscription_id")
   userId         BigInt   @map("user_id")
-  productId      String   @map("product_id")
+  productId      String?   @map("product_id")
   channelId      BigInt   @map("channel_id")
   paymentId      String?  @map("payment_id")
   status         String   @default("active")
@@ -107,7 +107,7 @@ model Subscription {
   updatedAt      DateTime @updatedAt @map("updated_at")
   channel        Channel  @relation(fields: [channelId], references: [channelId])
   payment        Payment? @relation(fields: [paymentId], references: [paymentId])
-  product        Product  @relation(fields: [productId], references: [productId])
+  product        Product?  @relation(fields: [productId], references: [productId])
   user           User     @relation(fields: [userId], references: [telegramId])
 
   @@index([status, expiresAt])
