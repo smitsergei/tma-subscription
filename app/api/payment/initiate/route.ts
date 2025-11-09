@@ -118,13 +118,11 @@ export async function POST(request: NextRequest) {
       orderDescription
     )
 
-    console.log('💰 PAYMENT INITIATE: USDT Payment details:', {
+    console.log('💰 PAYMENT INITIATE: NOWPayments details:', {
       paymentId: payment.paymentId,
-      amount: finalPrice,
-      currency: 'USDT',
-      memo,
-      usdtAmount: (Number(finalPrice) * 1000000).toString(),
-      commission: commissionInNanoTON.toString()
+      amount: finalAmount,
+      currency: currency,
+      memo
     })
 
     return NextResponse.json({
