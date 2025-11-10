@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 // Функция для проверки админ прав
 async function checkAdminAuth(request: NextRequest): Promise<boolean> {
   try {

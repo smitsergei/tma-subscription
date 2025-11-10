@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db'
 import { validateTelegramInitData, generatePaymentMemo } from '@/lib/utils'
 import { Decimal } from 'decimal.js'
 
+export const dynamic = 'force-dynamic'
+
 interface InitiatePaymentRequest {
   productId?: string
   amount?: number

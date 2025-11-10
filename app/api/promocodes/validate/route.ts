@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
 import { Decimal } from 'decimal.js'
 
+export const dynamic = 'force-dynamic'
+
 function getUserFromRequest(request: NextRequest) {
   // Сначала пробуем получить из заголовка
   const initData = request.headers.get('x-telegram-init-data')
