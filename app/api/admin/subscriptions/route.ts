@@ -150,7 +150,27 @@ export async function GET(request: NextRequest) {
             username: sub.channel.username,
             description: sub.channel.description
           } : null,
-          payment: sub.payment
+          payment: sub.payment ? {
+            paymentId: sub.payment.paymentId,
+            userId: sub.payment.userId.toString(),
+            productId: sub.payment.productId,
+            amount: parseFloat(sub.payment.amount.toString()),
+            currency: sub.payment.currency,
+            status: sub.payment.status,
+            txHash: sub.payment.txHash,
+            memo: sub.payment.memo,
+            nowPaymentId: sub.payment.nowPaymentId,
+            payAddress: sub.payment.payAddress,
+            payAmount: sub.payment.payAmount ? parseFloat(sub.payment.payAmount.toString()) : null,
+            payCurrency: sub.payment.payCurrency,
+            network: sub.payment.network,
+            validUntil: sub.payment.validUntil,
+            priceAmount: sub.payment.priceAmount ? parseFloat(sub.payment.priceAmount.toString()) : null,
+            priceCurrency: sub.payment.priceCurrency,
+            orderDescription: sub.payment.orderDescription,
+            createdAt: sub.payment.createdAt,
+            updatedAt: sub.payment.updatedAt
+          } : null
         }
       } catch (error) {
         console.error('🔍 SUBSCRIPTIONS API: Error serializing subscription:', error)
@@ -288,7 +308,27 @@ export async function POST(request: NextRequest) {
         description: subscriptionData.channel.description,
         createdAt: subscriptionData.channel.createdAt
       } : null,
-      payment: subscriptionData.payment
+      payment: subscriptionData.payment ? {
+            paymentId: subscriptionData.payment.paymentId,
+            userId: subscriptionData.payment.userId.toString(),
+            productId: subscriptionData.payment.productId,
+            amount: parseFloat(subscriptionData.payment.amount.toString()),
+            currency: subscriptionData.payment.currency,
+            status: subscriptionData.payment.status,
+            txHash: subscriptionData.payment.txHash,
+            memo: subscriptionData.payment.memo,
+            nowPaymentId: subscriptionData.payment.nowPaymentId,
+            payAddress: subscriptionData.payment.payAddress,
+            payAmount: subscriptionData.payment.payAmount ? parseFloat(subscriptionData.payment.payAmount.toString()) : null,
+            payCurrency: subscriptionData.payment.payCurrency,
+            network: subscriptionData.payment.network,
+            validUntil: subscriptionData.payment.validUntil,
+            priceAmount: subscriptionData.payment.priceAmount ? parseFloat(subscriptionData.payment.priceAmount.toString()) : null,
+            priceCurrency: subscriptionData.payment.priceCurrency,
+            orderDescription: subscriptionData.payment.orderDescription,
+            createdAt: subscriptionData.payment.createdAt,
+            updatedAt: subscriptionData.payment.updatedAt
+          } : null
     }
 
     return NextResponse.json({ subscription })
@@ -385,7 +425,27 @@ export async function PUT(request: NextRequest) {
         description: subscriptionData.channel.description,
         createdAt: subscriptionData.channel.createdAt
       } : null,
-      payment: subscriptionData.payment
+      payment: subscriptionData.payment ? {
+            paymentId: subscriptionData.payment.paymentId,
+            userId: subscriptionData.payment.userId.toString(),
+            productId: subscriptionData.payment.productId,
+            amount: parseFloat(subscriptionData.payment.amount.toString()),
+            currency: subscriptionData.payment.currency,
+            status: subscriptionData.payment.status,
+            txHash: subscriptionData.payment.txHash,
+            memo: subscriptionData.payment.memo,
+            nowPaymentId: subscriptionData.payment.nowPaymentId,
+            payAddress: subscriptionData.payment.payAddress,
+            payAmount: subscriptionData.payment.payAmount ? parseFloat(subscriptionData.payment.payAmount.toString()) : null,
+            payCurrency: subscriptionData.payment.payCurrency,
+            network: subscriptionData.payment.network,
+            validUntil: subscriptionData.payment.validUntil,
+            priceAmount: subscriptionData.payment.priceAmount ? parseFloat(subscriptionData.payment.priceAmount.toString()) : null,
+            priceCurrency: subscriptionData.payment.priceCurrency,
+            orderDescription: subscriptionData.payment.orderDescription,
+            createdAt: subscriptionData.payment.createdAt,
+            updatedAt: subscriptionData.payment.updatedAt
+          } : null
     }
 
     return NextResponse.json({ subscription })
