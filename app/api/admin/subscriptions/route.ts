@@ -30,15 +30,22 @@ async function checkAdminAuth(request: NextRequest): Promise<boolean> {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 SUBSCRIPTIONS API: Starting request...')
+
     if (!(await checkAdminAuth(request))) {
+      console.log('🔍 SUBSCRIPTIONS API: Authentication failed')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    console.log('🔍 SUBSCRIPTIONS API: Authentication successful')
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const status = searchParams.get('status')
     const userId = searchParams.get('userId')
+
+    console.log('🔍 SUBSCRIPTIONS API: Params:', { page, limit, status, userId })
 
     const skip = (page - 1) * limit
 
@@ -53,7 +60,9 @@ export async function GET(request: NextRequest) {
       where.userId = BigInt(userId)
     }
 
-  // Get subscriptions separately to avoid BigInt serialization issues
+    console.log('🔍 SUBSCRIPTIONS API: Where clause:', where)
+
+    // Get subscriptions separately to avoid BigInt serialization issues
     const subscriptionsData = await prisma.subscription.findMany({
       where,
       skip,
@@ -81,39 +90,51 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Serialize BigInt fields
-    const subscriptions = subscriptionsData.map(sub => ({
-      subscriptionId: sub.subscriptionId,
-      userId: sub.userId.toString(),
-      productId: sub.productId,
-      channelId: sub.channelId.toString(),
-      status: sub.status,
-      expiresAt: sub.expiresAt,
-      createdAt: sub.createdAt,
-      updatedAt: sub.updatedAt,
-      user: sub.user ? {
-        telegramId: sub.user.telegramId.toString(),
-        firstName: sub.user.firstName,
-        username: sub.user.username
-      } : null,
-      product: sub.product ? {
-        ...sub.product,
-        productId: sub.product.productId,
-        price: parseFloat(sub.product.price.toString()),
-        periodDays: sub.product.periodDays,
-        channel: sub.product.channel ? {
-          ...sub.product.channel,
-          channelId: sub.product.channel.channelId.toString()
-        } : null
-      } : null,
-      channel: sub.channel ? {
-        channelId: sub.channel.channelId.toString(),
-        name: sub.channel.name,
-        username: sub.channel.username,
-        description: sub.channel.description
-      } : null,
-      payment: sub.payment
-    }))
+    console.log('🔍 SUBSCRIPTIONS API: Raw subscriptions count:', subscriptionsData.length)
+
+    // Serialize BigInt fields safely
+    const subscriptions = subscriptionsData.map(sub => {
+      try {
+        return {
+          subscriptionId: sub.subscriptionId,
+          userId: sub.userId.toString(),
+          productId: sub.productId,
+          channelId: sub.channelId.toString(),
+          status: sub.status,
+          expiresAt: sub.expiresAt,
+          createdAt: sub.createdAt,
+          updatedAt: sub.updatedAt,
+          user: sub.user ? {
+            telegramId: sub.user.telegramId.toString(),
+            firstName: sub.user.firstName,
+            username: sub.user.username
+          } : null,
+          product: sub.product ? {
+            productId: sub.product.productId,
+            name: sub.product.name,
+            price: parseFloat(sub.product.price.toString()),
+            periodDays: sub.product.periodDays,
+            channel: sub.product.channel ? {
+              channelId: sub.product.channel.channelId.toString(),
+              name: sub.product.channel.name,
+              username: sub.product.channel.username
+            } : null
+          } : null,
+          channel: sub.channel ? {
+            channelId: sub.channel.channelId.toString(),
+            name: sub.channel.name,
+            username: sub.channel.username,
+            description: sub.channel.description
+          } : null,
+          payment: sub.payment
+        }
+      } catch (error) {
+        console.error('🔍 SUBSCRIPTIONS API: Error serializing subscription:', error)
+        return null
+      }
+    }).filter(Boolean) // Remove any null entries from serialization errors
+
+    console.log('🔍 SUBSCRIPTIONS API: Serialized subscriptions count:', subscriptions.length)
 
     const total = await prisma.subscription.count({ where })
 
