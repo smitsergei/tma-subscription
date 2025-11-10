@@ -251,15 +251,60 @@ export async function POST(request: NextRequest) {
 
         updatedPayment = subscription.updatedPayment
 
-        // Отправка уведомления пользователю
+        // Добавление пользователя в канал и отправка уведомления
         try {
+          const botToken = process.env.BOT_TOKEN!
+          const channelId = payment.product?.channelId?.toString()
+
+          if (channelId && payment.product?.channel) {
+            // Добавляем пользователя в канал
+            await addUserToChannel(
+              payment.userId.toString(),
+              channelId,
+              botToken
+            )
+          }
+
+          // Отправка уведомления пользователю
+          let channelInfo = ''
+          if (payment.product?.channel) {
+            if (payment.product.channel.username) {
+              channelInfo = `\n🔗 <a href="https://t.me/${payment.product.channel.username}">Перейти в канал</a>`
+            } else {
+              // Если нет username, пробуем создать invite link
+              try {
+                const inviteResponse = await fetch(
+                  `https://api.telegram.org/bot${botToken}/createChatInviteLink`,
+                  {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      chat_id: channelId,
+                      member_limit: 1,
+                      expire_date: Math.floor(Date.now() / 1000) + 86400 // 24 часа
+                    })
+                  }
+                )
+
+                const inviteData = await inviteResponse.json()
+                if (inviteData.ok && inviteData.result?.invite_link) {
+                  channelInfo = `\n🔗 <a href="${inviteData.result.invite_link}">Перейти в канал</a>`
+                }
+              } catch (inviteError) {
+                console.error('Error creating invite link:', inviteError)
+              }
+            }
+          }
+
           const message = `✅ <b>Оплата подтверждена администратором!</b>
 
 📦 <b>Подписка:</b> ${payment.product?.name || 'Без названия'}
 📢 <b>Канал:</b> ${payment.product?.channel?.name || 'Без канала'}
 ⏰ <b>Действует до:</b> ${expiresAt.toLocaleDateString('ru-RU')}
 
-Ваша подписка активирована.`
+Ваша подписка активирована.${channelInfo}
+
+Спасибо за покупку!`
 
           await fetch(
             `https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`,
@@ -269,7 +314,8 @@ export async function POST(request: NextRequest) {
               body: JSON.stringify({
                 chat_id: payment.userId.toString(),
                 text: message,
-                parse_mode: 'HTML'
+                parse_mode: 'HTML',
+                disable_web_page_preview: false
               })
             }
           )
@@ -371,5 +417,68 @@ export async function POST(request: NextRequest) {
       { success: false, error: 'Ошибка управления платежом' },
       500
     )
+  }
+}
+
+// Функция добавления пользователя в канал
+async function addUserToChannel(userId: string, channelId: string, botToken: string): Promise<void> {
+  try {
+    // Проверяем текущий статус пользователя в канале
+    const response = await fetch(
+      `https://api.telegram.org/bot${botToken}/getChatMember`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: channelId,
+          user_id: userId
+        })
+      }
+    )
+
+    const data = await response.json()
+    console.log('🔍 ADMIN PAYMENTS: Checking user status in channel:', data.result?.status)
+
+    if (!data.ok || !data.result) {
+      console.log('🔍 ADMIN PAYMENTS: Failed to get chat member status')
+      return
+    }
+
+    const userStatus = data.result.status
+
+    // Если пользователя нет в канале или он покинул его
+    if (['left', 'kicked', 'restricted'].includes(userStatus)) {
+      console.log('🔍 ADMIN PAYMENTS: User not in channel, attempting to add')
+
+      // Пытаемся добавить пользователя (инвайт)
+      const inviteResponse = await fetch(
+        `https://api.telegram.org/bot${botToken}/createChatInviteLink`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: channelId,
+            member_limit: 1,
+            expire_date: Math.floor(Date.now() / 1000) + 86400 // 24 часа
+          })
+        }
+      )
+
+      const inviteData = await inviteResponse.json()
+
+      if (inviteData.ok) {
+        console.log('🔍 ADMIN PAYMENTS: Invite link created successfully')
+      } else {
+        console.error('🔍 ADMIN PAYMENTS: Failed to create invite link:', inviteData)
+      }
+    } else {
+      console.log('🔍 ADMIN PAYMENTS: User already in channel with status:', userStatus)
+    }
+  } catch (error) {
+    console.error('🔍 ADMIN PAYMENTS: Error adding user to channel:', error)
   }
 }
