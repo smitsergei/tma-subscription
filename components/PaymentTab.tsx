@@ -111,13 +111,13 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
     })
   }
 
-  // Функция получения цвета статуса
-  const getStatusColor = (status: string) => {
+  // Функция получения класса адаптивного статуса
+  const getStatusClass = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'success': return 'bg-green-100 text-green-800'
-      case 'failed': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'pending': return 'status-badge-adaptive pending'
+      case 'success': return 'status-badge-adaptive success'
+      case 'failed': return 'status-badge-adaptive failed'
+      default: return 'status-badge-adaptive pending'
     }
   }
 
@@ -156,10 +156,10 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
 
   if (loading && payments.length === 0) {
     return (
-      <div className="bg-white rounded-lg p-4 border border-gray-200">
+      <div className="tg-card-adaptive">
         <div className="text-center">
           <div className="loading-spinner w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
-          <p className="text-gray-500">Загрузка платежей...</p>
+          <p className="tg-text-secondary">Загрузка платежей...</p>
         </div>
       </div>
     )
@@ -167,13 +167,13 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg p-4 border border-gray-200">
+      <div className="tg-card-adaptive">
         <div className="text-center">
-          <div className="text-red-600 text-xl mb-2">⚠️ Ошибка</div>
-          <p className="text-gray-600 mb-3">{error}</p>
+          <div className="text-red-500 text-xl mb-2">⚠️ Ошибка</div>
+          <p className="tg-text-secondary mb-3">{error}</p>
           <button
             onClick={() => loadPayments()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
+            className="tg-button-adaptive-sm"
           >
             Попробовать снова
           </button>
@@ -184,16 +184,16 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">💳 Мои платежи</h2>
+      <h2 className="tg-heading-secondary">💳 Мои платежи</h2>
 
       {/* Фильтры */}
-      <div className="bg-white rounded-lg p-3 border border-gray-200">
+      <div className="tg-card-adaptive p-3">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-700">Статус:</label>
+          <label className="tg-text-primary text-sm font-medium">Статус:</label>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="tg-select text-sm px-3 py-1"
           >
             <option value="all">Все платежи</option>
             <option value="pending">Ожидают оплату</option>
@@ -205,26 +205,26 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
 
       {/* Список платежей */}
       {payments.length === 0 ? (
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <p className="text-gray-500 text-center">📭 У вас пока нет платежей</p>
+        <div className="tg-card-adaptive">
+          <p className="tg-text-secondary text-center">📭 У вас пока нет платежей</p>
         </div>
       ) : (
         <div className="space-y-3">
           {payments.map((payment) => (
-            <div key={payment.paymentId} className="bg-white rounded-lg p-4 border border-gray-200">
+            <div key={payment.paymentId} className="tg-card-adaptive">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-medium text-gray-900 text-sm">
+                    <h3 className="tg-text-primary text-sm font-medium">
                       {payment.orderDescription || `Платеж #${payment.paymentId.slice(-8)}`}
                     </h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
+                    <span className={getStatusClass(payment.status)}>
                       {getStatusText(payment.status)}
                     </span>
                   </div>
 
                   {payment.product && (
-                    <p className="text-xs text-gray-600 mb-1">
+                    <p className="tg-text-secondary text-xs mb-1">
                       Продукт: {payment.product.name}
                       {payment.product.channel && (
                         <span className="ml-1">• {payment.product.channel.name}</span>
@@ -232,17 +232,17 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
                     </p>
                   )}
 
-                  <p className="text-xs text-gray-500">
+                  <p className="tg-text-muted text-xs">
                     Дата создания: {formatDate(payment.createdAt)}
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <div className="font-bold text-gray-900">
+                  <div className="tg-text-primary font-bold">
                     {payment.amount} {payment.currency}
                   </div>
                   {payment.priceAmount && payment.priceCurrency !== payment.currency && (
-                    <div className="text-xs text-gray-500">
+                    <div className="tg-text-muted text-xs">
                       ~{payment.priceAmount} {payment.priceCurrency}
                     </div>
                   )}
@@ -251,15 +251,15 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
 
               {/* Детали платежа для ожидающих */}
               {payment.status === 'pending' && payment.payAddress && (
-                <div className="border-t pt-3 mt-3">
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <h4 className="font-medium text-yellow-800 mb-2 text-sm">🔔 Ожидает оплаты</h4>
+                <div className="border-t border-gray-300 pt-3 mt-3">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                    <h4 className="tg-text-primary text-sm font-medium mb-2">🔔 Ожидает оплаты</h4>
 
                     <div className="space-y-2">
                       {/* Адрес для оплаты */}
                       <div>
-                        <label className="text-xs font-medium text-gray-700">Адрес для оплаты:</label>
-                        <div className="mt-1 p-2 bg-white rounded border break-all font-mono text-xs">
+                        <label className="tg-text-secondary text-xs font-medium">Адрес для оплаты:</label>
+                        <div className="mt-1 p-2 bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600 break-all font-mono text-xs">
                           {payment.payAddress}
                         </div>
                         <button
@@ -274,15 +274,15 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
                       {payment.payAmount && (
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           <div>
-                            <span className="text-gray-600">Сумма:</span>
-                            <div className="font-medium">
+                            <span className="tg-text-secondary">Сумма:</span>
+                            <div className="tg-text-primary font-medium">
                               {payment.payAmount} {payment.payCurrency}
                             </div>
                           </div>
                           {payment.network && (
                             <div>
-                              <span className="text-gray-600">Сеть:</span>
-                              <div className="font-medium">{payment.network}</div>
+                              <span className="tg-text-secondary">Сеть:</span>
+                              <div className="tg-text-primary font-medium">{payment.network}</div>
                             </div>
                           )}
                         </div>
@@ -291,8 +291,8 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
                       {/* Время до истечения */}
                       {payment.validUntil && (
                         <div className="text-xs">
-                          <span className="text-gray-600">Время до истечения: </span>
-                          <span className="font-medium text-orange-600">
+                          <span className="tg-text-secondary">Время до истечения: </span>
+                          <span className="font-medium text-orange-600 dark:text-orange-400">
                             {getTimeLeft(payment.validUntil)}
                           </span>
                         </div>
@@ -306,7 +306,7 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
               <div className="flex justify-end mt-3">
                 <button
                   onClick={() => openPaymentDetails(payment.paymentId)}
-                  className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs"
+                  className="tg-button-adaptive-sm"
                 >
                   📋 Детали платежа
                 </button>
@@ -322,19 +322,19 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
           <button
             onClick={() => loadPayments(pagination.page - 1)}
             disabled={pagination.page <= 1}
-            className="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            className="tg-button-adaptive-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             ← Назад
           </button>
 
-          <span className="text-xs text-gray-600">
+          <span className="tg-text-muted text-xs">
             Страница {pagination.page} из {pagination.pages}
           </span>
 
           <button
             onClick={() => loadPayments(pagination.page + 1)}
             disabled={pagination.page >= pagination.pages}
-            className="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            className="tg-button-adaptive-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Вперед →
           </button>

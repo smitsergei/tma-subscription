@@ -241,7 +241,7 @@ export default function TmaPage() {
     setSelectedProduct(null)
   }
 
-  
+
   useEffect(() => {
     const initData = parseTelegramData()
 
@@ -268,24 +268,48 @@ export default function TmaPage() {
     }
   }, [activeTab, user])
 
+  // Улучшенный loading компонент
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="loading-spinner w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
+      <div className="min-h-screen tg-app flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="relative">
+            <div className="loading-spinner lg text-blue-600 mx-auto"></div>
+            <div className="absolute inset-0 loading-spinner lg text-purple-600 mx-auto opacity-50 scale-75"></div>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-gray-900">Загрузка приложения...</h3>
+            <p className="text-sm text-gray-500">Подготавливаем всё для вас</p>
+          </div>
         </div>
       </div>
     )
   }
 
+  // Улучшенное состояние ошибки
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-red-50 p-4">
-        <div className="text-center">
-          <div className="text-red-600 text-xl mb-4">⚠️ Ошибка доступа</div>
-          <p className="text-gray-600">Не удалось получить данные пользователя Telegram</p>
-          <p className="text-gray-500 text-sm mt-2">Пожалуйста, откройте приложение через бота в мобильном Telegram</p>
+      <div className="min-h-screen tg-app flex items-center justify-center p-4">
+        <div className="max-w-sm w-full">
+          <div className="text-center space-y-6">
+            <div className="w-20 h-20 bg-red-100 rounded-2xl flex items-center justify-center mx-auto">
+              <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold text-gray-900">Ошибка доступа</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Не удалось получить данные пользователя Telegram. Пожалуйста, откройте приложение через бота в мобильном Telegram.
+              </p>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn btn-primary w-full"
+            >
+              Попробовать снова
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -293,207 +317,374 @@ export default function TmaPage() {
 
   return (
     <div className="min-h-screen tg-app">
-      {/* Header */}
-      <div className="tg-header sticky top-0 z-10 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">
-            Привет, {user?.first_name || 'Пользователь'}! 👋
-          </h1>
-        </div>
+      {/* Улучшенный Header с адаптивным дизайном */}
+      <header className="tg-header">
+        <div className="container">
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                {user?.first_name?.charAt(0) || 'U'}
+              </div>
+              <div>
+                <h1 className="tg-heading-primary">
+                  Привет, {user?.first_name || 'Пользователь'}! 👋
+                </h1>
+                <p className="tg-text-muted">Управляйте подписками легко</p>
+              </div>
+            </div>
 
-        {/* Tabs */}
-        <div className="flex mt-3 bg-gray-100 rounded-lg p-1">
-          <button
-            onClick={() => setActiveTab('products')}
-            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'products'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            🛍️ Подписки
-          </button>
-          <button
-            onClick={() => setActiveTab('subscriptions')}
-            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'subscriptions'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            📋 Мои подписки
-          </button>
-          <button
-            onClick={() => setActiveTab('payments')}
-            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'payments'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            💳 Платежи
-          </button>
-        </div>
+            {/* Индикатор статуса */}
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse-soft"></div>
+              <span className="text-xs text-gray-500 hidden sm:inline">Online</span>
+            </div>
+          </div>
 
+          {/* Улучшенные табы с адаптивным дизайном */}
+          <nav className="mt-4">
+            <div className="tabs-container">
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`tab-button ${activeTab === 'products' ? 'active' : ''}`}
+              >
+                <span className="flex items-center justify-center space-x-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                  <span className="hidden xs:inline">Подписки</span>
+                  <span className="xs:hidden">🛍️</span>
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab('subscriptions')}
+                className={`tab-button ${activeTab === 'subscriptions' ? 'active' : ''}`}
+              >
+                <span className="flex items-center justify-center space-x-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                  <span className="hidden xs:inline">Мои подписки</span>
+                  <span className="xs:hidden">📋</span>
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab('payments')}
+                className={`tab-button ${activeTab === 'payments' ? 'active' : ''}`}
+              >
+                <span className="flex items-center justify-center space-x-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  <span className="hidden xs:inline">Платежи</span>
+                  <span className="xs:hidden">💳</span>
+                </span>
+              </button>
+            </div>
+          </nav>
         </div>
+      </header>
 
       {/* Debug Panel (только для разработки) */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="px-4 py-2">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <h4 className="font-medium text-yellow-800 mb-2">🔧 Отладка NOWPayments:</h4>
-            <div className="space-y-1 text-xs">
-              <div>Loading: {paymentLoading ? 'Yes ⏳' : 'No'}</div>
-              <div>Error: {paymentError || 'None'}</div>
-              <div>Payment Data: {paymentData ? `ID: ${paymentData.payment_id}` : 'None'}</div>
-              <button
-                onClick={() => {
-                  console.log('🔧 Debug: NOWPayments data')
-                  console.log('Payment loading:', paymentLoading)
-                  console.log('Payment error:', paymentError)
-                  console.log('Payment data:', paymentData)
-                  console.log('Environment variables:', {
-                    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-                    NODE_ENV: process.env.NODE_ENV
-                  })
-                }}
-                className="mt-2 px-2 py-1 bg-yellow-500 text-white text-xs rounded"
-              >
-                Проверить console.log
-              </button>
+        <div className="container mt-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <h4 className="font-semibold text-amber-800 mb-3 flex items-center space-x-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+              </svg>
+              <span>Отладка NOWPayments</span>
+            </h4>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="font-medium">Loading:</span>
+                <span className={`ml-2 ${paymentLoading ? 'text-amber-600' : 'text-green-600'}`}>
+                  {paymentLoading ? 'Yes ⏳' : 'No'}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium">Error:</span>
+                <span className="ml-2">{paymentError || 'None'}</span>
+              </div>
+              <div>
+                <span className="font-medium">Payment Data:</span>
+                <span className="ml-2">{paymentData ? `ID: ${paymentData.payment_id}` : 'None'}</span>
+              </div>
+              <div className="col-span-2">
+                <button
+                  onClick={() => {
+                    console.log('🔧 Debug: NOWPayments data')
+                    console.log('Payment loading:', paymentLoading)
+                    console.log('Payment error:', paymentError)
+                    console.log('Payment data:', paymentData)
+                    console.log('Environment variables:', {
+                      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+                      NODE_ENV: process.env.NODE_ENV
+                    })
+                  }}
+                  className="mt-2 px-3 py-1 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+                >
+                  Проверить console.log
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Content */}
-      <div className="px-4 py-4">
+      {/* Основной контент с улучшенной адаптивностью */}
+      <main className="container py-6">
         {activeTab === 'products' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">🛍️ Доступные подписки</h2>
+          <div className="space-y-6 fade-in">
+            <div className="text-center space-y-2">
+              <h2 className="tg-heading-primary">🛍️ Доступные подписки</h2>
+              <p className="tg-text-secondary">Выберите подходящий план для доступа к эксклюзивному контенту</p>
+            </div>
 
             {productsLoading ? (
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <div className="text-center">
-                  <div className="loading-spinner w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
-                  <p className="text-gray-500">Загрузка подписок...</p>
-                </div>
+              <div className="grid-responsive">
+                {[...Array(3)].map((_, index) => (
+                  <div key={index} className="skeleton-card"></div>
+                ))}
               </div>
             ) : products.length === 0 ? (
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <p className="text-gray-500 text-center">😕 Нет доступных подписок</p>
-                <p className="text-gray-400 text-sm text-center mt-1">Попробуйте обновить страницу</p>
+              <div className="text-center py-12 space-y-4">
+                <div className="w-24 h-24 bg-gray-100 rounded-3xl flex items-center justify-center mx-auto">
+                  <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">😕 Нет доступных подписок</h3>
+                  <p className="text-gray-600 text-sm">Попробуйте обновить страницу или свяжитесь с администратором</p>
+                </div>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="btn btn-primary"
+                >
+                  Обновить страницу
+                </button>
               </div>
             ) : (
               <>
-                {products.map((product) => (
-                  <div key={product.productId} className="bg-white rounded-lg p-4 border border-gray-200">
-                    <h3 className="font-medium text-gray-900">{product.name}</h3>
-                    <p className="text-gray-600 text-sm mt-1">{product.description}</p>
-                    {product.channel && (
-                      <p className="text-gray-500 text-xs mt-1">📢 {product.channel.name}</p>
-                    )}
-                    <div className="flex items-center justify-between mt-3">
-                      <div>
-                        {product.discountPrice && product.discountPrice < product.price ? (
-                          <>
-                            <span className="text-lg font-bold text-blue-600">${product.discountPrice.toFixed(2)}</span>
-                            <span className="text-sm text-gray-500 line-through ml-2">${product.price.toFixed(2)}</span>
-                          </>
-                        ) : (
-                          <span className="text-lg font-bold text-blue-600">${product.price.toFixed(2)}</span>
-                        )}
-                        <span className="text-xs text-gray-500 ml-1">/{product.periodDays}дней</span>
+                <div className="grid-responsive">
+                  {products.map((product, index) => (
+                    <div
+                      key={product.productId}
+                      className="subscription-card hover-lift slide-up"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-gray-900 mb-2">{product.name}</h3>
+                          <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
+                          {product.channel && (
+                            <div className="flex items-center mt-3 text-xs text-gray-500">
+                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                                <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+                              </svg>
+                              {product.channel.name}
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => handlePurchase(product)}
-                        disabled={purchaseLoading === product.productId || paymentLoading}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          purchaseLoading === product.productId || paymentLoading
-                            ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                            : 'bg-purple-600 text-white hover:bg-purple-700'
-                        }`}
-                      >
-                        {purchaseLoading === product.productId
-                          ? '⏳ Оплата...'
-                          : paymentLoading
-                            ? '🔄 Создание платежа...'
-                            : '💳 Купить'
-                        }
-                      </button>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-baseline space-x-2">
+                          {product.discountPrice && product.discountPrice < product.price ? (
+                            <>
+                              <span className="text-2xl font-bold text-transparent bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text">
+                                ${product.discountPrice.toFixed(2)}
+                              </span>
+                              <span className="text-sm text-gray-500 line-through">
+                                ${product.price.toFixed(2)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-2xl font-bold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text">
+                              ${product.price.toFixed(2)}
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-500">/{product.periodDays}дней</span>
+                        </div>
+
+                        <button
+                          onClick={() => handlePurchase(product)}
+                          disabled={purchaseLoading === product.productId || paymentLoading}
+                          className={`touch-target btn transition-all duration-200 ${
+                            purchaseLoading === product.productId || paymentLoading
+                              ? 'btn-secondary opacity-50 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl'
+                          }`}
+                        >
+                          {purchaseLoading === product.productId ? (
+                            <>
+                              <div className="loading-spinner sm mr-2"></div>
+                              <span>Оплата...</span>
+                            </>
+                          ) : paymentLoading ? (
+                            <>
+                              <div className="loading-spinner sm mr-2"></div>
+                              <span>Создание...</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                              </svg>
+                              <span>Купить</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
+                  ))}
+                </div>
+
+                <div className="text-center py-8 space-y-2">
+                  <div className="inline-flex items-center space-x-2 text-sm text-gray-600">
+                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Безопасная оплата через NOWPayments</span>
                   </div>
-                ))}
-                <div className="text-center text-gray-500 text-sm mt-4 space-y-1">
-                  <div>💳 Оплата через NOWPayments</div>
-                  <div className="text-xs text-gray-400">
-                    Поддерживаем Bitcoin, Ethereum, USDT, USDC и другие криптовалюты
+                  <div className="text-xs text-gray-500 space-y-1">
+                    <div>Поддерживаем Bitcoin, Ethereum, USDT, USDC и другие криптовалюты</div>
+                    <div>Мгновенная активация подписки после оплаты</div>
                   </div>
                 </div>
               </>
             )}
           </div>
         )}
+
         {activeTab === 'subscriptions' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">📋 Мои подписки</h2>
+          <div className="space-y-6 fade-in">
+            <div className="text-center space-y-2">
+              <h2 className="tg-heading-primary">📋 Мои подписки</h2>
+              <p className="tg-text-secondary">Управляйте вашими активными подписками</p>
+            </div>
 
             {subscriptionsLoading ? (
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <div className="text-center">
-                  <div className="loading-spinner w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
-                  <p className="text-gray-500">Загрузка подписок...</p>
-                </div>
+              <div className="space-y-4">
+                {[...Array(3)].map((_, index) => (
+                  <div key={index} className="skeleton-card"></div>
+                ))}
               </div>
             ) : userSubscriptions.length === 0 ? (
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <p className="text-gray-500 text-center">У вас пока нет активных подписок</p>
-                <p className="text-gray-400 text-sm text-center mt-1">
-                  🛍️ Перейдите в "Подписки", чтобы оформить доступ к контенту
-                </p>
+              <div className="text-center py-12 space-y-6">
+                <div className="w-24 h-24 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto">
+                  <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-xl font-bold text-gray-900">У вас пока нет подписок</h3>
+                  <p className="text-gray-600">Перейдите в раздел "Подписки", чтобы оформить доступ к эксклюзивному контенту</p>
+                </div>
+                <button
+                  onClick={() => setActiveTab('products')}
+                  className="btn btn-primary"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                  Выбрать подписку
+                </button>
               </div>
             ) : (
-              <>
-                {userSubscriptions.map((subscription) => (
-                  <div key={subscription.subscriptionId} className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="space-y-4">
+                {userSubscriptions.map((subscription, index) => (
+                  <div
+                    key={subscription.subscriptionId}
+                    className="subscription-card hover-lift slide-up"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{subscription.product?.name || 'Подписка'}</h3>
-                        {subscription.product?.channel && (
-                          <p className="text-gray-500 text-sm mt-1">
-                            📢 {subscription.product.channel.name}
-                          </p>
-                        )}
-                        <p className="text-gray-500 text-xs mt-2">
-                          📅 Истекает: {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}
-                        </p>
-                        <p className="text-gray-500 text-xs">
-                          Осталось дней: {subscription.daysRemaining || Math.ceil((new Date(subscription.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
-                        </p>
+                      <div className="flex-1 space-y-3">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">
+                            {subscription.product?.name || 'Подписка'}
+                          </h3>
+                          {subscription.product?.channel && (
+                            <div className="flex items-center mt-2 text-sm text-gray-600">
+                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                                <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+                              </svg>
+                              {subscription.product.channel.name}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                          <div className="flex items-center text-gray-600">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>Истекает: {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}</span>
+                          </div>
+                          <div className="flex items-center text-gray-600">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Осталось: {subscription.daysRemaining || Math.ceil((new Date(subscription.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} дней</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className={`ml-4 px-2 py-1 text-xs font-medium rounded-full ${
-                        subscription.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {subscription.status === 'active' ? '✅ Активна' : '❌ Истекла'}
+
+                      <div className="ml-4">
+                        <span className={`status-badge ${
+                          subscription.status === 'active' ? 'active' : 'expired'
+                        }`}>
+                          {subscription.status === 'active' ? (
+                            <span className="flex items-center space-x-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span>Активна</span>
+                            </span>
+                          ) : (
+                            <span className="flex items-center space-x-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                              <span>Истекла</span>
+                            </span>
+                          )}
+                        </span>
                       </div>
                     </div>
+
                     {subscription.status === 'active' && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <button className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
-                          🔄 Продлить
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <p className="text-sm text-gray-600">Наслаждайтесь доступом к эксклюзивному контенту!</p>
+                        <button className="btn btn-primary btn-sm">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Продлить
                         </button>
                       </div>
                     )}
                   </div>
                 ))}
-              </>
+              </div>
             )}
           </div>
         )}
+
         {activeTab === 'payments' && (
-          <PaymentTab parseTelegramInitData={parseTelegramInitData} />
+          <div className="fade-in">
+            <PaymentTab parseTelegramInitData={parseTelegramInitData} />
+          </div>
         )}
 
         {/* Модальное окно выбора валюты и сети */}
@@ -508,7 +699,7 @@ export default function TmaPage() {
           loading={purchaseLoading !== null}
           productId={selectedProduct?.productId || ''}
         />
-      </div>
+      </main>
     </div>
   )
 }
