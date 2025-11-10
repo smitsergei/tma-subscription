@@ -138,14 +138,8 @@ export async function GET(request: NextRequest) {
             product: sub.product ? {
               productId: sub.product.productId,
               name: sub.product.name,
-              description: sub.product.description,
               price: parseFloat(sub.product.price.toString()),
               periodDays: sub.product.periodDays,
-              discountPrice: sub.product.discountPrice ? parseFloat(sub.product.discountPrice.toString()) : null,
-              isTrial: sub.product.isTrial,
-              isActive: sub.product.isActive,
-              allowDemo: sub.product.allowDemo,
-              demoDays: sub.product.demoDays,
               channel: sub.product.channel ? {
                 channelId: sub.product.channel.channelId.toString(),
                 name: sub.product.channel.name,
