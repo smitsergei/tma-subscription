@@ -278,7 +278,7 @@ export default function TmaPage() {
             <div className="absolute inset-0 loading-spinner lg text-purple-600 mx-auto opacity-50 scale-75"></div>
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-gray-900">Загрузка приложения...</h3>
+            <h3 className="text-lg font-semibold tg-text-primary">Загрузка приложения...</h3>
             <p className="text-sm text-gray-500">Подготавливаем всё для вас</p>
           </div>
         </div>
@@ -298,7 +298,7 @@ export default function TmaPage() {
               </svg>
             </div>
             <div className="space-y-3">
-              <h3 className="text-xl font-semibold text-gray-900">Ошибка доступа</h3>
+              <h3 className="text-xl font-semibold tg-text-primary">Ошибка доступа</h3>
               <p className="text-gray-600 text-sm leading-relaxed">
                 Не удалось получить данные пользователя Telegram. Пожалуйста, откройте приложение через бота в мобильном Telegram.
               </p>
@@ -454,7 +454,7 @@ export default function TmaPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">😕 Нет доступных подписок</h3>
+                  <h3 className="text-lg font-semibold tg-text-primary mb-2">😕 Нет доступных подписок</h3>
                   <p className="text-gray-600 text-sm">Попробуйте обновить страницу или свяжитесь с администратором</p>
                 </div>
                 <button
@@ -475,10 +475,10 @@ export default function TmaPage() {
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
-                          <h3 className="text-lg font-bold text-gray-900 mb-2">{product.name}</h3>
-                          <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
+                          <h3 className="text-lg font-bold tg-text-primary mb-2">{product.name}</h3>
+                          <p className="tg-text-secondary text-sm leading-relaxed">{product.description}</p>
                           {product.channel && (
-                            <div className="flex items-center mt-3 text-xs text-gray-500">
+                            <div className="flex items-center mt-3 text-xs tg-text-muted">
                               <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
                                 <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
@@ -586,7 +586,7 @@ export default function TmaPage() {
                   </svg>
                 </div>
                 <div className="space-y-3">
-                  <h3 className="text-xl font-bold text-gray-900">У вас пока нет подписок</h3>
+                  <h3 className="text-xl font-bold tg-text-primary">У вас пока нет подписок</h3>
                   <p className="text-gray-600">Перейдите в раздел "Подписки", чтобы оформить доступ к эксклюзивному контенту</p>
                 </div>
                 <button
@@ -610,7 +610,7 @@ export default function TmaPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-3">
                         <div>
-                          <h3 className="text-lg font-bold text-gray-900">
+                          <h3 className="text-lg font-bold tg-text-primary">
                             {subscription.product?.name || 'Подписка'}
                           </h3>
                           {subscription.product?.channel && (
