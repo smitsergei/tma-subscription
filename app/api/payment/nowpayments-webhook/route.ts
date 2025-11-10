@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyNOWPaymentsIPN } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 interface NOWPaymentsIPN {
   payment_id: string
   payment_status: 'waiting' | 'confirming' | 'confirmed' | 'sending' | 'finished' | 'failed' | 'partially_paid' | 'refunded'

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 // Проверка авторизации cron job (защита от несанкционированного запуска)
 function verifyCronAuth(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization')

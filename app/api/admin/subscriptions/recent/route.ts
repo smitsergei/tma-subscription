@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 async function checkAdminAuth(request: NextRequest): Promise<boolean> {
   const initData = request.headers.get('x-telegram-init-data')
   if (!initData) return false

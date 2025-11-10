@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 // Секретный ключ для вебхука (должен совпадать с тем, что в настройках Toncenter)
 const WEBHOOK_SECRET = process.env.TONCENTER_WEBHOOK_SECRET || 'default-secret'
 

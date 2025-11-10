@@ -4,6 +4,8 @@ import { validateTelegramInitData } from '@/lib/utils'
 import { Address, beginCell, toNano } from '@ton/ton'
 import { TonClient } from '@ton/ton'
 
+export const dynamic = 'force-dynamic'
+
 interface VerifyPaymentRequest {
   txHash: string
   paymentId: string
