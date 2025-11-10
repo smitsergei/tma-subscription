@@ -136,16 +136,43 @@ export async function GET(request: NextRequest) {
             expiresAt: sub.expiresAt,
             createdAt: sub.createdAt,
             product: sub.product ? {
-              ...sub.product,
               productId: sub.product.productId,
+              name: sub.product.name,
+              description: sub.product.description,
               price: parseFloat(sub.product.price.toString()),
               periodDays: sub.product.periodDays,
+              discountPrice: sub.product.discountPrice ? parseFloat(sub.product.discountPrice.toString()) : null,
+              isTrial: sub.product.isTrial,
+              isActive: sub.product.isActive,
+              allowDemo: sub.product.allowDemo,
+              demoDays: sub.product.demoDays,
               channel: sub.product.channel ? {
-                ...sub.product.channel,
-                channelId: sub.product.channel.channelId.toString()
+                channelId: sub.product.channel.channelId.toString(),
+                name: sub.product.channel.name,
+                username: sub.product.channel.username
               } : null
             } : null,
-            payment: sub.payment
+            payment: sub.payment ? {
+              paymentId: sub.payment.paymentId,
+              userId: sub.payment.userId.toString(),
+              productId: sub.payment.productId,
+              amount: parseFloat(sub.payment.amount.toString()),
+              currency: sub.payment.currency,
+              status: sub.payment.status,
+              txHash: sub.payment.txHash,
+              memo: sub.payment.memo,
+              nowPaymentId: sub.payment.nowPaymentId,
+              payAddress: sub.payment.payAddress,
+              payAmount: sub.payment.payAmount ? parseFloat(sub.payment.payAmount.toString()) : null,
+              payCurrency: sub.payment.payCurrency,
+              network: sub.payment.network,
+              validUntil: sub.payment.validUntil,
+              priceAmount: sub.payment.priceAmount ? parseFloat(sub.payment.priceAmount.toString()) : null,
+              priceCurrency: sub.payment.priceCurrency,
+              orderDescription: sub.payment.orderDescription,
+              createdAt: sub.payment.createdAt,
+              updatedAt: sub.payment.updatedAt
+            } : null
           }))
         }
       })
