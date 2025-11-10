@@ -162,7 +162,7 @@ export default function PaymentPage() {
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
               <h3 className="tg-text-primary text-sm font-semibold mb-3">Адрес для оплаты</h3>
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600 p-3 mb-3">
-                <code className="tg-text-primary text-xs break-all font-mono">{payment.pay_address}</code>
+                <code className="text-black dark:text-white text-xs break-all font-mono">{payment.pay_address}</code>
               </div>
               <button
                 onClick={() => copyToClipboard(payment.pay_address)}
