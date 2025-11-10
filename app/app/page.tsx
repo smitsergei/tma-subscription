@@ -144,8 +144,8 @@ export default function TmaPage() {
     setShowCurrencyModal(true)
   }
 
-  // Функция для подтверждения покупки с выбранной валютой и сетью
-  const handleConfirmPurchase = async (currency: string, network: string) => {
+  // Функция для подтверждения покупки с выбранной валютой, сетью и промокодом
+  const handleConfirmPurchase = async (currency: string, network: string, promoCodeId?: string) => {
     if (!selectedProduct) return
 
     try {
@@ -179,6 +179,33 @@ export default function TmaPage() {
       }
 
       console.log('✅ NOWPayment created:', paymentResult)
+
+      // Применяем промокод, если он был использован
+      if (promoCodeId) {
+        try {
+          // Применяем промокод к платежу
+          const applyPromoResponse = await fetch('/api/promocodes/apply', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(webAppData && { 'x-telegram-init-data': webAppData })
+            },
+            body: JSON.stringify({
+              promoId: promoCodeId,
+              paymentId: paymentResult.payment_id?.toString()
+            })
+          })
+
+          const applyResult = await applyPromoResponse.json()
+          if (applyResult.success) {
+            console.log('✅ Promo code applied successfully')
+          } else {
+            console.error('❌ Failed to apply promo code:', applyResult.error)
+          }
+        } catch (promoError) {
+          console.error('❌ Error applying promo code:', promoError)
+        }
+      }
 
       // Закрываем модальное окно
       setShowCurrencyModal(false)
@@ -479,6 +506,7 @@ export default function TmaPage() {
             ? selectedProduct.discountPrice
             : selectedProduct?.price || 0}
           loading={purchaseLoading !== null}
+          productId={selectedProduct?.productId || ''}
         />
       </div>
     </div>
