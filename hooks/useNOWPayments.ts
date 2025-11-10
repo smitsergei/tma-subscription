@@ -32,9 +32,10 @@ export function useNOWPayments() {
     amount: number,
     currency: string,
     orderDescription?: string,
-    productId?: string
+    productId?: string,
+    network?: string
   ): Promise<NOWPaymentData | null> => {
-    console.log(`💳 Initiating NOWPayments payment: ${amount} ${currency}`)
+    console.log(`💳 Initiating NOWPayments payment: ${amount} ${currency} (${network || 'TRX'})`)
     setIsLoading(true)
     setError(null)
 
@@ -64,7 +65,8 @@ export function useNOWPayments() {
         headers,
         body: JSON.stringify({
           amount,
-          currency: currency === 'USDT' ? 'USDT' : 'BTC', // BTC как fallback
+          currency,
+          network: network || 'TRX',
           productId,
           orderDescription: orderDescription || `Оплата подписки ${amount} ${currency}`
         }),

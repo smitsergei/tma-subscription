@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useNOWPayments } from '@/hooks/useNOWPayments'
 import PaymentTab from '@/components/PaymentTab'
+import CurrencyNetworkModal from '@/components/CurrencyNetworkModal'
 
 // Функция для извлечения данных из URL
 function parseTelegramData() {
@@ -38,6 +39,8 @@ export default function TmaPage() {
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'products' | 'subscriptions' | 'payments'>('products')
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null)
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<any>(null)
 
   // NOWPayments integration
   const {
@@ -135,15 +138,23 @@ export default function TmaPage() {
   }
 
   // Функция для обработки покупки
-  const handlePurchase = async (product: any) => {
+  const handlePurchase = (product: any) => {
+    console.log('🛒 Starting purchase for product:', product.productId)
+    setSelectedProduct(product)
+    setShowCurrencyModal(true)
+  }
+
+  // Функция для подтверждения покупки с выбранной валютой и сетью
+  const handleConfirmPurchase = async (currency: string, network: string) => {
+    if (!selectedProduct) return
+
     try {
-      console.log('🛒 Starting purchase for product:', product.productId)
-      setPurchaseLoading(product.productId)
+      setPurchaseLoading(selectedProduct.productId)
 
       // Определяем итоговую цену
-      const finalPrice = product.discountPrice && product.discountPrice < product.price
-        ? product.discountPrice
-        : product.price
+      const finalPrice = selectedProduct.discountPrice && selectedProduct.discountPrice < selectedProduct.price
+        ? selectedProduct.discountPrice
+        : selectedProduct.price
 
       // Получаем Telegram init данные
       const webAppData = parseTelegramInitData()
@@ -157,9 +168,10 @@ export default function TmaPage() {
       // Создаем платеж через NOWPayments
       const paymentResult = await initiatePayment(
         finalPrice,
-        'USDT',
-        `Оплата подписки: ${product.name}`,
-        product.productId
+        currency,
+        `Оплата подписки: ${selectedProduct.name}`,
+        selectedProduct.productId,
+        network
       )
 
       if (!paymentResult) {
@@ -168,10 +180,14 @@ export default function TmaPage() {
 
       console.log('✅ NOWPayment created:', paymentResult)
 
+      // Закрываем модальное окно
+      setShowCurrencyModal(false)
+      setSelectedProduct(null)
+
       // Показываем информацию об успешном создании платежа
       alert(`✅ Платеж создан!
 
-📦 ${product.name}
+📦 ${selectedProduct.name}
 💰 Сумма: ${finalPrice} USD
 💳 Вы будете перенаправлены на страницу оплаты NOWPayments
 
@@ -190,6 +206,12 @@ export default function TmaPage() {
     } finally {
       setPurchaseLoading(null)
     }
+  }
+
+  // Функция для закрытия модального окна
+  const handleCloseCurrencyModal = () => {
+    setShowCurrencyModal(false)
+    setSelectedProduct(null)
   }
 
   
@@ -446,6 +468,18 @@ export default function TmaPage() {
         {activeTab === 'payments' && (
           <PaymentTab parseTelegramInitData={parseTelegramInitData} />
         )}
+
+        {/* Модальное окно выбора валюты и сети */}
+        <CurrencyNetworkModal
+          isOpen={showCurrencyModal}
+          onClose={handleCloseCurrencyModal}
+          onConfirm={handleConfirmPurchase}
+          productName={selectedProduct?.name || ''}
+          price={selectedProduct?.discountPrice && selectedProduct.discountPrice < selectedProduct.price
+            ? selectedProduct.discountPrice
+            : selectedProduct?.price || 0}
+          loading={purchaseLoading !== null}
+        />
       </div>
     </div>
   )

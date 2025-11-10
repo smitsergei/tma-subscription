@@ -7,6 +7,7 @@ interface InitiatePaymentRequest {
   productId?: string
   amount?: number
   currency?: string
+  network?: string
   orderDescription?: string
 }
 
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: InitiatePaymentRequest = await request.json()
-    const { productId, amount, currency = 'USDT', orderDescription } = body
+    const { productId, amount, currency = 'USDT', network = 'TRX', orderDescription } = body
 
     // Получение пользователя из initData
     const urlParams = new URLSearchParams(initData)
@@ -143,6 +144,7 @@ export async function POST(request: NextRequest) {
     const nowPaymentsResponse = await createNOWPayment(
       finalAmount,
       currency,
+      network,
       payment.paymentId,
       orderDescription
     )
@@ -206,6 +208,7 @@ export async function POST(request: NextRequest) {
 async function createNOWPayment(
   amount: number,
   currency: string,
+  network: string,
   localPaymentId: string,
   orderDescription?: string
 ) {
@@ -250,18 +253,43 @@ async function createNOWPayment(
   console.log('  IPN Callback URL:', validCallbackUrl)
   console.log('  Success URL:', successUrl)
 
-  // Определяем параметры для разных валют
+  // Определяем параметры для разных валют и сетей
   let priceCurrency = 'USD'
   let payCurrency = currency
 
   if (currency === 'USDT') {
-    // Для USDT используем сеть TRON (TRC20)
     priceCurrency = 'USD' // Цена всегда в USD для USDT
-    payCurrency = 'USDTTRC20' // USDT в сети TRON
+    // Определяем pay_currency на основе сети
+    switch (network) {
+      case 'TRX':
+        payCurrency = 'USDTTRC20' // USDT в сети TRON
+        break
+      case 'TON':
+        payCurrency = 'USDTTON' // USDT в сети TON (если поддерживается)
+        break
+      case 'SOL':
+        payCurrency = 'USDTSOL' // USDT в сети Solana (если поддерживается)
+        break
+      default:
+        payCurrency = 'USDTTRC20' // По умолчанию TRON
+        break
+    }
   } else if (currency === 'USDC') {
-    payCurrency = 'USDCTRC20' // USDC в сети TRON
-  } else {
-    priceCurrency = currency === 'USDT' ? 'USDT' : 'USD'
+    // Определяем pay_currency на основе сети
+    switch (network) {
+      case 'TRX':
+        payCurrency = 'USDCTRC20' // USDC в сети TRON
+        break
+      case 'TON':
+        payCurrency = 'USDCTON' // USDC в сети TON (если поддерживается)
+        break
+      case 'SOL':
+        payCurrency = 'USDCSOL' // USDC в сети Solana (если поддерживается)
+        break
+      default:
+        payCurrency = 'USDCTRC20' // По умолчанию TRON
+        break
+    }
   }
 
   const payload = {
@@ -293,7 +321,7 @@ async function createNOWPayment(
     // Если валюта недоступна, пробуем BTC
     if (errorText.includes('CURRENCY_UNAVAILABLE') && currency !== 'BTC') {
       console.log('🔄 Currency unavailable, trying BTC as fallback...')
-      return await createNOWPayment(finalAmount, 'BTC', localPaymentId, orderDescription)
+      return await createNOWPayment(finalAmount, 'BTC', network, localPaymentId, orderDescription)
     }
 
     throw new Error(`NOWPayments API error: ${response.status} - ${errorText}`)
