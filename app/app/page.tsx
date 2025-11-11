@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useNOWPayments } from '@/hooks/useNOWPayments'
 import PaymentTab from '@/components/PaymentTab'
 import CurrencyNetworkModal from '@/components/CurrencyNetworkModal'
+import SupportPage from '@/components/SupportPage'
 
 // Функция для извлечения данных из URL
 function parseTelegramData() {
@@ -37,7 +38,8 @@ export default function TmaPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [productsLoading, setProductsLoading] = useState(false)
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'products' | 'subscriptions' | 'payments'>('products')
+  const [activeTab, setActiveTab] = useState<'products' | 'subscriptions' | 'payments' | 'support'>('support')
+const [isFirstVisit, setIsFirstVisit] = useState(true)
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null)
   const [showCurrencyModal, setShowCurrencyModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
@@ -249,6 +251,21 @@ export default function TmaPage() {
       setUser(initData)
       console.log('✅ User data parsed from URL:', initData)
       console.log('🔗 Environment URL:', process.env.NEXT_PUBLIC_APP_URL)
+
+      // Проверяем, первый ли это вход
+      const hasVisitedBefore = localStorage.getItem('telegram_app_visited')
+
+      if (!hasVisitedBefore) {
+        // Первый вход - открываем поддержку
+        setActiveTab('support')
+        setIsFirstVisit(true)
+        localStorage.setItem('telegram_app_visited', 'true')
+      } else {
+        // Повторный вход - открываем продукты
+        setActiveTab('products')
+        setIsFirstVisit(false)
+      }
+
       // Загружаем продукты после получения данных пользователя
       loadProducts()
       // Загружаем подписки пользователя
@@ -256,6 +273,8 @@ export default function TmaPage() {
     } else {
       console.log('❌ No Telegram data found in URL')
       console.log('🔗 Environment URL:', process.env.NEXT_PUBLIC_APP_URL)
+      // Если нет данных Telegram, тоже открываем поддержку для помощи
+      setActiveTab('support')
     }
 
     setIsLoading(false)
@@ -377,6 +396,18 @@ export default function TmaPage() {
                   </svg>
                   <span className="hidden xs:inline">Платежи</span>
                   <span className="xs:hidden">💳</span>
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab('support')}
+                className={`tab-button ${activeTab === 'support' ? 'active' : ''}`}
+              >
+                <span className="flex items-center justify-center space-x-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="hidden xs:inline">Поддержка</span>
+                  <span className="xs:hidden">💬</span>
                 </span>
               </button>
             </div>
@@ -684,6 +715,12 @@ export default function TmaPage() {
         {activeTab === 'payments' && (
           <div className="fade-in">
             <PaymentTab parseTelegramInitData={parseTelegramInitData} />
+          </div>
+        )}
+
+        {activeTab === 'support' && (
+          <div className="fade-in">
+            <SupportPage onBack={() => setActiveTab('products')} isFirstVisit={isFirstVisit} />
           </div>
         )}
 

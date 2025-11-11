@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест поддержки Telegram</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1f2937;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        .support-icon {
+            width: 64px;
+            height: 64px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .info {
+            background: #374151;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #3b82f6;
+        }
+        .info p {
+            margin: 8px 0;
+            color: #d1d5db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="support-icon">
+            <svg width="32" height="32" fill="white" viewBox="0 0 24 24">
+                <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+
+        <h1>Поддержка</h1>
+        <p>Добро пожаловать! Если у вас есть вопросы, нажмите на кнопку ниже.</p>
+
+        <div class="info">
+            <h3>📞 Как связаться с поддержкой</h3>
+            <p>По всем вопросам обращайтесь в наш Telegram чат:</p>
+            <p><strong>@smitcont_bot</strong></p>
+            <p>Часы работы: Ежедневно с 9:00 до 21:00 (МСК)</p>
+            <p>Среднее время ответа: 5-15 минут</p>
+        </div>
+
+        <button onclick="openTelegramChat()">
+            Написать в поддержку
+        </button>
+
+        <div style="margin-top: 40px; padding: 20px; background: #374151; border-radius: 8px;">
+            <h3>🧪 Тестирование</h3>
+            <p>Эта страница используется для тестирования функции открытия Telegram чата.</p>
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 10px;">
+                URL приложения: <code>http://localhost:3000</code>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function openTelegramChat() {
+            const botUsername = 'smitcont_bot';
+            const telegramUrl = `https://t.me/${botUsername}`;
+
+            console.log('Попытка открыть Telegram чат:', telegramUrl);
+
+            // Пробуем открыть через Telegram Web App API (если доступно)
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
+                console.log('Используем Telegram WebApp API');
+                window.Telegram.WebApp.openTelegramLink(telegramUrl);
+            } else {
+                // Fallback для обычного браузера
+                console.log('Используем обычный браузер');
+                window.open(telegramUrl, '_blank');
+            }
+        }
+
+        // Имитация Telegram WebApp для тестирования
+        if (!window.Telegram) {
+            window.Telegram = {
+                WebApp: {
+                    ready: function() {
+                        console.log('Telegram WebApp готов (тестовый режим)');
+                    },
+                    openTelegramLink: function(url) {
+                        console.log('openTelegramLink вызван с URL:', url);
+                        window.open(url, '_blank');
+                    }
+                }
+            };
+            window.Telegram.WebApp.ready();
+        }
+    </script>
+</body>
+</html>
