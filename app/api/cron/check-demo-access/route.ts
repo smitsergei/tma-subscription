@@ -3,14 +3,23 @@ import { prisma } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-// Ключ для защиты cron endpoint
-const CRON_SECRET = process.env.CRON_SECRET || 'your-secret-key'
+// Проверка авторизации cron job (защита от несанкционированного запуска)
+function verifyCronAuth(request: NextRequest): boolean {
+  const authHeader = request.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET
+
+  if (!cronSecret) {
+    console.warn('CRON_SECRET not set, skipping auth verification')
+    return true
+  }
+
+  return authHeader === `Bearer ${cronSecret}`
+}
 
 export async function POST(request: NextRequest) {
   try {
     // Проверяем авторизацию cron запроса
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (!verifyCronAuth(request)) {
       console.log('❌ Invalid cron authorization');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
