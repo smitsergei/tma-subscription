@@ -282,3 +282,11 @@ export async function getNOWPaymentsSupportedCurrencies(): Promise<string[]> {
     return ['BTC', 'ETH', 'USDT', 'USDC', 'LTC', 'BCH']
   }
 }
+
+// Функция для преобразования текста с переносами строк в массив строк
+export function formatTextWithLineBreaks(text: string): string[] {
+  if (!text) return []
+
+  // Разделяем текст по переносам строк
+  return text.split('\n')
+}

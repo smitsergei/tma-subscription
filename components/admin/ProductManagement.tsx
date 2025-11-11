@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createAuthenticatedRequest } from '@/utils/telegramAuth'
+import { formatTextWithLineBreaks } from '@/lib/utils'
 
 interface Product {
   productId: string
@@ -116,7 +117,12 @@ function ProductCard({ product, onEdit, onDelete, onToggleStatus }: ProductCardP
       <div className="flex justify-between items-start mb-3">
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900 text-lg">{product.name}</h3>
-          <p className="text-gray-600 text-sm mt-1">{product.description}</p>
+          <p className="text-gray-600 text-sm mt-1 whitespace-pre-wrap">{formatTextWithLineBreaks(product.description).map((line, index) => (
+                        <span key={index}>
+                          {line}
+                          {index < formatTextWithLineBreaks(product.description).length - 1 && <br />}
+                        </span>
+                      ))}</p>
         </div>
         <DropdownMenu
           product={product}
@@ -531,7 +537,14 @@ export default function ProductManagement() {
                   <td className="px-6 py-4">
                     <div>
                       <div className="font-medium text-gray-900">{product.name}</div>
-                      <div className="text-sm text-gray-500 mt-1">{product.description}</div>
+                      <div className="text-sm text-gray-500 mt-1 whitespace-pre-wrap">
+                        {formatTextWithLineBreaks(product.description).map((line, index) => (
+                          <span key={index}>
+                            {line}
+                            {index < formatTextWithLineBreaks(product.description).length - 1 && <br />}
+                          </span>
+                        ))}
+                      </div>
                       <div className="flex items-center gap-3 mt-2">
                         {product.allowDemo && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">

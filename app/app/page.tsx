@@ -6,6 +6,7 @@ import { useNOWPayments } from '@/hooks/useNOWPayments'
 import PaymentTab from '@/components/PaymentTab'
 import CurrencyNetworkModal from '@/components/CurrencyNetworkModal'
 import SupportPage from '@/components/SupportPage'
+import { formatTextWithLineBreaks } from '@/lib/utils'
 
 // Функция для извлечения данных из URL
 function parseTelegramData() {
@@ -577,7 +578,14 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <h3 className="text-lg font-bold tg-text-primary mb-2">{product.name}</h3>
-                          <p className="tg-text-secondary text-sm leading-relaxed">{product.description}</p>
+                          <p className="tg-text-secondary text-sm leading-relaxed whitespace-pre-wrap">
+                        {formatTextWithLineBreaks(product.description).map((line, index) => (
+                          <span key={index}>
+                            {line}
+                            {index < formatTextWithLineBreaks(product.description).length - 1 && <br />}
+                          </span>
+                        ))}
+                      </p>
                           {product.channel && (
                             <div className="flex items-center mt-3 text-xs tg-text-muted">
                               <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
