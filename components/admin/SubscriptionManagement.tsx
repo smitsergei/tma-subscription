@@ -93,7 +93,10 @@ interface SubscriptionCardProps {
   onDelete: () => void
 }
 
-function SubscriptionCard({ subscription, onEdit, onDelete }: SubscriptionCardProps) {
+function SubscriptionCard({ subscription, onEdit, onDelete, isSelected, onToggleSelect }: SubscriptionCardProps & {
+  isSelected?: boolean
+  onToggleSelect?: () => void
+}) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -128,11 +131,21 @@ function SubscriptionCard({ subscription, onEdit, onDelete }: SubscriptionCardPr
     <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex justify-between items-start mb-3">
-        <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 text-lg">{subscription.product.name}</h3>
-          <p className="text-gray-600 text-sm mt-1">
-            {subscription.user.firstName}
-          </p>
+        <div className="flex items-center gap-2 flex-1">
+          {onToggleSelect && (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={onToggleSelect}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+          )}
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-900 text-lg">{subscription.product.name}</h3>
+            <p className="text-gray-600 text-sm mt-1">
+              {subscription.user.firstName}
+            </p>
+          </div>
         </div>
         <DropdownMenu
           subscription={subscription}
@@ -209,7 +222,9 @@ export default function SubscriptionManagement() {
   const [totalPages, setTotalPages] = useState(1)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showBatchModal, setShowBatchModal] = useState(false)
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null)
+  const [selectedSubscriptions, setSelectedSubscriptions] = useState<string[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
 
@@ -223,6 +238,14 @@ export default function SubscriptionManagement() {
   const [editSubscription, setEditSubscription] = useState({
     status: '',
     expiresAt: ''
+  })
+
+  const [batchData, setBatchData] = useState({
+    subscriptions: [{ userId: '', productId: '', status: 'active', expiresAt: '' }],
+    mode: 'create' as 'create' | 'update',
+    subscriptionIds: [] as string[],
+    batchStatus: '',
+    batchExpiresAt: ''
   })
 
   const fetchSubscriptions = async () => {
@@ -316,7 +339,7 @@ export default function SubscriptionManagement() {
   }
 
   const deleteSubscription = async (subscriptionId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить эту подписку?')) return
+    if (!confirm('Вы уверены, что хотите удалить эту подписку? Пользователь будет удален из канала.')) return
 
     try {
       const response = await fetch(`/api/admin/subscriptions?id=${subscriptionId}`, createAuthenticatedRequest({
@@ -332,6 +355,93 @@ export default function SubscriptionManagement() {
     } catch (error) {
       console.error('Error deleting subscription:', error)
       alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to delete subscription'}`)
+    }
+  }
+
+  // Функции для массовых операций
+  const toggleSubscriptionSelection = (subscriptionId: string) => {
+    setSelectedSubscriptions(prev =>
+      prev.includes(subscriptionId)
+        ? prev.filter(id => id !== subscriptionId)
+        : [...prev, subscriptionId]
+    )
+  }
+
+  const selectAllSubscriptions = () => {
+    if (selectedSubscriptions.length === subscriptions.length) {
+      setSelectedSubscriptions([])
+    } else {
+      setSelectedSubscriptions(subscriptions.map(sub => sub.subscriptionId))
+    }
+  }
+
+  const addBatchSubscription = () => {
+    setBatchData(prev => ({
+      ...prev,
+      subscriptions: [...prev.subscriptions, { userId: '', productId: '', status: 'active', expiresAt: '' }]
+    }))
+  }
+
+  const removeBatchSubscription = (index: number) => {
+    setBatchData(prev => ({
+      ...prev,
+      subscriptions: prev.subscriptions.filter((_, i) => i !== index)
+    }))
+  }
+
+  const updateBatchSubscription = (index: number, field: string, value: string) => {
+    setBatchData(prev => ({
+      ...prev,
+      subscriptions: prev.subscriptions.map((sub, i) =>
+        i === index ? { ...sub, [field]: value } : sub
+      )
+    }))
+  }
+
+  const executeBatchOperation = async () => {
+    setLoading(true)
+    try {
+      let endpoint = ''
+      let method = 'POST'
+      let body = {}
+
+      if (batchData.mode === 'create') {
+        endpoint = '/api/admin/subscriptions/batch'
+        body = { subscriptions: batchData.subscriptions }
+      } else if (batchData.mode === 'update') {
+        endpoint = '/api/admin/subscriptions/batch'
+        method = 'PUT'
+        body = {
+          subscriptionIds: selectedSubscriptions,
+          status: batchData.batchStatus || undefined,
+          expiresAt: batchData.batchExpiresAt || undefined
+        }
+      }
+
+      const response = await fetch(endpoint, createAuthenticatedRequest({
+        method,
+        body: JSON.stringify(body)
+      }))
+
+      if (response.ok) {
+        const result = await response.json()
+
+        // Показываем результаты операции
+        const { summary } = result
+        alert(`Массовая операция завершена:\n✅ Успешно: ${summary.successful}\n❌ Ошибки: ${summary.failed}`)
+
+        setShowBatchModal(false)
+        setSelectedSubscriptions([])
+        fetchSubscriptions()
+      } else {
+        const error = await response.json()
+        alert(`Ошибка: ${error.error || 'Failed to execute batch operation'}`)
+      }
+    } catch (error) {
+      console.error('Error executing batch operation:', error)
+      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to execute batch operation'}`)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -392,16 +502,55 @@ export default function SubscriptionManagement() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Управление подписками</h2>
           <p className="text-sm text-gray-600 mt-1">{subscriptions.length} {subscriptions.length === 1 ? 'подписка' : subscriptions.length < 5 ? 'подписки' : 'подписок'}</p>
+          {selectedSubscriptions.length > 0 && (
+            <p className="text-sm text-blue-600 mt-1">Выбрано: {selectedSubscriptions.length} подписок</p>
+          )}
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 self-start"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Создать подписку
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {selectedSubscriptions.length > 0 && (
+            <>
+              <button
+                onClick={() => {
+                  setBatchData(prev => ({ ...prev, mode: 'update' }))
+                  setShowBatchModal(true)
+                }}
+                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Изменить выбранные ({selectedSubscriptions.length})
+              </button>
+              <button
+                onClick={selectAllSubscriptions}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                {selectedSubscriptions.length === subscriptions.length ? 'Снять выделение' : 'Выбрать все'}
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => {
+              setBatchData(prev => ({ ...prev, mode: 'create' }))
+              setShowBatchModal(true)
+            }}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            Массовое создание
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Создать подписку
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -424,6 +573,14 @@ export default function SubscriptionManagement() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-6 py-4 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedSubscriptions.length === subscriptions.length && subscriptions.length > 0}
+                    onChange={selectAllSubscriptions}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Пользователь
                 </th>
@@ -444,6 +601,14 @@ export default function SubscriptionManagement() {
             <tbody className="divide-y divide-gray-200">
               {subscriptions.map((subscription) => (
                 <tr key={subscription.subscriptionId} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedSubscriptions.includes(subscription.subscriptionId)}
+                      onChange={() => toggleSubscriptionSelection(subscription.subscriptionId)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     <div>
                       <div className="font-medium text-gray-900">
@@ -510,6 +675,8 @@ export default function SubscriptionManagement() {
           <SubscriptionCard
             key={subscription.subscriptionId}
             subscription={subscription}
+            isSelected={selectedSubscriptions.includes(subscription.subscriptionId)}
+            onToggleSelect={() => toggleSubscriptionSelection(subscription.subscriptionId)}
             onEdit={() => openEditModal(subscription)}
             onDelete={() => deleteSubscription(subscription.subscriptionId)}
           />
@@ -674,6 +841,118 @@ export default function SubscriptionManagement() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
               >
                 Сохранить изменения
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Operations Modal */}
+      {showBatchModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">
+              {batchData.mode === 'create' ? 'Массовое создание подписок' : 'Массовое изменение подписок'}
+            </h3>
+
+            {batchData.mode === 'create' ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  {batchData.subscriptions.map((sub, index) => (
+                    <div key={index} className="flex gap-2 items-center bg-gray-50 p-3 rounded-lg">
+                      <select
+                        value={sub.userId}
+                        onChange={(e) => updateBatchSubscription(index, 'userId', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Выберите пользователя</option>
+                        {users.map((user) => (
+                          <option key={user.id} value={user.telegramId.toString()}>
+                            {user.firstName} {user.lastName} (@{user.username})
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={sub.productId}
+                        onChange={(e) => updateBatchSubscription(index, 'productId', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Выберите продукт</option>
+                        {products.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.name} - ${product.price}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="date"
+                        value={sub.expiresAt}
+                        onChange={(e) => updateBatchSubscription(index, 'expiresAt', e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Дата окончания"
+                      />
+                      <button
+                        onClick={() => removeBatchSubscription(index)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        disabled={batchData.subscriptions.length === 1}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={addBatchSubscription}
+                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors flex items-center justify-center gap-2 text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Добавить подписку
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Выбрано подписок:</strong> {selectedSubscriptions.length}
+                  </p>
+                </div>
+                <select
+                  value={batchData.batchStatus}
+                  onChange={(e) => setBatchData(prev => ({ ...prev, batchStatus: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Не изменять статус</option>
+                  <option value="active">Активная</option>
+                  <option value="expired">Истекшая</option>
+                  <option value="cancelled">Отмененная</option>
+                </select>
+                <input
+                  type="date"
+                  value={batchData.batchExpiresAt}
+                  onChange={(e) => setBatchData(prev => ({ ...prev, batchExpiresAt: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Новая дата окончания (опционально)"
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowBatchModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={executeBatchOperation}
+                disabled={loading || (batchData.mode === 'create' && batchData.subscriptions.every(sub => !sub.userId || !sub.productId))}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+              >
+                {loading ? 'Выполнение...' : (batchData.mode === 'create' ? 'Создать подписки' : 'Изменить подписки')}
               </button>
             </div>
           </div>

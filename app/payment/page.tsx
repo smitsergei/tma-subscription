@@ -22,7 +22,7 @@ interface PaymentDetails {
 export default function PaymentPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const paymentId = searchParams.get('payment_id')
+  const paymentId = searchParams?.get('payment_id')
 
   const [payment, setPayment] = useState<PaymentDetails | null>(null)
   const [loading, setLoading] = useState(true)

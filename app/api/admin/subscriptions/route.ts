@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
+import { syncChannelAccess } from '@/lib/botSync'
 
 export const dynamic = 'force-dynamic'
 
@@ -267,6 +268,29 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Синхронизация доступа к каналу с ботом
+    try {
+      if (subscriptionData.product?.channel && subscriptionData.status === 'active') {
+        console.log('🤖 ADMIN API: Syncing channel access for new subscription')
+        const syncResult = await syncChannelAccess(
+          subscriptionData.userId.toString(),
+          subscriptionData.product.channel.channelId.toString(),
+          subscriptionData.status,
+          subscriptionData.product.name,
+          subscriptionData.product.channel.name,
+          subscriptionData.expiresAt
+        )
+
+        if (!syncResult.success) {
+          console.error('🤖 ADMIN API: Failed to sync channel access:', syncResult.error)
+        } else {
+          console.log('🤖 ADMIN API: Channel access synced successfully')
+        }
+      }
+    } catch (error) {
+      console.error('🤖 ADMIN API: Error syncing channel access:', error)
+    }
+
     // Serialize BigInt fields
     const subscription = {
       subscriptionId: subscriptionData.subscriptionId,
@@ -360,6 +384,26 @@ export async function PUT(request: NextRequest) {
 
     const { status, expiresAt } = await request.json()
 
+    // Получаем текущие данные подписки для сравнения
+    const currentSubscription = await prisma.subscription.findUnique({
+      where: { subscriptionId },
+      include: {
+        user: true,
+        product: {
+          include: {
+            channel: true
+          }
+        }
+      }
+    })
+
+    if (!currentSubscription) {
+      return NextResponse.json(
+        { error: 'Subscription not found' },
+        { status: 404 }
+      )
+    }
+
     const subscriptionData = await prisma.subscription.update({
       where: { subscriptionId },
       data: {
@@ -383,6 +427,29 @@ export async function PUT(request: NextRequest) {
         payment: true
       }
     })
+
+    // Синхронизация доступа к каналу при изменении статуса
+    try {
+      if (status && subscriptionData.product?.channel) {
+        console.log('🤖 ADMIN API: Syncing channel access for updated subscription')
+        const syncResult = await syncChannelAccess(
+          subscriptionData.userId.toString(),
+          subscriptionData.product.channel.channelId.toString(),
+          status,
+          subscriptionData.product.name,
+          subscriptionData.product.channel.name,
+          subscriptionData.expiresAt
+        )
+
+        if (!syncResult.success) {
+          console.error('🤖 ADMIN API: Failed to sync channel access:', syncResult.error)
+        } else {
+          console.log('🤖 ADMIN API: Channel access synced successfully')
+        }
+      }
+    } catch (error) {
+      console.error('🤖 ADMIN API: Error syncing channel access:', error)
+    }
 
     // Serialize BigInt fields
     const subscription = {
@@ -475,6 +542,49 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    // Получаем данные подписки перед удалением для синхронизации
+    const subscriptionToDelete = await prisma.subscription.findUnique({
+      where: { subscriptionId },
+      include: {
+        user: true,
+        product: {
+          include: {
+            channel: true
+          }
+        }
+      }
+    })
+
+    if (!subscriptionToDelete) {
+      return NextResponse.json(
+        { error: 'Subscription not found' },
+        { status: 404 }
+      )
+    }
+
+    // Синхронизация доступа к каналу перед удалением
+    try {
+      if (subscriptionToDelete.product?.channel) {
+        console.log('🤖 ADMIN API: Syncing channel access for deleted subscription')
+        const syncResult = await syncChannelAccess(
+          subscriptionToDelete.userId.toString(),
+          subscriptionToDelete.product.channel.channelId.toString(),
+          'deleted', // Статус для удаления из канала
+          subscriptionToDelete.product.name,
+          subscriptionToDelete.product.channel.name
+        )
+
+        if (!syncResult.success) {
+          console.error('🤖 ADMIN API: Failed to sync channel access on deletion:', syncResult.error)
+        } else {
+          console.log('🤖 ADMIN API: Channel access synced successfully on deletion')
+        }
+      }
+    } catch (error) {
+      console.error('🤖 ADMIN API: Error syncing channel access on deletion:', error)
+    }
+
+    // Удаляем подписку
     await prisma.subscription.delete({
       where: { subscriptionId }
     })

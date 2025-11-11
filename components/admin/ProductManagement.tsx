@@ -313,7 +313,9 @@ export default function ProductManagement() {
         channelName: newProduct.channelName,
         channelUsername: newProduct.channelUsername,
         periodDays: newProduct.periodDays,
-        isActive: newProduct.isActive
+        isActive: newProduct.isActive,
+        allowDemo: newProduct.allowDemo,
+        demoDays: newProduct.allowDemo ? (parseInt(newProduct.demoDays) || 7) : null
       }
 
       const response = await fetch('/api/admin/products', createAuthenticatedRequest({
@@ -366,7 +368,9 @@ export default function ProductManagement() {
         channelName: editProduct.channelName,
         channelUsername: editProduct.channelUsername,
         periodDays: editProduct.periodDays,
-        isActive: editProduct.isActive
+        isActive: editProduct.isActive,
+        allowDemo: editProduct.allowDemo,
+        demoDays: editProduct.allowDemo ? (parseInt(editProduct.demoDays) || 7) : null
       }
 
       const response = await fetch(`/api/admin/products?id=${selectedProduct.productId}`, createAuthenticatedRequest({
@@ -737,6 +741,43 @@ export default function ProductManagement() {
                 </div>
               </div>
 
+              {/* Настройки демо-доступа */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Демо-доступ</h4>
+                <div className="space-y-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={newProduct.allowDemo}
+                      onChange={(e) => setNewProduct({...newProduct, allowDemo: e.target.checked})}
+                      className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-700">Разрешить демо-доступ</span>
+                      <p className="text-sm text-gray-500">Пользователи смогут получить бесплатный демо-доступ на указанный период</p>
+                    </div>
+                  </label>
+
+                  {newProduct.allowDemo && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Длительность демо-периода (дни)</label>
+                      <input
+                        type="number"
+                        placeholder="7"
+                        value={newProduct.demoDays}
+                        onChange={(e) => setNewProduct({...newProduct, demoDays: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        min="1"
+                        max="30"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        💡 Рекомендуемый период: 3-7 дней. Максимально: 30 дней
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Настройки */}
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Настройки</h4>
@@ -881,6 +922,43 @@ export default function ProductManagement() {
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Настройки демо-доступа */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Демо-доступ</h4>
+                <div className="space-y-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={editProduct.allowDemo}
+                      onChange={(e) => setEditProduct({...editProduct, allowDemo: e.target.checked})}
+                      className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-700">Разрешить демо-доступ</span>
+                      <p className="text-sm text-gray-500">Пользователи смогут получить бесплатный демо-доступ на указанный период</p>
+                    </div>
+                  </label>
+
+                  {editProduct.allowDemo && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Длительность демо-периода (дни)</label>
+                      <input
+                        type="number"
+                        placeholder="7"
+                        value={editProduct.demoDays}
+                        onChange={(e) => setEditProduct({...editProduct, demoDays: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        min="1"
+                        max="30"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        💡 Рекомендуемый период: 3-7 дней. Максимально: 30 дней
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive } = await request.json()
+    const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive, allowDemo, demoDays } = await request.json()
 
     console.log('🔍 API: Creating product with data:', {
       name: !!name,
@@ -144,7 +144,9 @@ export async function POST(request: NextRequest) {
       price: price,
       channelTelegramId: channelTelegramId,
       periodDays: periodDays,
-      isActive: isActive
+      isActive: isActive,
+      allowDemo: allowDemo,
+      demoDays: demoDays
     })
 
     // Validate required fields
@@ -222,7 +224,9 @@ export async function POST(request: NextRequest) {
       price: parseFloat(price),
       channelId: channel.channelId,
       periodDays: periodDays || 30,
-      isActive: isActive !== false
+      isActive: isActive !== false,
+      allowDemo: allowDemo || false,
+      demoDays: allowDemo && demoDays ? parseInt(demoDays) : 7
     })
 
     const product = await prisma.product.create({
@@ -232,7 +236,9 @@ export async function POST(request: NextRequest) {
         price: parseFloat(price),
         channelId: channel.channelId,
         periodDays: parseInt(periodDays) || 30,
-        isActive: isActive !== false
+        isActive: isActive !== false,
+        allowDemo: allowDemo || false,
+        demoDays: allowDemo && demoDays ? parseInt(demoDays) : 7
       },
       include: {
         channel: true
@@ -305,13 +311,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const productId = searchParams.get('id')
+
   try {
     if (!(await checkAdminAuth(request))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const { searchParams } = new URL(request.url)
-    const productId = searchParams.get('id')
 
     if (!productId) {
       return NextResponse.json(
@@ -320,7 +326,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive } = await request.json()
+    const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive, allowDemo, demoDays } = await request.json()
 
     // Handle channel change if provided
     let updateData: any = {}
@@ -330,6 +336,8 @@ export async function PUT(request: NextRequest) {
     if (price !== undefined) updateData.price = parseFloat(price)
     if (periodDays !== undefined) updateData.periodDays = parseInt(periodDays)
     if (isActive !== undefined) updateData.isActive = isActive
+    if (allowDemo !== undefined) updateData.allowDemo = allowDemo
+    if (allowDemo && demoDays !== undefined) updateData.demoDays = parseInt(demoDays) || 7
 
     if (channelTelegramId || channelName || channelUsername) {
       // Get current product to find its channel ID
@@ -433,13 +441,14 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  // Извлекаем productId в начале функции, чтобы он был доступен в блоке catch
+  const { searchParams } = new URL(request.url)
+  const productId = searchParams.get('id')
+
   try {
     if (!(await checkAdminAuth(request))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const { searchParams } = new URL(request.url)
-    const productId = searchParams.get('id')
 
     if (!productId) {
       return NextResponse.json(
@@ -463,16 +472,157 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    // Check if product has related discounts and delete them first
+    console.log(`🗑️ DELETION: Checking for discounts related to product ${productId}`)
+
+    const relatedDiscounts = await prisma.discount.findMany({
+      where: { productId }
+    })
+
+    if (relatedDiscounts.length > 0) {
+      console.log(`🗑️ DELETION: Found ${relatedDiscounts.length} discounts for product ${productId}, deleting them first`)
+
+      // Delete discount usage records first
+      await prisma.discountUsage.deleteMany({
+        where: {
+          discountId: {
+            in: relatedDiscounts.map(d => d.id)
+          }
+        }
+      })
+
+      // Delete the discounts
+      await prisma.discount.deleteMany({
+        where: { productId }
+      })
+
+      console.log(`🗑️ DELETION: Successfully deleted all discounts for product ${productId}`)
+    }
+
+    // Check if product has related promo codes and delete them first
+    console.log(`🗑️ DELETION: Checking for promo codes related to product ${productId}`)
+
+    const relatedPromoCodes = await prisma.promoCode.findMany({
+      where: { productId }
+    })
+
+    if (relatedPromoCodes.length > 0) {
+      console.log(`🗑️ DELETION: Found ${relatedPromoCodes.length} promo codes for product ${productId}, deleting them first`)
+
+      // Delete promo usage records first
+      await prisma.promoUsage.deleteMany({
+        where: {
+          promoId: {
+            in: relatedPromoCodes.map(p => p.id)
+          }
+        }
+      })
+
+      // Delete the promo codes
+      await prisma.promoCode.deleteMany({
+        where: { productId }
+      })
+
+      console.log(`🗑️ DELETION: Successfully deleted all promo codes for product ${productId}`)
+    }
+
+    // Check if product has related demo access records and delete them first
+    console.log(`🗑️ DELETION: Checking for demo access records related to product ${productId}`)
+
+    const relatedDemoAccess = await prisma.demoAccess.findMany({
+      where: { productId }
+    })
+
+    if (relatedDemoAccess.length > 0) {
+      console.log(`🗑️ DELETION: Found ${relatedDemoAccess.length} demo access records for product ${productId}, deleting them first`)
+
+      // Delete the demo access records
+      await prisma.demoAccess.deleteMany({
+        where: { productId }
+      })
+
+      console.log(`🗑️ DELETION: Successfully deleted all demo access records for product ${productId}`)
+    }
+
+    // Also check for inactive subscriptions that might still reference this product
+    const inactiveSubscriptions = await prisma.subscription.count({
+      where: {
+        productId,
+        status: {
+          not: 'active'
+        }
+      }
+    })
+
+    if (inactiveSubscriptions > 0) {
+      console.log(`🗑️ DELETION: Found ${inactiveSubscriptions} inactive subscriptions for product ${productId}, deleting them first`)
+
+      await prisma.subscription.deleteMany({
+        where: {
+          productId,
+          status: {
+            not: 'active'
+          }
+        }
+      })
+
+      console.log(`🗑️ DELETION: Successfully deleted all inactive subscriptions for product ${productId}`)
+    }
+
+    console.log(`🗑️ DELETION: All related records deleted. Now deleting product ${productId}`)
+
     await prisma.product.delete({
       where: { productId }
     })
 
+    console.log(`✅ DELETION: Successfully deleted product ${productId}`)
+
     return NextResponse.json({ success: true })
 
   } catch (error) {
-    console.error('Error deleting product:', error)
+    console.error('🔥 DELETE ERROR: Error deleting product:', error)
+    console.error('🔥 DELETE ERROR: Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      productId: productId
+    })
+
+    // Отправляем ошибку в наш error catcher
+    try {
+      await fetch('https://tma-subscription.vercel.app/api/catch-errors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: error instanceof Error ? error.message : 'Unknown error',
+          details: error instanceof Error ? error.stack : 'Unknown',
+          source: 'api/admin/products DELETE',
+          timestamp: new Date().toISOString(),
+          user: 'product_deletion',
+          context: { productId }
+        })
+      })
+    } catch (logError) {
+      console.error('🔥 DELETE ERROR: Failed to send error to logger:', logError)
+    }
+
+    // Проверяем, если это ошибка внешнего ключа
+    if (error instanceof Error && error.message.includes('Foreign key constraint violated')) {
+      return NextResponse.json(
+        {
+          error: 'Cannot delete product: it is still referenced by other records. Please contact administrator.',
+          details: 'Foreign key constraint violation',
+          errorId: Date.now().toString()
+        },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        errorId: Date.now().toString()
+      },
       { status: 500 }
     )
   }

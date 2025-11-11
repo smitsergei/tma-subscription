@@ -7,7 +7,7 @@ import Link from 'next/link'
 export default function HomePage() {
   const [isTelegram, setIsTelegram] = useState(false)
   const searchParams = useSearchParams()
-  const tgWebAppStartParam = searchParams.get('tgWebAppStartParam')
+  const tgWebAppStartParam = searchParams?.get('tgWebAppStartParam')
 
   useEffect(() => {
     // Проверяем, открыто ли приложение в Telegram

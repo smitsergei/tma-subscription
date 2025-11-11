@@ -41,6 +41,7 @@ export default function TmaPage() {
   const [activeTab, setActiveTab] = useState<'products' | 'subscriptions' | 'payments' | 'support'>('support')
 const [isFirstVisit, setIsFirstVisit] = useState(true)
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null)
+  const [demoLoading, setDemoLoading] = useState<string | null>(null)
   const [showCurrencyModal, setShowCurrencyModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
 
@@ -144,6 +145,75 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
     console.log('🛒 Starting purchase for product:', product.productId)
     setSelectedProduct(product)
     setShowCurrencyModal(true)
+  }
+
+  // Функция для обработки запроса демо-доступа
+  const handleDemoRequest = async (product: any) => {
+    try {
+      setDemoLoading(product.productId)
+      console.log('🚀 Starting demo request for product:', product.productId)
+
+      // Получаем Telegram init данные
+      const webAppData = parseTelegramInitData()
+      if (!webAppData) {
+        alert('❌ Ошибка: не удалось получить данные Telegram')
+        return
+      }
+
+      console.log('🔄 Sending demo request...')
+
+      const response = await fetch('/api/demo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-telegram-init-data': webAppData
+        },
+        body: JSON.stringify({
+          productId: product.productId
+        })
+      })
+
+      const result = await response.json()
+      console.log('🔍 Demo API response:', result)
+
+      if (response.ok && result.success) {
+        // Демо-доступ успешно создан
+        alert(`✅ Демо-доступ успешно оформлен!
+
+📦 ${product.name}
+⏰ Длительность: ${product.demoDays} дней
+📅 Действует до: ${new Date(result.demoAccess.expiresAt).toLocaleDateString('ru-RU')}
+
+Наслаждайтесь бесплатным доступом!`)
+
+        // Обновляем список подписок после небольшой задержки
+        setTimeout(() => {
+          if (activeTab === 'subscriptions') {
+            loadUserSubscriptions()
+          }
+        }, 2000)
+
+      } else {
+        // Обработка ошибок
+        if (response.status === 400 && result.demoAccess) {
+          alert(`📋 У вас уже есть активный демо-доступ!
+
+📦 ${product.name}
+⏰ Осталось дней: ${result.demoAccess.daysRemaining}
+📅 Истекает: ${new Date(result.demoAccess.expiresAt).toLocaleDateString('ru-RU')}
+
+Используйте текущий демо-доступ или оформите полную подписку.`)
+        } else {
+          alert(`❌ Ошибка при оформлении демо-доступа: ${result.error || 'Неизвестная ошибка'}`)
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ Demo request error:', error)
+      alert(`❌ Ошибка при оформлении демо-доступа: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+    } finally {
+      setDemoLoading(null)
+    }
   }
 
   // Функция для подтверждения покупки с выбранной валютой, сетью и промокодом
@@ -527,53 +597,103 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-baseline space-x-2">
-                          {product.discountPrice && product.discountPrice < product.price ? (
-                            <>
-                              <span className="text-2xl font-bold text-transparent bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text">
-                                ${product.discountPrice.toFixed(2)}
-                              </span>
-                              <span className="text-sm text-gray-500 line-through">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-baseline space-x-2">
+                            {product.discountPrice && product.discountPrice < product.price ? (
+                              <>
+                                <span className="text-2xl font-bold text-transparent bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text">
+                                  ${product.discountPrice.toFixed(2)}
+                                </span>
+                                <span className="text-sm text-gray-500 line-through">
+                                  ${product.price.toFixed(2)}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-2xl font-bold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text">
                                 ${product.price.toFixed(2)}
                               </span>
-                            </>
-                          ) : (
-                            <span className="text-2xl font-bold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text">
-                              ${product.price.toFixed(2)}
-                            </span>
-                          )}
-                          <span className="text-xs text-gray-500">/{product.periodDays}дней</span>
+                            )}
+                            <span className="text-xs text-gray-500">/{product.periodDays}дней</span>
+                          </div>
                         </div>
 
-                        <button
-                          onClick={() => handlePurchase(product)}
-                          disabled={purchaseLoading === product.productId || paymentLoading}
-                          className={`touch-target btn transition-all duration-200 ${
-                            purchaseLoading === product.productId || paymentLoading
-                              ? 'btn-secondary opacity-50 cursor-not-allowed'
-                              : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl'
-                          }`}
-                        >
-                          {purchaseLoading === product.productId ? (
-                            <>
-                              <div className="loading-spinner sm mr-2"></div>
-                              <span>Оплата...</span>
-                            </>
-                          ) : paymentLoading ? (
-                            <>
-                              <div className="loading-spinner sm mr-2"></div>
-                              <span>Создание...</span>
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                              </svg>
-                              <span>Купить</span>
-                            </>
+                        {/* Кнопки демо и покупки */}
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          {product.allowDemo && (
+                            <button
+                              onClick={() => handleDemoRequest(product)}
+                              disabled={demoLoading === product.productId}
+                              className={`touch-target btn transition-all duration-200 flex-1 ${
+                                demoLoading === product.productId
+                                  ? 'btn-secondary opacity-50 cursor-not-allowed'
+                                  : 'bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white shadow-lg hover:shadow-xl'
+                              }`}
+                            >
+                              {demoLoading === product.productId ? (
+                                <>
+                                  <div className="loading-spinner sm mr-2"></div>
+                                  <span>Создание...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                  </svg>
+                                  <span>Демо {product.demoDays}дн</span>
+                                </>
+                              )}
+                            </button>
                           )}
-                        </button>
+
+                          <button
+                            onClick={() => handlePurchase(product)}
+                            disabled={purchaseLoading === product.productId || paymentLoading}
+                            className={`touch-target btn transition-all duration-200 flex-1 ${
+                              purchaseLoading === product.productId || paymentLoading
+                                ? 'btn-secondary opacity-50 cursor-not-allowed'
+                                : product.allowDemo
+                                ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white shadow-lg hover:shadow-xl'
+                                : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl'
+                            }`}
+                          >
+                            {purchaseLoading === product.productId ? (
+                              <>
+                                <div className="loading-spinner sm mr-2"></div>
+                                <span>Оплата...</span>
+                              </>
+                            ) : paymentLoading ? (
+                              <>
+                                <div className="loading-spinner sm mr-2"></div>
+                                <span>Создание...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                </svg>
+                                <span>{product.allowDemo ? 'Купить' : 'Купить'}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Информация о демо-доступе */}
+                        {product.allowDemo && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div className="flex items-start space-x-2">
+                              <svg className="w-4 h-4 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div className="flex-1">
+                                <p className="text-sm text-green-800 font-medium">Бесплатный демо-доступ</p>
+                                <p className="text-xs text-green-600 mt-1">
+                                  Попробуйте {product.demoDays} дней бесплатно. По окончании демо-периода доступ будет автоматически прекращен.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
