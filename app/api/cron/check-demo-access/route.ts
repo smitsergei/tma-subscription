@@ -62,6 +62,14 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔍 Found ${expiredDemoAccesses.length} expired demo accesses`);
 
+    const botToken = process.env.BOT_TOKEN;
+    if (!botToken) {
+      throw new Error('BOT_TOKEN not configured');
+    }
+
+    let processedCount = 0
+    let errorCount = 0
+
     for (const demo of expiredDemoAccesses) {
       try {
         console.log(`🗑️ Processing expired demo: ${demo.id}`);
@@ -89,14 +97,23 @@ export async function POST(request: NextRequest) {
             where: { id: demo.id },
             data: { isActive: false }
           });
+          processedCount++
           continue;
         }
 
         // Удаляем пользователя из канала через Telegram Bot API
         await removeUserFromChannel(
-          demo.user.telegramId,
-          demo.product.channel.channelId,
-          demo.product.name
+          demo.user.telegramId.toString(),
+          demo.product.channel.channelId.toString(),
+          botToken
+        );
+
+        // Отправляем уведомление пользователю
+        await sendDemoExpirationNotification(
+          demo.user.telegramId.toString(),
+          demo.product.name,
+          demo.product.channel.name,
+          botToken
         );
 
         // Обновляем статус демо-доступа
@@ -105,9 +122,11 @@ export async function POST(request: NextRequest) {
           data: { isActive: false }
         });
 
+        processedCount++
         console.log(`✅ Successfully processed expired demo: ${demo.id}`);
 
       } catch (error) {
+        errorCount++
         console.error(`❌ Error processing expired demo ${demo.id}:`, error);
       }
     }
@@ -170,11 +189,17 @@ export async function POST(request: NextRequest) {
         }
 
         // Добавляем пользователя в канал (если еще не добавлен)
-        await addUserToChannel(
-          demo.user.telegramId,
-          demo.product.channel.channelId,
-          demo.product.name
+        // Создаем invite link для пользователя
+        const inviteResponse = await fetch(
+          `https://api.telegram.org/bot${botToken}/createChatInviteLink?chat_id=@${demo.product.channel.channelId}&member_limit=1&name=Demo%20Access%20Invite&expire_date=${Math.floor(Date.now() / 1000) + 86400}`
         );
+
+        const inviteResult = await inviteResponse.json();
+        if (inviteResult.ok) {
+          console.log(`✅ Created invite link for demo user ${demo.user.telegramId}`);
+        } else {
+          console.error(`❌ Error creating invite link for demo user: ${inviteResult.description}`);
+        }
 
       } catch (error) {
         console.error(`❌ Error processing active demo ${demo.id}:`, error);
@@ -182,8 +207,10 @@ export async function POST(request: NextRequest) {
     }
 
     const stats = {
-      processed: expiredDemoAccesses.length,
+      processed: processedCount,
+      errors: errorCount,
       active: activeDemoAccesses.length,
+      total: expiredDemoAccesses.length + activeDemoAccesses.length,
       timestamp: now.toISOString()
     };
 
@@ -191,7 +218,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Demo access check completed',
+      message: `Processed ${processedCount} expired demo accesses`,
       stats
     });
 
@@ -207,119 +234,117 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Функция для добавления пользователя в канал
-async function addUserToChannel(userTelegramId: BigInt, channelId: BigInt, productName: string) {
+// Функция для удаления пользователя из канала (такая же как в подписках)
+async function removeUserFromChannel(userId: string, channelId: string, botToken: string): Promise<void> {
   try {
-    const botToken = process.env.BOT_TOKEN;
-    if (!botToken) {
-      throw new Error('Bot token not configured');
-    }
-
-    // Добавляем пользователя в канал
-    const addResponse = await fetch(
-      `https://api.telegram.org/bot${botToken}/chatMember?chat_id=@${channelId}&user_id=${userTelegramId}`
+    // Проверка, состоит ли пользователь в канале
+    const chatMemberResponse = await fetch(
+      `https://api.telegram.org/bot${botToken}/getChatMember`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: channelId,
+          user_id: userId
+        })
+      }
     );
 
-    const addResult = await addResponse.json();
-    console.log('🔍 Add to channel response:', addResult);
+    const chatMemberData = await chatMemberResponse.json();
 
-    if (addResult.ok) {
-      const member = addResult.result;
-      if (member.status === 'left' || member.status === 'kicked') {
-        // Если пользователь не в канале, пытаемся добавить
-        const inviteResponse = await fetch(
-          `https://api.telegram.org/bot${botToken}/createChatInviteLink?chat_id=@${channelId}&member_limit=1&name=Demo%20Access%20Invite`
+    if (chatMemberData.ok) {
+      const status = chatMemberData.result.status;
+
+      // Если пользователь состоит в канале (не left/kicked), пытаемся его удалить
+      if (status !== 'left' && status !== 'kicked') {
+        // Для каналов нужно использовать ban/unban, так как прямого удаления нет
+        // Сначала баним, потом разбаним (это удалит пользователя из канала)
+        await fetch(
+          `https://api.telegram.org/bot${botToken}/banChatMember`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: channelId,
+              user_id: userId,
+              revoke_messages: false
+            })
+          }
         );
 
-        const inviteResult = await inviteResponse.json();
-        if (inviteResult.ok) {
-          console.log(`✅ Created invite link for user ${userTelegramId} to channel ${channelId}`);
-          // В реальном приложении здесь нужно отправить пользователю ссылку-приглашение
-        }
-      } else {
-        console.log(`✅ User ${userTelegramId} already has access to channel ${channelId}`);
+        // Сразу разбаниваем (чтобы пользователь мог снова войти при покупке подписки)
+        await fetch(
+          `https://api.telegram.org/bot${botToken}/unbanChatMember`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: channelId,
+              user_id: userId,
+              only_if_banned: true
+            })
+          }
+        );
       }
-    } else {
-      console.error(`❌ Error checking user status: ${addResult.description}`);
     }
-
   } catch (error) {
-    console.error('❌ Error adding user to channel:', error);
+    console.error(`Error removing user ${userId} from channel ${channelId}:`, error);
     throw error;
   }
 }
 
-// Функция для удаления пользователя из канала
-async function removeUserFromChannel(userTelegramId: BigInt, channelId: BigInt, productName: string) {
+// Функция для отправки уведомления об окончании демо (аналогично подпискам)
+async function sendDemoExpirationNotification(
+  userId: string,
+  productName: string,
+  channelName: string,
+  botToken: string
+): Promise<void> {
   try {
-    const botToken = process.env.BOT_TOKEN;
-    if (!botToken) {
-      throw new Error('Bot token not configured');
-    }
+    const message = `
+📋 *Ваш демо-доступ завершен*
 
-    // Удаляем пользователя из канала
-    const kickResponse = await fetch(
-      `https://api.telegram.org/bot${botToken}/kickChatMember?chat_id=@${channelId}&user_id=${userTelegramId}`,
+📦 Продукт: ${productName}
+📢 Канал: ${channelName}
+
+Ваш бесплатный демо-период закончился.
+Вы больше не имеете доступа к закрытому контенту.
+
+🛍️ *Чтобы продолжить доступ:*
+1. Откройте бота
+2. Нажмите "Управление подписками"
+3. Выберите нужную подписку и оплатите
+
+Спасибо за интерес к нашему продукту!
+    `.trim()
+
+    await fetch(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
       {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: userId,
+          text: message,
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '🛍️ Управление подписками',
+                  web_app: {
+                    url: `${process.env.APP_URL}/app`
+                  }
+                }
+              ]
+            ]
+          }
+        })
       }
-    );
-
-    const kickResult = await kickResponse.json();
-    console.log('🔍 Kick from channel response:', kickResult);
-
-    if (kickResult.ok) {
-      console.log(`✅ Successfully removed user ${userTelegramId} from channel ${channelId}`);
-
-      // Отправляем сообщение пользователю о завершении демо-периода
-      const messageResponse = await fetch(
-        `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${userTelegramId}&text=${encodeURIComponent(
-          `📋 Ваш демо-доступ завершен!
-
-📦 Продукт: ${productName}
-📅 Демо-период: ${new Date().toLocaleDateString('ru-RU')}
-
-Для продолжения доступа к каналу оформите полную подписку в приложении.
-
-💳 Оформить подписку можно в нашем Telegram Mini App
-`
-        )}&parse_mode=HTML`
-      );
-
-      const messageResult = await messageResponse.json();
-      if (messageResult.ok) {
-        console.log(`✅ Sent notification to user ${userTelegramId}`);
-      } else {
-        console.error(`❌ Error sending notification: ${messageResult.description}`);
-      }
-
-    } else {
-      console.error(`❌ Error kicking user from channel: ${kickResult.description}`);
-
-      // Если не удалось удалить из канала, все равно сообщаем пользователю
-      const messageResponse = await fetch(
-        `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${userTelegramId}&text=${encodeURIComponent(
-          `📋 Ваш демо-доступ завершен!
-
-📦 Продукт: ${productName}
-📅 Демо-период: ${new Date().toLocaleDateString('ru-RU')}
-
-Для продолжения доступа к каналу оформите полную подписку в приложении.
-
-💳 Оформить подписку можно в нашем Telegram Mini App
-`
-        )}&parse_mode=HTML`
-      );
-
-      const messageResult = await messageResponse.json();
-      if (messageResult.ok) {
-        console.log(`✅ Sent notification to user ${userTelegramId}`);
-      }
-    }
-
+    )
   } catch (error) {
-    console.error('❌ Error removing user from channel:', error);
-    // Не бросаем ошибку, чтобы не прерывать обработку других демо-доступов
+    console.error(`Error sending demo expiration notification to user ${userId}:`, error);
+    throw error;
   }
 }
 
@@ -328,6 +353,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     status: 'Demo access monitoring endpoint',
     description: 'This endpoint checks and manages demo access periods',
-    usage: 'POST with Authorization: Bearer CRON_SECRET'
+    usage: 'POST with Authorization: Bearer CRON_SECRET (optional)'
   });
 }
