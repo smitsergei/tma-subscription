@@ -202,16 +202,35 @@ export async function POST(request: NextRequest) {
     } else if (channelName || channelUsername) {
       console.log('🔍 API: Updating existing channel with new data...')
       try {
+        // Проверяем, не пытаемся ли мы установить username, который уже занят
+        if (channelUsername !== undefined && channelUsername !== channel.username) {
+          const existingChannelWithSameUsername = await prisma.channel.findUnique({
+            where: { username: channelUsername }
+          })
+
+          if (existingChannelWithSameUsername && existingChannelWithSameUsername.channelId !== channel.channelId) {
+            console.log('⚠️ API: Username', channelUsername, 'already used by another channel')
+            throw new Error(`Username '${channelUsername}' is already used by another channel`)
+          }
+        }
+
+        const updateData: any = {}
+        if (channelName) updateData.name = channelName
+        if (channelUsername !== undefined) updateData.username = channelUsername
+
         channel = await prisma.channel.update({
           where: { channelId: BigInt(cleanChannelId) },
-          data: {
-            ...(channelName && { name: channelName }),
-            ...(channelUsername !== undefined && { username: channelUsername }),
-          }
+          data: updateData
         })
         console.log('🔍 API: Channel updated successfully:', channel.channelId.toString())
       } catch (channelError) {
         console.error('🔍 API: Error updating channel:', channelError)
+
+        // Обрабатываем специфически ошибку дубликата username
+        if (channelError instanceof Error && channelError.message.includes('Unique constraint failed')) {
+          throw new Error(`Username '${channelUsername}' is already taken by another channel`)
+        }
+
         throw new Error(`Failed to update channel: ${channelError instanceof Error ? channelError.message : 'Unknown error'}`)
       }
     } else {
@@ -375,13 +394,37 @@ export async function PUT(request: NextRequest) {
         })
       } else if (channelName || channelUsername) {
         // Update existing channel if name or username is provided
-        channel = await prisma.channel.update({
-          where: { channelId: targetChannelId },
-          data: {
-            ...(channelName && { name: channelName }),
-            ...(channelUsername !== undefined && { username: channelUsername }),
+        try {
+          // Проверяем, не пытаемся ли мы установить username, который уже занят
+          if (channelUsername !== undefined && channelUsername !== channel.username) {
+            const existingChannelWithSameUsername = await prisma.channel.findUnique({
+              where: { username: channelUsername }
+            })
+
+            if (existingChannelWithSameUsername && existingChannelWithSameUsername.channelId !== channel.channelId) {
+              console.log('⚠️ API: Username', channelUsername, 'already used by another channel')
+              throw new Error(`Username '${channelUsername}' is already used by another channel`)
+            }
           }
-        })
+
+          const updateData: any = {}
+          if (channelName) updateData.name = channelName
+          if (channelUsername !== undefined) updateData.username = channelUsername
+
+          channel = await prisma.channel.update({
+            where: { channelId: targetChannelId },
+            data: updateData
+          })
+        } catch (channelError) {
+          console.error('🔍 API: Error updating channel:', channelError)
+
+          // Обрабатываем специфически ошибку дубликата username
+          if (channelError instanceof Error && channelError.message.includes('Unique constraint failed')) {
+            throw new Error(`Username '${channelUsername}' is already taken by another channel`)
+          }
+
+          throw new Error(`Failed to update channel: ${channelError instanceof Error ? channelError.message : 'Unknown error'}`)
+        }
       }
 
       // Only update channelId if it actually changed

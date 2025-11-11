@@ -38,7 +38,7 @@ export default function TmaPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [productsLoading, setProductsLoading] = useState(false)
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'products' | 'subscriptions' | 'payments' | 'support'>('support')
+  const [activeTab, setActiveTab] = useState<'products' | 'subscriptions' | 'payments' | 'support'>('products')
 const [isFirstVisit, setIsFirstVisit] = useState(true)
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null)
   const [demoLoading, setDemoLoading] = useState<string | null>(null)
@@ -326,8 +326,8 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
       const hasVisitedBefore = localStorage.getItem('telegram_app_visited')
 
       if (!hasVisitedBefore) {
-        // Первый вход - открываем поддержку
-        setActiveTab('support')
+        // Первый вход - открываем продукты (подписки)
+        setActiveTab('products')
         setIsFirstVisit(true)
         localStorage.setItem('telegram_app_visited', 'true')
       } else {
@@ -343,8 +343,10 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
     } else {
       console.log('❌ No Telegram data found in URL')
       console.log('🔗 Environment URL:', process.env.NEXT_PUBLIC_APP_URL)
-      // Если нет данных Telegram, тоже открываем поддержку для помощи
-      setActiveTab('support')
+      // Если нет данных Telegram, открываем продукты для демонстрации
+      setActiveTab('products')
+      // Все равно загружаем продукты для демонстрации
+      loadProducts()
     }
 
     setIsLoading(false)
@@ -440,7 +442,7 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
-                  <span className="hidden xs:inline">Подписки</span>
+                  <span className="hidden xs:inline">Магазин</span>
                   <span className="xs:hidden">🛍️</span>
                 </span>
               </button>
@@ -537,7 +539,7 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
         {activeTab === 'products' && (
           <div className="space-y-6 fade-in">
             <div className="text-center space-y-2">
-              <h2 className="tg-heading-primary">🛍️ Доступные подписки</h2>
+              <h2 className="tg-heading-primary">🛍️ Магазин подписок</h2>
               <p className="tg-text-secondary">Выберите подходящий план для доступа к эксклюзивному контенту</p>
             </div>
 
