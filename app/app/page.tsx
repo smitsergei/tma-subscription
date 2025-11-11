@@ -38,7 +38,7 @@ export default function TmaPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [productsLoading, setProductsLoading] = useState(false)
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'products' | 'subscriptions' | 'payments' | 'support'>('products')
+  const [activeTab, setActiveTab] = useState<'products' | 'subscriptions' | 'payments' | 'support'>('support')
 const [isFirstVisit, setIsFirstVisit] = useState(true)
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null)
   const [demoLoading, setDemoLoading] = useState<string | null>(null)
@@ -326,8 +326,8 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
       const hasVisitedBefore = localStorage.getItem('telegram_app_visited')
 
       if (!hasVisitedBefore) {
-        // Первый вход - открываем продукты (подписки)
-        setActiveTab('products')
+        // Первый вход - открываем поддержку
+        setActiveTab('support')
         setIsFirstVisit(true)
         localStorage.setItem('telegram_app_visited', 'true')
       } else {
@@ -343,10 +343,8 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
     } else {
       console.log('❌ No Telegram data found in URL')
       console.log('🔗 Environment URL:', process.env.NEXT_PUBLIC_APP_URL)
-      // Если нет данных Telegram, открываем продукты для демонстрации
-      setActiveTab('products')
-      // Все равно загружаем продукты для демонстрации
-      loadProducts()
+      // Если нет данных Telegram, открываем поддержку для помощи
+      setActiveTab('support')
     }
 
     setIsLoading(false)
