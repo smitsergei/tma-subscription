@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { revalidatePath } from 'next/cache'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
@@ -94,9 +97,19 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Принудительная рееволюция кеша
+    revalidatePath('/api/products')
+    revalidatePath('/app')
+
     return NextResponse.json({
       success: true,
       data: productsWithDiscounts
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     })
   } catch (error) {
     console.error('🔍 PRODUCTS: Error fetching products:', error)
@@ -112,7 +125,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { success: false, error: 'Ошибка загрузки продуктов', details: (error as Error).message },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }
     )
   }
 }

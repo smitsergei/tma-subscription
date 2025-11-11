@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
+import { revalidatePath } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -266,6 +267,11 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 API: Product created successfully:', product.productId)
 
+    // Очищаем кеш связанных страниц при создании продукта
+    revalidatePath('/api/products')
+    revalidatePath('/app')
+    revalidatePath('/admin')
+
     // Конвертируем BigInt в string для JSON сериализации
     const serializedProduct = {
       productId: product.productId.toString(),
@@ -465,6 +471,11 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Очищаем кеш связанных страниц при обновлении продукта
+    revalidatePath('/api/products')
+    revalidatePath('/app')
+    revalidatePath('/admin')
+
     return NextResponse.json({ product: serializedProduct })
 
   } catch (error) {
@@ -619,6 +630,11 @@ export async function DELETE(request: NextRequest) {
     })
 
     console.log(`✅ DELETION: Successfully deleted product ${productId}`)
+
+    // Очищаем кеш связанных страниц при удалении продукта
+    revalidatePath('/api/products')
+    revalidatePath('/app')
+    revalidatePath('/admin')
 
     return NextResponse.json({ success: true })
 
