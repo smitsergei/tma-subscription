@@ -10,16 +10,15 @@ interface SupportPageProps {
 }
 
 export default function SupportPage({ onBack, isFirstVisit = false }: SupportPageProps) {
-  const { tg } = useTelegram();
+  const { webApp } = useTelegram();
   const [isOpeningChat, setIsOpeningChat] = useState(false);
 
   useEffect(() => {
     // Устанавливаем заголовок страницы
-    if (tg) {
-      tg.setHeaderColor('#1f2937');
-      tg.setBackgroundColor('#1f2937');
+    if (webApp) {
+      webApp.setHeaderColor('#1f2937');
     }
-  }, [tg]);
+  }, [webApp]);
 
   const handleOpenTelegramChat = () => {
     setIsOpeningChat(true);
@@ -29,9 +28,9 @@ export default function SupportPage({ onBack, isFirstVisit = false }: SupportPag
       const botUsername = 'smitcont_bot';
       const telegramUrl = `https://t.me/${botUsername}`;
 
-      // В Telegram Mini App используем tg.openTelegramLink
-      if (tg && tg.openTelegramLink) {
-        tg.openTelegramLink(telegramUrl);
+      // Пробуем использовать Telegram WebApp API если доступно
+      if (webApp && (webApp as any).openTelegramLink) {
+        (webApp as any).openTelegramLink(telegramUrl);
       } else {
         // Fallback для обычного браузера
         window.open(telegramUrl, '_blank');
