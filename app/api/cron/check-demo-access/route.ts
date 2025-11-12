@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
         // Добавляем пользователя в канал (если еще не добавлен)
         // Создаем invite link для пользователя
         const inviteResponse = await fetch(
-          `https://api.telegram.org/bot${botToken}/createChatInviteLink?chat_id=${demo.product.channel.channelId}&member_limit=1&name=Demo%20Access%20Invite&expire_date=${Math.floor(Date.now() / 1000) + 86400}`
+          `https://api.telegram.org/bot${botToken}/createChatInviteLink?chat_id=${demo.product.channel.channelId.toString()}&member_limit=1&name=Demo%20Access%20Invite&expire_date=${Math.floor(Date.now() / 1000) + 86400}`
         );
 
         const inviteResult = await inviteResponse.json();
