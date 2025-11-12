@@ -76,20 +76,34 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Granting demo access with data:', {
       userId,
+      userIdType: typeof userId,
       productId,
+      productIdType: typeof productId,
       demoDays
     })
 
+    // Корректно преобразуем userId в BigInt
+    let userIdBigInt: bigint
+    try {
+      userIdBigInt = BigInt(userId)
+    } catch (error) {
+      console.error('❌ Invalid userId format:', userId, error)
+      return createJsonResponse(
+        { error: 'Invalid userId format', details: `Cannot convert userId "${userId}" to BigInt` },
+        400
+      )
+    }
+
     // Проверяем, что существует пользователь
     let user = await prisma.user.findUnique({
-      where: { telegramId: BigInt(userId) }
+      where: { telegramId: userIdBigInt }
     })
 
     if (!user) {
       // Создаем пользователя если его нет
       user = await prisma.user.create({
         data: {
-          telegramId: BigInt(userId),
+          telegramId: userIdBigInt,
           firstName: 'Demo User',
         }
       })
@@ -117,7 +131,7 @@ export async function POST(request: NextRequest) {
     // Проверяем, есть ли уже активный демо-доступ
     const existingDemoAccess = await prisma.demoAccess.findFirst({
       where: {
-        userId: BigInt(userId),
+        userId: userIdBigInt,
         productId: productId,
         isActive: true
       }
@@ -136,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     const demoAccess = await prisma.demoAccess.create({
       data: {
-        userId: BigInt(userId),
+        userId: userIdBigInt,
         productId,
         startedAt: now,
         expiresAt,

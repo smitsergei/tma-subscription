@@ -341,7 +341,7 @@ export default function DemoManagement() {
       const response = await fetch('/api/admin/demo/grant', createAuthenticatedRequest({
         method: 'POST',
         body: JSON.stringify({
-          userId: BigInt(newDemoAccess.userId),
+          userId: newDemoAccess.userId,
           productId: newDemoAccess.productId,
           demoDays: newDemoAccess.demoDays
         })
