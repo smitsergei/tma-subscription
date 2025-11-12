@@ -119,18 +119,22 @@ export async function POST(request: NextRequest) {
     console.log('🔍 SEND_INVITE API: Sending invite link:', {
       userId: subscription.userId.toString(),
       channelId: subscription.product.channel.channelId.toString(),
-      channelName: subscription.product.channel.name
+      channelName: subscription.product.channel.name,
+      userName: subscription.user.firstName
     })
 
     // Используем существующую функцию для добавления пользователя в канал
+    console.log('🔍 SEND_INVITE API: Calling addUserToChannel...')
     const result = await addUserToChannel(
       subscription.userId.toString(),
       subscription.product.channel.channelId.toString(),
       botToken
     )
 
+    console.log('🔍 SEND_INVITE API: addUserToChannel result:', result)
+
     if (result.success) {
-      console.log('🔍 SEND_INVITE API: Invite link sent successfully')
+      console.log('✅ SEND_INVITE API: Invite link process completed successfully')
       return NextResponse.json({
         success: true,
         message: 'Invite link sent successfully',
@@ -138,11 +142,12 @@ export async function POST(request: NextRequest) {
         details: {
           userName: subscription.user.firstName,
           channelName: subscription.product.channel.name,
-          subscriptionStatus: subscription.status
+          subscriptionStatus: subscription.status,
+          telegramUserId: subscription.userId.toString()
         }
       })
     } else {
-      console.error('🔍 SEND_INVITE API: Failed to send invite link:', result.error)
+      console.error('❌ SEND_INVITE API: Failed to send invite link:', result.error)
       return NextResponse.json(
         {
           error: 'Failed to send invite link',

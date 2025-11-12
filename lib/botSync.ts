@@ -65,11 +65,19 @@ export async function addUserToChannel(
         console.log('🤖 BOT SYNC: Created invite link:', inviteData.result.invite_link)
 
         // Отправляем ссылку-приглашение пользователю
-        await sendInviteLink(userId, inviteData.result.invite_link, channelId, botToken)
-
-        return {
-          success: true,
-          inviteLink: inviteData.result.invite_link
+        try {
+          await sendInviteLink(userId, inviteData.result.invite_link, channelId, botToken)
+          console.log('✅ BOT SYNC: Invite link process completed successfully')
+          return {
+            success: true,
+            inviteLink: inviteData.result.invite_link
+          }
+        } catch (sendError) {
+          console.error('❌ BOT SYNC: Failed to send invite link:', sendError)
+          return {
+            success: false,
+            error: `Invite link created but failed to send: ${sendError instanceof Error ? sendError.message : 'Unknown error'}`
+          }
         }
       } else {
         console.error('🤖 BOT SYNC: Failed to create invite link:', inviteData)
@@ -171,7 +179,10 @@ async function sendInviteLink(
   botToken: string
 ): Promise<void> {
   try {
+    console.log('🤖 BOT SYNC: Starting to send invite link to user:', userId, 'for channel:', channelId)
+
     // Получаем информацию о канале
+    console.log('🤖 BOT SYNC: Getting channel info...')
     const channelResponse = await fetch(
       `https://api.telegram.org/bot${botToken}/getChat`,
       {
@@ -186,7 +197,15 @@ async function sendInviteLink(
     )
 
     const channelData = await channelResponse.json()
-    const channelName = channelData.ok ? channelData.result.title : 'Канал'
+    console.log('🤖 BOT SYNC: Channel response:', { ok: channelData.ok, error: channelData.description })
+
+    if (!channelData.ok) {
+      console.error('🤖 BOT SYNC: Failed to get channel info:', channelData)
+      throw new Error(`Failed to get channel info: ${channelData.description}`)
+    }
+
+    const channelName = channelData.result?.title || 'Канал'
+    console.log('🤖 BOT SYNC: Channel name:', channelName)
 
     const message = `🎉 Доступ к каналу открыт!
 
@@ -195,7 +214,8 @@ async function sendInviteLink(
 
 Ссылка действительна 24 часа. Добро пожаловать!`
 
-    await fetch(
+    console.log('🤖 BOT SYNC: Sending message to user:', userId)
+    const messageResponse = await fetch(
       `https://api.telegram.org/bot${botToken}/sendMessage`,
       {
         method: 'POST',
@@ -210,10 +230,19 @@ async function sendInviteLink(
       }
     )
 
-    console.log('🤖 BOT SYNC: Invite link sent to user:', userId)
+    const messageData = await messageResponse.json()
+    console.log('🤖 BOT SYNC: Message response:', { ok: messageData.ok, error: messageData.description })
+
+    if (messageData.ok) {
+      console.log('✅ BOT SYNC: Invite link successfully sent to user:', userId)
+    } else {
+      console.error('❌ BOT SYNC: Failed to send invite link to user:', userId, 'Error:', messageData)
+      throw new Error(`Failed to send message: ${messageData.description}`)
+    }
 
   } catch (error) {
-    console.error('🤖 BOT SYNC: Error sending invite link:', error)
+    console.error('❌ BOT SYNC: Error sending invite link to user:', userId, error)
+    throw error // Пробрасываем ошибку наверх для обработки
   }
 }
 
