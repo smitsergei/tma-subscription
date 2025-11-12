@@ -16,12 +16,8 @@
   "alias": "tma-subscription.vercel.app",
   "crons": [
     {
-      "path": "/api/cron/check-subscriptions",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/check-demo-access",
-      "schedule": "*/30 * * * *"
+      "path": "/api/cron/check-all",
+      "schedule": "0 3 * * *"
     }
   ]
 }
