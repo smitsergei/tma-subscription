@@ -240,7 +240,7 @@ export async function addUserToChannel(
 
             if (messageResult.ok) {
               console.log('✅ BOT SYNC: Direct access notification sent successfully')
-              return { success: true, warning: 'User already has access, direct notification sent' }
+              return { success: true, warning: 'User already has access, direct notification sent' } as { success: boolean; warning?: string }
             } else {
               console.error('❌ BOT SYNC: Failed to send direct notification:', messageResult)
             }
