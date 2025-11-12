@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
     // Получаем все демо-доступы пользователя для проверки
     const userDemoAccesses = await prisma.demoAccess.findMany({
       where: {
-        userId: telegramId
+        userId: telegramId as bigint
       },
       select: {
         productId: true,
@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
     // Получаем все подписки пользователя
     const userSubscriptions = await prisma.subscription.findMany({
       where: {
-        userId: telegramId,
+        userId: telegramId as bigint,
         status: 'active',
         expiresAt: {
           gt: new Date()
