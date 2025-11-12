@@ -17,6 +17,7 @@ interface Product {
   isTrial?: boolean
   allowDemo?: boolean
   demoDays?: number
+  sortOrder?: number | null
   channelId: string
   channel: {
     channelId: string
@@ -108,9 +109,13 @@ interface ProductCardProps {
   onEdit: () => void
   onDelete: () => void
   onToggleStatus: () => void
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  canMoveUp?: boolean
+  canMoveDown?: boolean
 }
 
-function ProductCard({ product, onEdit, onDelete, onToggleStatus }: ProductCardProps) {
+function ProductCard({ product, onEdit, onDelete, onToggleStatus, onMoveUp, onMoveDown, canMoveUp = false, canMoveDown = false }: ProductCardProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
       {/* Header */}
@@ -131,6 +136,35 @@ function ProductCard({ product, onEdit, onDelete, onToggleStatus }: ProductCardP
           onToggleStatus={onToggleStatus}
         />
       </div>
+
+      {/* Sort Order Controls */}
+      {(onMoveUp || onMoveDown) && (
+        <div className="flex items-center justify-between mb-3 p-2 bg-gray-50 rounded-lg">
+          <span className="text-xs text-gray-600 font-medium">Порядок: {product.sortOrder !== null ? product.sortOrder : '—'}</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onMoveUp}
+              disabled={!canMoveUp}
+              className="p-1.5 text-gray-400 hover:text-gray-600 disabled:text-gray-200 disabled:cursor-not-allowed transition-colors rounded"
+              title="Переместить вверх"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <button
+              onClick={onMoveDown}
+              disabled={!canMoveDown}
+              className="p-1.5 text-gray-400 hover:text-gray-600 disabled:text-gray-200 disabled:cursor-not-allowed transition-colors rounded"
+              title="Переместить вниз"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Price and Status */}
       <div className="flex items-center gap-4 mb-3">
@@ -213,7 +247,8 @@ export default function ProductManagement() {
     periodDays: '30',
     isActive: true,
     allowDemo: false,
-    demoDays: '7'
+    demoDays: '7',
+    sortOrder: ''
   })
 
   const [editProduct, setEditProduct] = useState({
@@ -226,7 +261,8 @@ export default function ProductManagement() {
     periodDays: '',
     isActive: true,
     allowDemo: false,
-    demoDays: '7'
+    demoDays: '7',
+    sortOrder: ''
   })
 
   // Функция для получения информации о канале по ID
@@ -321,7 +357,8 @@ export default function ProductManagement() {
         periodDays: newProduct.periodDays,
         isActive: newProduct.isActive,
         allowDemo: newProduct.allowDemo,
-        demoDays: newProduct.allowDemo ? (parseInt(newProduct.demoDays) || 7) : null
+        demoDays: newProduct.allowDemo ? (parseInt(newProduct.demoDays) || 7) : null,
+        sortOrder: newProduct.sortOrder ? parseInt(newProduct.sortOrder) : null
       }
 
       const response = await fetch('/api/admin/products', createAuthenticatedRequest({
@@ -345,7 +382,8 @@ export default function ProductManagement() {
           periodDays: '30',
           isActive: true,
           allowDemo: false,
-          demoDays: '7'
+          demoDays: '7',
+          sortOrder: ''
         })
         fetchProducts()
       } else {
@@ -376,7 +414,8 @@ export default function ProductManagement() {
         periodDays: editProduct.periodDays,
         isActive: editProduct.isActive,
         allowDemo: editProduct.allowDemo,
-        demoDays: editProduct.allowDemo ? (parseInt(editProduct.demoDays) || 7) : null
+        demoDays: editProduct.allowDemo ? (parseInt(editProduct.demoDays) || 7) : null,
+        sortOrder: editProduct.sortOrder ? parseInt(editProduct.sortOrder) : null
       }
 
       const response = await fetch(`/api/admin/products?id=${selectedProduct.productId}`, createAuthenticatedRequest({
@@ -399,7 +438,8 @@ export default function ProductManagement() {
           periodDays: '',
           isActive: true,
           allowDemo: false,
-          demoDays: '7'
+          demoDays: '7',
+          sortOrder: ''
         })
         fetchProducts()
       } else {
@@ -472,9 +512,68 @@ export default function ProductManagement() {
       periodDays: product.periodDays.toString(),
       isActive: product.isActive,
       allowDemo: product.allowDemo || false,
-      demoDays: product.demoDays?.toString() || '7'
+      demoDays: product.demoDays?.toString() || '7',
+      sortOrder: product.sortOrder?.toString() || ''
     })
     setShowEditModal(true)
+  }
+
+  // Функция для обновления порядка продуктов
+  const updateProductOrder = async (productOrders: { productId: string; sortOrder: number | null }[]) => {
+    try {
+      const response = await fetch('/api/admin/products/reorder', createAuthenticatedRequest({
+        method: 'POST',
+        body: JSON.stringify({ productOrders })
+      }))
+
+      if (!response.ok) {
+        throw new Error('Failed to update product order')
+      }
+
+      await fetchProducts() // Обновляем список продуктов
+    } catch (error) {
+      console.error('❌ Error updating product order:', error)
+      alert(`Ошибка обновления порядка: ${error instanceof Error ? error.message : 'Failed to update product order'}`)
+    }
+  }
+
+  // Функция для перемещения продукта вверх/вниз
+  const moveProduct = async (productId: string, direction: 'up' | 'down') => {
+    const currentProducts = [...products]
+    const currentIndex = currentProducts.findIndex(p => p.productId === productId)
+
+    if (currentIndex === -1) return
+
+    let newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+
+    // Проверяем границы
+    if (newIndex < 0 || newIndex >= currentProducts.length) return
+
+    // Меняем продукты местами
+    const [movedProduct] = currentProducts.splice(currentIndex, 1)
+    currentProducts.splice(newIndex, 0, movedProduct)
+
+    // Генерируем новые порядки
+    const productOrders = currentProducts.map((product, index) => ({
+      productId: product.productId,
+      sortOrder: index
+    }))
+
+    await updateProductOrder(productOrders)
+  }
+
+  // Функция для автоматического присвоения порядков всем продуктам
+  const assignSequentialOrder = async () => {
+    try {
+      const productOrders = products.map((product, index) => ({
+        productId: product.productId,
+        sortOrder: index
+      }))
+
+      await updateProductOrder(productOrders)
+    } catch (error) {
+      console.error('❌ Error assigning sequential order:', error)
+    }
   }
 
   if (loading) {
@@ -494,15 +593,27 @@ export default function ProductManagement() {
           <h2 className="text-xl font-semibold text-gray-900">Управление продуктами</h2>
           <p className="text-sm text-gray-600 mt-1">{products.length} {products.length === 1 ? 'продукт' : products.length < 5 ? 'продукта' : 'продуктов'}</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 self-start"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Создать продукт
-        </button>
+        <div className="flex items-center gap-3 self-start">
+          <button
+            onClick={assignSequentialOrder}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+            title="Упорядочить все продукты по алфавиту"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+            </svg>
+            Упорядочить
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Создать продукт
+          </button>
+        </div>
       </div>
 
       {/* Desktop Table */}
@@ -525,6 +636,9 @@ export default function ProductManagement() {
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Подписки
+                </th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Порядок
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Действия
@@ -589,6 +703,33 @@ export default function ProductManagement() {
                       <span className="text-sm font-medium text-gray-900">{product._count.subscriptions}</span>
                     </div>
                   </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => moveProduct(product.productId, 'up')}
+                        disabled={products[0]?.productId === product.productId}
+                        className="p-1 text-gray-400 hover:text-gray-600 disabled:text-gray-200 disabled:cursor-not-allowed transition-colors"
+                        title="Переместить вверх"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => moveProduct(product.productId, 'down')}
+                        disabled={products[products.length - 1]?.productId === product.productId}
+                        className="p-1 text-gray-400 hover:text-gray-600 disabled:text-gray-200 disabled:cursor-not-allowed transition-colors"
+                        title="Переместить вниз"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      <span className="text-xs text-gray-500 w-8 text-center">
+                        {product.sortOrder !== null ? product.sortOrder : ''}
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-right">
                     <DropdownMenu
                       product={product}
@@ -606,13 +747,17 @@ export default function ProductManagement() {
 
       {/* Mobile Cards */}
       <div className="lg:hidden space-y-4">
-        {products.map((product) => (
+        {products.map((product, index) => (
           <ProductCard
             key={product.productId}
             product={product}
             onEdit={() => openEditModal(product)}
             onDelete={() => deleteProduct(product.productId)}
             onToggleStatus={() => toggleProductStatus(product)}
+            onMoveUp={() => moveProduct(product.productId, 'up')}
+            onMoveDown={() => moveProduct(product.productId, 'down')}
+            canMoveUp={index > 0}
+            canMoveDown={index < products.length - 1}
           />
         ))}
       </div>
@@ -700,6 +845,23 @@ export default function ProductManagement() {
                       min="1"
                     />
                   </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Порядок сортировки
+                    <span className="text-xs text-gray-500 ml-1">(необязательно, 0=первый)</span>
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={newProduct.sortOrder}
+                    onChange={(e) => setNewProduct({...newProduct, sortOrder: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    min="0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Продукты с меньшим значением будут отображаться выше в списке
+                  </p>
                 </div>
               </div>
 
@@ -886,6 +1048,23 @@ export default function ProductManagement() {
                       min="1"
                     />
                   </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Порядок сортировки
+                    <span className="text-xs text-gray-500 ml-1">(необязательно, 0=первый)</span>
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={editProduct.sortOrder}
+                    onChange={(e) => setEditProduct({...editProduct, sortOrder: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    min="0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Продукты с меньшим значением будут отображаться выше в списке
+                  </p>
                 </div>
               </div>
 

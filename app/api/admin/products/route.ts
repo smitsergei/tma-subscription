@@ -112,7 +112,10 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: [
+        { sortOrder: { sort: 'asc', nulls: 'first' } },
+        { createdAt: 'desc' }
+      ]
     })
 
     // Конвертируем BigInt в string для JSON сериализации
@@ -127,6 +130,7 @@ export async function GET(request: NextRequest) {
       discountPrice: product.discountPrice ? parseFloat(product.discountPrice.toString()) : null,
       allowDemo: product.allowDemo,
       demoDays: product.demoDays,
+      sortOrder: product.sortOrder,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
       channelId: product.channelId.toString(),
@@ -157,7 +161,7 @@ export async function POST(request: NextRequest) {
       return createJsonResponse({ error: 'Unauthorized' }, 401)
     }
 
-    const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive, allowDemo, demoDays } = await request.json()
+    const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive, allowDemo, demoDays, sortOrder } = await request.json()
 
     console.log('🔍 API: Creating product with data:', {
       name: !!name,
@@ -167,7 +171,8 @@ export async function POST(request: NextRequest) {
       periodDays: periodDays,
       isActive: isActive,
       allowDemo: allowDemo,
-      demoDays: demoDays
+      demoDays: demoDays,
+      sortOrder: sortOrder
     })
 
     // Validate required fields
@@ -266,7 +271,8 @@ export async function POST(request: NextRequest) {
       periodDays: periodDays || 30,
       isActive: isActive !== false,
       allowDemo: allowDemo || false,
-      demoDays: allowDemo && demoDays ? parseInt(demoDays) : 7
+      demoDays: allowDemo && demoDays ? parseInt(demoDays) : 7,
+      sortOrder: sortOrder ? parseInt(sortOrder) : null
     })
 
     const product = await prisma.product.create({
@@ -278,7 +284,8 @@ export async function POST(request: NextRequest) {
         periodDays: parseInt(periodDays) || 30,
         isActive: isActive !== false,
         allowDemo: allowDemo || false,
-        demoDays: allowDemo && demoDays ? parseInt(demoDays) : 7
+        demoDays: allowDemo && demoDays ? parseInt(demoDays) : 7,
+        sortOrder: sortOrder ? parseInt(sortOrder) : null
       },
       include: {
         channel: true
@@ -304,6 +311,7 @@ export async function POST(request: NextRequest) {
       discountPrice: product.discountPrice ? parseFloat(product.discountPrice.toString()) : null,
       allowDemo: product.allowDemo,
       demoDays: product.demoDays,
+      sortOrder: product.sortOrder,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
       channelId: product.channelId.toString(),
@@ -371,7 +379,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive, allowDemo, demoDays } = await request.json()
+    const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive, allowDemo, demoDays, sortOrder } = await request.json()
 
     // Handle channel change if provided
     let updateData: any = {}
@@ -383,6 +391,7 @@ export async function PUT(request: NextRequest) {
     if (isActive !== undefined) updateData.isActive = isActive
     if (allowDemo !== undefined) updateData.allowDemo = allowDemo
     if (allowDemo && demoDays !== undefined) updateData.demoDays = parseInt(demoDays) || 7
+    if (sortOrder !== undefined) updateData.sortOrder = sortOrder ? parseInt(sortOrder) : null
 
     if (channelTelegramId || channelName || channelUsername) {
       // Get current product to find its channel ID
@@ -479,6 +488,7 @@ export async function PUT(request: NextRequest) {
       discountPrice: product.discountPrice ? parseFloat(product.discountPrice.toString()) : null,
       allowDemo: product.allowDemo,
       demoDays: product.demoDays,
+      sortOrder: product.sortOrder,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
       channelId: product.channelId.toString(),

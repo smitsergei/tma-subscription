@@ -64,6 +64,7 @@ model Product {
   isActive      Boolean        @default(true) @map("is_active")
   allowDemo     Boolean        @default(false) @map("allow_demo")
   demoDays      Int            @default(7) @map("demo_days")
+  sortOrder     Int?           @map("sort_order")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   payments      Payment[]

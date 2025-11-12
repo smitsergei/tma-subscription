@@ -57,9 +57,10 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: [
+        { sortOrder: { sort: 'asc', nulls: 'first' } },
+        { createdAt: 'desc' }
+      ]
     })
 
     console.log(`🔍 PRODUCTS: Found ${products.length} products`)

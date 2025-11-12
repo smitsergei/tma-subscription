@@ -142,9 +142,10 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: [
+        { sortOrder: { sort: 'asc', nulls: 'first' } },
+        { createdAt: 'desc' }
+      ]
     });
 
     // Получаем все демо-доступы пользователя для проверки
