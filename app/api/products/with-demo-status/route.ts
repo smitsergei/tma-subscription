@@ -261,11 +261,13 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ PRODUCTS WITH DEMO: Successfully processed products');
 
-    return createJsonResponse({
+    return new NextResponse(safeStringify({
       success: true,
       data: productsWithDiscountsAndDemo
-    }, {
+    }), {
+      status: 200,
       headers: {
+        'Content-Type': 'application/json',
         'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
         'Pragma': 'no-cache',
         'Expires': '0'
