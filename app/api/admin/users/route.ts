@@ -333,16 +333,42 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Delete user's subscriptions first
-    await prisma.subscription.deleteMany({
-      where: {
-        user: { telegramId: BigInt(telegramId) }
-      }
+    // Удаляем все связанные записи в правильном порядке
+    const userId = BigInt(telegramId)
+
+    // 1. Удаляем использования промокодов
+    await prisma.promoUsage.deleteMany({
+      where: { userId }
     })
 
-    // Delete user
+    // 2. Удаляем использования скидок
+    await prisma.discountUsage.deleteMany({
+      where: { userId }
+    })
+
+    // 3. Удаляем демо-доступ
+    await prisma.demoAccess.deleteMany({
+      where: { userId }
+    })
+
+    // 4. Удаляем подписки
+    await prisma.subscription.deleteMany({
+      where: { userId }
+    })
+
+    // 5. Удаляем платежи
+    await prisma.payment.deleteMany({
+      where: { userId }
+    })
+
+    // 6. Удаляем админские права, если есть
+    await prisma.admin.deleteMany({
+      where: { telegramId: userId }
+    })
+
+    // 7. Удаляем пользователя
     await prisma.user.delete({
-      where: { telegramId: BigInt(telegramId) }
+      where: { telegramId: userId }
     })
 
     return createJsonResponse({ success: true })
