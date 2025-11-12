@@ -66,16 +66,39 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const demoId = params.id
     const body = await request.json()
-    const { additionalDays } = body
+    const { newExpiresAt } = body
 
-    if (!additionalDays || additionalDays <= 0) {
+    if (!newExpiresAt) {
       return createJsonResponse(
-        { error: 'Additional days must be greater than 0' },
+        { error: 'New expiration date is required' },
         400
       )
     }
 
-    console.log('🔍 Extending demo access:', demoId, 'by', additionalDays, 'days')
+    // Парсим дату и проверяем валидность
+    let expiresDate: Date
+    try {
+      expiresDate = new Date(newExpiresAt)
+      if (isNaN(expiresDate.getTime())) {
+        throw new Error('Invalid date format')
+      }
+    } catch (error) {
+      return createJsonResponse(
+        { error: 'Invalid date format', details: 'Please provide a valid date string' },
+        400
+      )
+    }
+
+    // Проверяем, что новая дата в будущем
+    const now = new Date()
+    if (expiresDate <= now) {
+      return createJsonResponse(
+        { error: 'New expiration date must be in the future' },
+        400
+      )
+    }
+
+    console.log('🔍 Extending demo access:', demoId, 'to', expiresDate.toISOString())
 
     // Проверяем существование демо-доступа
     const existingDemoAccess = await prisma.demoAccess.findUnique({
@@ -89,14 +112,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       )
     }
 
-    // Расширяем срок действия демо-доступа
-    const newExpiresAt = new Date(existingDemoAccess.expiresAt)
-    newExpiresAt.setDate(newExpiresAt.getDate() + additionalDays)
-
     const updatedDemoAccess = await prisma.demoAccess.update({
       where: { id: demoId },
       data: {
-        expiresAt: newExpiresAt,
+        expiresAt: expiresDate,
         isActive: true // Активируем, если был неактивен
       },
       include: {

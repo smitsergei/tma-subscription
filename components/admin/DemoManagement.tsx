@@ -70,7 +70,7 @@ function DropdownMenu({ demoAccess, onExtend, onRevoke, onDelete }: DropdownMenu
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Продлить на 7 дней
+              Продлить
             </button>
             <button
               onClick={() => {
@@ -218,7 +218,7 @@ function DemoAccessCard({ demoAccess, onExtend, onRevoke, onDelete }: DemoAccess
           onClick={onExtend}
           className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors"
         >
-          +7 дней
+          Продлить
         </button>
         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
           isDemoActive()
@@ -249,6 +249,12 @@ export default function DemoManagement() {
   const [userSearch, setUserSearch] = useState('')
   const [userSearchLoading, setUserSearchLoading] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
+
+  // Состояния для модального окна продления
+  const [showExtendModal, setShowExtendModal] = useState(false)
+  const [selectedDemoId, setSelectedDemoId] = useState('')
+  const [selectedDemo, setSelectedDemo] = useState<DemoAccess | null>(null)
+  const [extendDate, setExtendDate] = useState('')
 
   const fetchDemoAccesses = async () => {
     try {
@@ -392,17 +398,39 @@ export default function DemoManagement() {
     }
   }
 
-  const extendDemoAccess = async (demoId: string, additionalDays: number) => {
-    try {
-      console.log('🔍 Extending demo access:', demoId, 'by', additionalDays, 'days')
+  const openExtendModal = (demoId: string) => {
+    const demo = demoAccesses.find(d => d.id === demoId)
+    if (demo) {
+      setSelectedDemoId(demoId)
+      setSelectedDemo(demo)
+      // Устанавливаем дату по умолчанию - текущая дата окончания + 7 дней
+      const defaultDate = new Date(demo.expiresAt)
+      defaultDate.setDate(defaultDate.getDate() + 7)
+      setExtendDate(defaultDate.toISOString().split('T')[0]) // формат YYYY-MM-DD для input type="date"
+      setShowExtendModal(true)
+    }
+  }
 
-      const response = await fetch(`/api/admin/demo/extend/${demoId}`, createAuthenticatedRequest({
+  const extendDemoAccess = async () => {
+    try {
+      if (!extendDate) {
+        alert('Пожалуйста, выберите дату продления')
+        return
+      }
+
+      console.log('🔍 Extending demo access:', selectedDemoId, 'to', extendDate)
+
+      const response = await fetch(`/api/admin/demo/extend/${selectedDemoId}`, createAuthenticatedRequest({
         method: 'POST',
-        body: JSON.stringify({ additionalDays })
+        body: JSON.stringify({ newExpiresAt: extendDate })
       }))
 
       if (response.ok) {
         console.log('✅ Demo access extended successfully')
+        setShowExtendModal(false)
+        setSelectedDemoId('')
+        setSelectedDemo(null)
+        setExtendDate('')
         fetchDemoAccesses()
       } else {
         const error = await response.json()
@@ -623,10 +651,10 @@ export default function DemoManagement() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => extendDemoAccess(demoAccess.id, 7)}
+                        onClick={() => openExtendModal(demoAccess.id)}
                         className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors"
                       >
-                        +7 дней
+                        Продлить
                       </button>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                         isDemoActive(demoAccess)
@@ -640,7 +668,7 @@ export default function DemoManagement() {
                   <td className="px-6 py-4 text-right">
                     <DropdownMenu
                       demoAccess={demoAccess}
-                      onExtend={() => extendDemoAccess(demoAccess.id, 7)}
+                      onExtend={() => openExtendModal(demoAccess.id)}
                       onRevoke={() => revokeDemoAccess(demoAccess.id)}
                       onDelete={() => deleteDemoAccess(demoAccess.id)}
                     />
@@ -658,7 +686,7 @@ export default function DemoManagement() {
           <DemoAccessCard
             key={demoAccess.id}
             demoAccess={demoAccess}
-            onExtend={() => extendDemoAccess(demoAccess.id, 7)}
+            onExtend={() => openExtendModal(demoAccess.id)}
             onRevoke={() => revokeDemoAccess(demoAccess.id)}
             onDelete={() => deleteDemoAccess(demoAccess.id)}
           />
@@ -818,6 +846,107 @@ export default function DemoManagement() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
               >
                 Выдать демо-доступ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Extend Demo Access Modal */}
+      {showExtendModal && selectedDemo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Продлить демо-доступ</h3>
+
+            {/* Demo Info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <div className="text-sm">
+                <div className="font-medium text-blue-900">
+                  {selectedDemo.user.firstName} (@{selectedDemo.user.username || 'no_username'})
+                </div>
+                <div className="text-blue-700">
+                  Продукт: {selectedDemo.product.name}
+                </div>
+                <div className="text-blue-600 text-xs mt-1">
+                  Текущая дата окончания: {new Date(selectedDemo.expiresAt).toLocaleDateString('ru-RU')}
+                </div>
+              </div>
+            </div>
+
+            {/* Date Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Новая дата окончания *
+              </label>
+              <input
+                type="date"
+                value={extendDate}
+                onChange={(e) => setExtendDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]} // Минимальная дата - сегодня
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Выберите дату, до которой будет продлен демо-доступ
+              </div>
+            </div>
+
+            {/* Quick Selection Buttons */}
+            <div className="mb-4">
+              <div className="text-sm font-medium text-gray-700 mb-2">Быстрый выбор:</div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => {
+                    const date = new Date()
+                    date.setDate(date.getDate() + 7)
+                    setExtendDate(date.toISOString().split('T')[0])
+                  }}
+                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                >
+                  +7 дней
+                </button>
+                <button
+                  onClick={() => {
+                    const date = new Date()
+                    date.setDate(date.getDate() + 14)
+                    setExtendDate(date.toISOString().split('T')[0])
+                  }}
+                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                >
+                  +14 дней
+                </button>
+                <button
+                  onClick={() => {
+                    const date = new Date()
+                    date.setDate(date.getDate() + 30)
+                    setExtendDate(date.toISOString().split('T')[0])
+                  }}
+                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                >
+                  +30 дней
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowExtendModal(false)
+                  setSelectedDemoId('')
+                  setSelectedDemo(null)
+                  setExtendDate('')
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={extendDemoAccess}
+                disabled={!extendDate}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+              >
+                Продлить
               </button>
             </div>
           </div>
