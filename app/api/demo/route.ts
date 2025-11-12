@@ -456,17 +456,72 @@ async function addUserToChannel(userTelegramId: BigInt, channelId: BigInt, produ
       throw new Error('Bot token not configured');
     }
 
-    // Создаем ссылку-приглашение для пользователя
-    const inviteResponse = await fetch(
-      `https://api.telegram.org/bot${botToken}/createChatInviteLink?chat_id=${channelId.toString()}&member_limit=1&name=Demo%20Access%20Invite&expire_date=${Math.floor(Date.now() / 1000) + 86400}`
-    );
+    // Сначала пробуем найти существующую демо-ссылку
+    let inviteLink = null;
 
-    const inviteResult = await inviteResponse.json();
-    console.log('🔍 Create invite link response:', inviteResult);
+    try {
+      const existingInvitesResponse = await fetch(
+        `https://api.telegram.org/bot${botToken}/getChatInviteLinks`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: channelId.toString()
+          })
+        }
+      );
 
-    if (inviteResult.ok) {
-      const inviteLink = inviteResult.result.invite_link;
+      const existingInvitesData = await existingInvitesResponse.json();
 
+      if (existingInvitesData.ok && existingInvitesData.result) {
+        const existingInvite = existingInvitesData.result.find((invite: any) =>
+          invite.name === 'Demo Access Invite' &&
+          invite.member_limit === 1 &&
+          !invite.is_revoked
+        );
+
+        if (existingInvite) {
+          inviteLink = existingInvite.invite_link;
+          console.log('🔍 Found existing demo invite link:', inviteLink);
+        }
+      }
+    } catch (error) {
+      console.log('🔍 Could not check existing demo invites, creating new one:', error);
+    }
+
+    // Если нет существующей ссылки, создаем новую
+    if (!inviteLink) {
+      console.log('🔍 Creating new demo invite link...');
+      const inviteResponse = await fetch(
+        `https://api.telegram.org/bot${botToken}/createChatInviteLink`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: channelId.toString(),
+            name: 'Demo Access Invite',
+            member_limit: 1
+            // Убрали expire_date, чтобы ссылка была постоянной
+          })
+        }
+      );
+
+      const inviteResult = await inviteResponse.json();
+      console.log('🔍 Create demo invite link response:', inviteResult);
+
+      if (inviteResult.ok) {
+        inviteLink = inviteResult.result.invite_link;
+        console.log('🔍 Created new demo invite link:', inviteLink);
+      } else {
+        throw new Error(`Failed to create demo invite link: ${inviteResult.description}`);
+      }
+    }
+
+    if (inviteLink) {
       // Отправляем пользователю сообщение со ссылкой-приглашением
       const messageResponse = await fetch(
         `https://api.telegram.org/bot${botToken}/sendMessage`,
@@ -485,7 +540,7 @@ ${inviteLink}
 
 Нажмите на ссылку выше, чтобы присоединиться к каналу.
 
-⚠️ *Внимание:* Ссылка действительна 24 часа.`,
+✅ *Внимание:* Ссылка постоянная и действительна всегда!`,
             parse_mode: 'Markdown',
             disable_web_page_preview: true,
             reply_markup: {
