@@ -215,10 +215,10 @@ export async function GET(request: NextRequest) {
           username: sub.user.username
         },
         product: {
-          name: sub.product.name,
+          name: sub.product?.name || 'Unknown Product',
           channel: {
-            channelId: sub.product.channel.channelId.toString(),
-            name: sub.product.channel.name
+            channelId: sub.product?.channel?.channelId?.toString() || 'unknown',
+            name: sub.product?.channel?.name || 'Unknown Channel'
           }
         },
         createdAt: sub.createdAt.toISOString(),
