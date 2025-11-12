@@ -189,16 +189,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Добавляем пользователя в канал (если еще не добавлен)
-        // Очищаем channelId для корректного формата
-        const cleanChannelId = demo.product.channel.channelId.toString().startsWith('@')
-          ? demo.product.channel.channelId.toString()
-          : `@${demo.product.channel.channelId}`;
-
-        console.log(`🔍 Creating invite link for demo user ${demo.user.telegramId} with channel ID: ${cleanChannelId}`);
-
         // Создаем invite link для пользователя
         const inviteResponse = await fetch(
-          `https://api.telegram.org/bot${botToken}/createChatInviteLink?chat_id=${cleanChannelId}&member_limit=1&name=Demo%20Access%20Invite&expire_date=${Math.floor(Date.now() / 1000) + 86400}`
+          `https://api.telegram.org/bot${botToken}/createChatInviteLink?chat_id=@${demo.product.channel.channelId}&member_limit=1&name=Demo%20Access%20Invite&expire_date=${Math.floor(Date.now() / 1000) + 86400}`
         );
 
         const inviteResult = await inviteResponse.json();
@@ -244,13 +237,6 @@ export async function POST(request: NextRequest) {
 // Функция для удаления пользователя из канала (такая же как в подписках)
 async function removeUserFromChannel(userId: string, channelId: string, botToken: string): Promise<void> {
   try {
-    // Очищаем channelId для корректного формата
-    const cleanChannelId = channelId.toString().startsWith('@')
-      ? channelId.toString()
-      : `@${channelId}`;
-
-    console.log(`🔍 Removing user ${userId} from channel ${cleanChannelId}`);
-
     // Проверка, состоит ли пользователь в канале
     const chatMemberResponse = await fetch(
       `https://api.telegram.org/bot${botToken}/getChatMember`,
@@ -258,7 +244,7 @@ async function removeUserFromChannel(userId: string, channelId: string, botToken
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: cleanChannelId,
+          chat_id: channelId,
           user_id: userId
         })
       }
@@ -279,7 +265,7 @@ async function removeUserFromChannel(userId: string, channelId: string, botToken
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              chat_id: cleanChannelId,
+              chat_id: channelId,
               user_id: userId,
               revoke_messages: false
             })
@@ -293,7 +279,7 @@ async function removeUserFromChannel(userId: string, channelId: string, botToken
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              chat_id: cleanChannelId,
+              chat_id: channelId,
               user_id: userId,
               only_if_banned: true
             })
