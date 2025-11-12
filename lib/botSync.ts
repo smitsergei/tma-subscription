@@ -16,6 +16,13 @@ export async function addUserToChannel(
   try {
     console.log('🤖 BOT SYNC: Adding user to channel:', { userId, channelId })
 
+    // Очищаем channelId - убираем @ если он уже есть, затем добавляем правильно
+    const cleanChannelId = channelId.toString().startsWith('@')
+      ? channelId.toString()
+      : `@${channelId}`;
+
+    console.log('🤖 BOT SYNC: Using cleaned channel ID:', cleanChannelId);
+
     // Проверяем статус пользователя в канале
     const response = await fetch(
       `https://api.telegram.org/bot${botToken}/getChatMember`,
@@ -25,7 +32,7 @@ export async function addUserToChannel(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: channelId,
+          chat_id: cleanChannelId,
           user_id: parseInt(userId)
         })
       }
@@ -50,7 +57,7 @@ export async function addUserToChannel(
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            chat_id: channelId,
+            chat_id: cleanChannelId,
             name: `Приглашение для доступа #${userId}`,
             creates_join_request: false,
             member_limit: 1,
@@ -65,7 +72,7 @@ export async function addUserToChannel(
         console.log('🤖 BOT SYNC: Created invite link:', inviteData.result.invite_link)
 
         // Отправляем ссылку-приглашение пользователю
-        await sendInviteLink(userId, inviteData.result.invite_link, channelId, botToken)
+        await sendInviteLink(userId, inviteData.result.invite_link, cleanChannelId, botToken)
 
         return {
           success: true,
@@ -96,6 +103,13 @@ export async function removeUserFromChannel(
   try {
     console.log('🤖 BOT SYNC: Removing user from channel:', { userId, channelId })
 
+    // Очищаем channelId - убираем @ если он уже есть, затем добавляем правильно
+    const cleanChannelId = channelId.toString().startsWith('@')
+      ? channelId.toString()
+      : `@${channelId}`;
+
+    console.log('🤖 BOT SYNC: Using cleaned channel ID for removal:', cleanChannelId);
+
     // Пытаемся забанить пользователя (это удалит его из канала)
     const response = await fetch(
       `https://api.telegram.org/bot${botToken}/banChatMember`,
@@ -105,7 +119,7 @@ export async function removeUserFromChannel(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: channelId,
+          chat_id: cleanChannelId,
           user_id: parseInt(userId),
           revoke_messages: false // Не удалять сообщения пользователя
         })
@@ -118,7 +132,7 @@ export async function removeUserFromChannel(
       console.log('🤖 BOT SYNC: User banned from channel successfully')
 
       // Сразу разбаниваем пользователя, чтобы он мог вернуться позже с новой подпиской
-      await unbanUserFromChannel(userId, channelId, botToken)
+      await unbanUserFromChannel(userId, cleanChannelId, botToken)
 
       return { success: true }
     } else {
@@ -141,6 +155,13 @@ async function unbanUserFromChannel(
   botToken: string
 ): Promise<void> {
   try {
+    // Очищаем channelId для корректного формата
+    const cleanChannelId = channelId.toString().startsWith('@')
+      ? channelId.toString()
+      : `@${channelId}`;
+
+    console.log('🤖 BOT SYNC: Unbanning user from channel:', cleanChannelId);
+
     await fetch(
       `https://api.telegram.org/bot${botToken}/unbanChatMember`,
       {
@@ -149,7 +170,7 @@ async function unbanUserFromChannel(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: channelId,
+          chat_id: cleanChannelId,
           user_id: parseInt(userId),
           only_if_banned: true
         })
@@ -171,6 +192,13 @@ async function sendInviteLink(
   botToken: string
 ): Promise<void> {
   try {
+    // Очищаем channelId для корректного формата
+    const cleanChannelId = channelId.toString().startsWith('@')
+      ? channelId.toString()
+      : `@${channelId}`;
+
+    console.log('🤖 BOT SYNC: Getting channel info for:', cleanChannelId);
+
     // Получаем информацию о канале
     const channelResponse = await fetch(
       `https://api.telegram.org/bot${botToken}/getChat`,
@@ -180,7 +208,7 @@ async function sendInviteLink(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: channelId
+          chat_id: cleanChannelId
         })
       }
     )
