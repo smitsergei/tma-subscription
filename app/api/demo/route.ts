@@ -434,19 +434,45 @@ async function addUserToChannel(userTelegramId: BigInt, channelId: BigInt, produ
 
       // Отправляем пользователю сообщение со ссылкой-приглашением
       const messageResponse = await fetch(
-        `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${userTelegramId}&text=${encodeURIComponent(
-          `🎉 Демо-доступ активирован!
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: userTelegramId.toString(),
+            text: `🎉 *Демо-доступ активирован!*
 
-📦 Продукт: ${productName}
-📅 Длительность: демо-период
-🔗 Ссылка для входа в канал:
+📦 *Продукт:* ${productName}
+📅 *Ваш демо-период начался!*
 
+🔗 *Ссылка для входа в канал:*
 ${inviteLink}
 
 Нажмите на ссылку выше, чтобы присоединиться к каналу.
 
-⚠️ Внимание: Ссылка действительна 24 часа.`
-        )}&parse_mode=HTML&disable_web_page_preview=true`
+⚠️ *Внимание:* Ссылка действительна 24 часа.`,
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true,
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🚀 Открыть канал',
+                    url: inviteLink
+                  }
+                ],
+                [
+                  {
+                    text: '📱 Открыть Mini App',
+                    web_app: {
+                      url: `${process.env.APP_URL}/app`
+                    }
+                  }
+                ]
+              ]
+            }
+          })
+        }
       );
 
       const messageResult = await messageResponse.json();
@@ -461,14 +487,33 @@ ${inviteLink}
 
       // Если не удалось создать ссылку, отправляем базовое сообщение
       const fallbackResponse = await fetch(
-        `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${userTelegramId}&text=${encodeURIComponent(
-          `🎉 Демо-доступ активирован!
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: userTelegramId.toString(),
+            text: `🎉 *Демо-доступ активирован!*
 
-📦 Продукт: ${productName}
-📅 Ваш демо-период начался!
+📦 *Продукт:* ${productName}
+📅 *Ваш демо-период начался!*
 
-ℹ️ Для доступа к каналу, пожалуйста, свяжитесь с администратором.`
-        )}&parse_mode=HTML`
+ℹ️ Для доступа к каналу, пожалуйста, свяжитесь с администратором.`,
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '📱 Открыть Mini App',
+                    web_app: {
+                      url: `${process.env.APP_URL}/app`
+                    }
+                  }
+                ]
+              ]
+            }
+          })
+        }
       );
 
       const fallbackResult = await fallbackResponse.json();
