@@ -148,6 +148,21 @@ export async function POST(request: NextRequest) {
       })
     } else {
       console.error('❌ SEND_INVITE API: Failed to send invite link:', result.error)
+
+      // Проверяем, это ошибка блокировки пользователя
+      if (result.error?.includes('blocked by the user') || result.error?.includes('403')) {
+        return NextResponse.json({
+          success: false,
+          error: 'User has blocked the bot',
+          details: `Пользователь ${subscription.user.firstName} (ID: ${subscription.userId.toString()}) заблокировал бота @tma_subscription_bot.
+
+          Что нужно сделать:
+          1. Попросите пользователя найти бота @tma_subscription_bot и нажать "Unblock"
+          2. Или проверьте настройки приватности пользователя
+          3. Отправьте ссылку вручную: ${result.inviteLink || 'Ссылка не создана'}`
+        }, { status: 400 })
+      }
+
       return NextResponse.json(
         {
           error: 'Failed to send invite link',

@@ -490,7 +490,16 @@ export default function SubscriptionManagement() {
 
       if (response.ok) {
         const result = await response.json()
-        alert('✅ Ссылка успешно отправлена пользователю!')
+        if (result.success) {
+          alert('✅ Ссылка успешно отправлена пользователю!')
+        } else {
+          // Специальная обработка для ошибки блокировки пользователя
+          if (result.error === 'User has blocked the bot') {
+            alert(`❌ Пользователь заблокировал бота!\n\n${result.details}`)
+          } else {
+            alert(`❌ Ошибка: ${result.error}\n\nДетали: ${result.details}`)
+          }
+        }
         console.log('Invite link result:', result)
       } else {
         const error = await response.json()
