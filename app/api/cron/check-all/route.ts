@@ -77,6 +77,12 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`🗑️ Processing expired subscription: ${subscription.subscriptionId}`);
 
+        // Проверяем, что продукт и канал существуют
+        if (!subscription.product || !subscription.product.channel) {
+          console.warn(`⚠️ Skipping subscription ${subscription.subscriptionId}: missing product or channel data`);
+          continue;
+        }
+
         // Удаляем пользователя из канала
         await removeUserFromChannel(
           subscription.user.telegramId.toString(),
@@ -144,6 +150,12 @@ export async function POST(request: NextRequest) {
     for (const demo of expiredDemoAccesses) {
       try {
         console.log(`🗑️ Processing expired demo: ${demo.id}`);
+
+        // Проверяем, что продукт и канал существуют
+        if (!demo.product || !demo.product.channel) {
+          console.warn(`⚠️ Skipping demo ${demo.id}: missing product or channel data`);
+          continue;
+        }
 
         // Проверяем, есть ли активная платная подписка
         const activeSubscription = await prisma.subscription.findFirst({
