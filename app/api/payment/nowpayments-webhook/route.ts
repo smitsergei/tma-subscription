@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyNOWPaymentsIPN } from '@/lib/utils'
+import { syncChannelAccess } from '@/lib/botSync'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,7 +104,11 @@ export async function POST(request: NextRequest) {
       where: { paymentId: localPaymentId },
       include: {
         user: true,
-        product: true
+        product: {
+          include: {
+            channel: true
+          }
+        }
       }
     })
 
@@ -180,6 +185,26 @@ export async function POST(request: NextRequest) {
           })
           console.log('✅ Subscription created:', subscription.subscriptionId)
         }
+
+        // Синхронизация доступа к каналу и отправка уведомлений
+        if (payment.product?.channel && subscription) {
+          console.log('🤖 Syncing channel access for successful payment...')
+
+          const syncResult = await syncChannelAccess(
+            payment.userId.toString(),
+            payment.product.channel.channelId.toString(),
+            'active',
+            payment.product.name,
+            payment.product.channel.name || 'Канал',
+            expiresAt
+          )
+
+          if (syncResult.success) {
+            console.log('✅ Channel access synchronized successfully')
+          } else {
+            console.error('❌ Failed to sync channel access:', syncResult.error)
+          }
+        }
       } else {
         console.log('ℹ️ Custom payment without product, no subscription created')
       }
@@ -187,7 +212,7 @@ export async function POST(request: NextRequest) {
       console.log('❌ Payment failed, updating subscription status...')
 
       // Деактивация подписки если платеж не удался
-      await prisma.subscription.updateMany({
+      const updatedSubscriptions = await prisma.subscription.updateMany({
         where: {
           userId: payment.userId,
           productId: payment.productId,
@@ -198,6 +223,25 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date()
         }
       })
+
+      // Синхронизация доступа к каналу при неудачном платеже
+      if (updatedSubscriptions.count > 0 && payment.product?.channel) {
+        console.log('🤖 Syncing channel access for failed payment...')
+
+        const syncResult = await syncChannelAccess(
+          payment.userId.toString(),
+          payment.product.channel.channelId.toString(),
+          'expired',
+          payment.product.name,
+          payment.product.channel.name || 'Канал'
+        )
+
+        if (syncResult.success) {
+          console.log('✅ Channel access synchronized successfully for failed payment')
+        } else {
+          console.error('❌ Failed to sync channel access for failed payment:', syncResult.error)
+        }
+      }
     }
 
     // Логирование успешной обработки IPN

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { syncChannelAccess } from '@/lib/botSync'
 
 interface PaymentMonitorRequest {
   productId?: string
@@ -125,6 +126,7 @@ async function processConfirmedPayment(payment: any, txHash: string) {
 
   try {
     // Создание подписки
+    const startsAt = new Date()
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + payment.product.periodDays)
 
@@ -135,7 +137,7 @@ async function processConfirmedPayment(payment: any, txHash: string) {
         channelId: payment.product.channelId,
         paymentId: payment.paymentId,
         status: 'active',
-        startsAt: new Date(),
+        startsAt,
         expiresAt
       }
     })
@@ -151,7 +153,26 @@ async function processConfirmedPayment(payment: any, txHash: string) {
       }
     })
 
-    // Отправляем уведомление пользователю (можно добавить в будущем)
+    // Синхронизация доступа к каналу и отправка уведомлений
+    if (payment.product?.channel) {
+      console.log('🤖 MONITOR: Syncing channel access for confirmed payment...')
+
+      const syncResult = await syncChannelAccess(
+        payment.userId.toString(),
+        payment.product.channel.channelId.toString(),
+        'active',
+        payment.product.name,
+        payment.product.channel.name || 'Канал',
+        expiresAt
+      )
+
+      if (syncResult.success) {
+        console.log('✅ MONITOR: Channel access synchronized successfully')
+      } else {
+        console.error('❌ MONITOR: Failed to sync channel access:', syncResult.error)
+      }
+    }
+
     console.log('✅ MONITOR: Payment processed successfully')
 
     return subscription

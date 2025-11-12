@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
 import { Address, beginCell, toNano } from '@ton/ton'
 import { TonClient } from '@ton/ton'
+import { syncChannelAccess } from '@/lib/botSync'
 
 export const dynamic = 'force-dynamic'
 
@@ -268,97 +269,12 @@ async function verifyTonTransaction(txHash: string, payment: any): Promise<boole
   }
 }
 
-async function addUserToChannel(userId: string, channelId: string, botToken: string): Promise<void> {
-  try {
-    // Проверяем текущий статус пользователя в канале
-    const response = await fetch(
-      `https://api.telegram.org/bot${botToken}/getChatMember`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: channelId,
-          user_id: userId
-        })
-      }
-    )
-
-    const data = await response.json()
-    console.log('🔍 VERIFY: Checking user status in channel:', data.result?.status)
-
-    if (!data.ok || !data.result) {
-      console.log('🔍 VERIFY: Failed to get chat member status')
-      return
-    }
-
-    const userStatus = data.result.status
-
-    // Если пользователя нет в канале или он покинул его
-    if (['left', 'kicked', 'restricted'].includes(userStatus)) {
-      console.log('🔍 VERIFY: User not in channel, attempting to add')
-
-      // Создаем приглашение для пользователя
-      const inviteResponse = await fetch(
-        `https://api.telegram.org/bot${botToken}/createChatInviteLink`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            chat_id: channelId,
-            name: 'Приглашение после оплаты подписки',
-            creates_join_request: false,
-            member_limit: 1,
-            expire_date: Math.floor(Date.now() / 1000) + 86400 // 24 часа
-          })
-        }
-      )
-
-      const inviteData = await inviteResponse.json()
-
-      if (inviteData.ok && inviteData.result?.invite_link) {
-        console.log('🔍 VERIFY: Created invite link:', inviteData.result.invite_link)
-
-        // Отправляем ссылку-приглашение пользователю
-        await fetch(
-          `https://api.telegram.org/bot${botToken}/sendMessage`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              chat_id: userId,
-              text: `🎉 Ваша подписка активирована!
-
-Чтобы получить доступ к каналу, перейдите по ссылке:
-${inviteData.result.invite_link}
-
-Ссылка действительна 24 часа.`,
-              disable_web_page_preview: false
-            })
-          }
-        )
-      } else {
-        console.error('🔍 VERIFY: Failed to create invite link:', inviteData)
-      }
-    } else {
-      console.log('🔍 VERIFY: User already in channel')
-    }
-
-  } catch (error) {
-    console.error('🔍 VERIFY: Error managing channel membership:', error)
-    throw error
-  }
-}
 
 async function processConfirmedPayment(payment: any, txHash: string): Promise<any> {
   console.log('✅ VERIFY: Processing confirmed payment:', payment.paymentId)
 
   // Создание подписки
+  const startsAt = new Date()
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + payment.product.periodDays)
 
@@ -369,24 +285,31 @@ async function processConfirmedPayment(payment: any, txHash: string): Promise<an
       channelId: payment.product.channelId,
       paymentId: payment.paymentId,
       status: 'active',
-      startsAt: new Date(),
+      startsAt,
       expiresAt
     }
   })
 
   console.log('✅ VERIFY: Subscription created:', subscription.subscriptionId)
 
-  // Добавление пользователя в Telegram канал
-  try {
-    await addUserToChannel(
+  // Синхронизация доступа к каналу и отправка уведомлений
+  if (payment.product?.channel) {
+    console.log('🤖 VERIFY: Syncing channel access for confirmed payment...')
+
+    const syncResult = await syncChannelAccess(
       payment.userId.toString(),
       payment.product.channel.channelId.toString(),
-      process.env.BOT_TOKEN!
+      'active',
+      payment.product.name,
+      payment.product.channel.name || 'Канал',
+      expiresAt
     )
-    console.log('✅ VERIFY: User added to channel successfully')
-  } catch (error) {
-    console.error('🔍 VERIFY: Error adding user to channel:', error)
-    // Не прерываем процесс, если не удалось добавить в канал
+
+    if (syncResult.success) {
+      console.log('✅ VERIFY: Channel access synchronized successfully')
+    } else {
+      console.error('❌ VERIFY: Failed to sync channel access:', syncResult.error)
+    }
   }
 
   // Обновление статуса платежа
@@ -398,58 +321,8 @@ async function processConfirmedPayment(payment: any, txHash: string): Promise<an
     }
   })
 
-  // Отправляем уведомление пользователю
-  try {
-    await sendPaymentNotification(
-      payment.userId.toString(),
-      payment.product.name,
-      payment.product.channel.name,
-      expiresAt
-    )
-    console.log('✅ VERIFY: Notification sent successfully')
-  } catch (error) {
-    console.error('🔍 VERIFY: Error sending notification:', error)
-  }
+  console.log('✅ VERIFY: Payment processed successfully')
 
   return subscription
 }
 
-async function sendPaymentNotification(
-  userId: string,
-  productName: string,
-  channelName: string,
-  expiresAt: Date
-): Promise<void> {
-  try {
-    const message = `✅ <b>Оплата прошла успешно!</b>
-
-📦 <b>Подписка:</b> ${productName}
-📢 <b>Канал:</b> ${channelName}
-⏰ <b>Действует до:</b> ${expiresAt.toLocaleDateString('ru-RU')}
-
-Спасибо за покупку! Приятного пользования!`
-
-    const response = await fetch(
-      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: userId,
-          text: message,
-          parse_mode: 'HTML'
-        })
-      }
-    )
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('🔍 VERIFY: Failed to send notification:', errorText)
-    }
-
-  } catch (error) {
-    console.error('🔍 VERIFY: Error sending payment notification:', error)
-  }
-}
