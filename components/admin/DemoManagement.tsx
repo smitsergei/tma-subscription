@@ -35,9 +35,10 @@ interface DropdownMenuProps {
   demoAccess: DemoAccess
   onExtend: () => void
   onRevoke: () => void
+  onDelete: () => void
 }
 
-function DropdownMenu({ demoAccess, onExtend, onRevoke }: DropdownMenuProps) {
+function DropdownMenu({ demoAccess, onExtend, onRevoke, onDelete }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -83,6 +84,18 @@ function DropdownMenu({ demoAccess, onExtend, onRevoke }: DropdownMenuProps) {
               </svg>
               Отозвать доступ
             </button>
+            <button
+              onClick={() => {
+                onDelete()
+                setIsOpen(false)
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-100 flex items-center gap-2 border-t border-gray-100"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span className="font-semibold">Удалить навсегда</span>
+            </button>
           </div>
         </>
       )}
@@ -94,9 +107,10 @@ interface DemoAccessCardProps {
   demoAccess: DemoAccess
   onExtend: () => void
   onRevoke: () => void
+  onDelete: () => void
 }
 
-function DemoAccessCard({ demoAccess, onExtend, onRevoke }: DemoAccessCardProps) {
+function DemoAccessCard({ demoAccess, onExtend, onRevoke, onDelete }: DemoAccessCardProps) {
   const getDaysRemaining = () => {
     const now = new Date()
     const expiresAt = new Date(demoAccess.expiresAt)
@@ -144,6 +158,7 @@ function DemoAccessCard({ demoAccess, onExtend, onRevoke }: DemoAccessCardProps)
           demoAccess={demoAccess}
           onExtend={onExtend}
           onRevoke={onRevoke}
+          onDelete={onDelete}
         />
       </div>
 
@@ -400,6 +415,39 @@ export default function DemoManagement() {
     }
   }
 
+  const deleteDemoAccess = async (demoId: string) => {
+    const confirmation = confirm(
+      '⚠️ ВНИМАНИЕ: Это действие безвозвратно удалит демо-доступ!\n\n' +
+      'Пользователь будет немедленно удален из канала (если состоит в нем).\n' +
+      'Вся информация об этом демо-доступе будет навсегда утеряна.\n\n' +
+      'Вы действительно хотите продолжить?'
+    )
+
+    if (!confirmation) return
+
+    try {
+      console.log('🔍 Deleting demo access:', demoId)
+
+      const response = await fetch(`/api/admin/demo/delete/${demoId}`, createAuthenticatedRequest({
+        method: 'DELETE'
+      }))
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('✅ Demo access deleted successfully:', result)
+        alert(`✅ Демо-доступ успешно удален!\n\nПользователь: ${result.deletedDemo.user}\nПродукт: ${result.deletedDemo.product}`)
+        fetchDemoAccesses()
+      } else {
+        const error = await response.json()
+        console.error('❌ Demo access deletion failed:', error)
+        alert(`Ошибка: ${error.error || 'Failed to delete demo access'}\nДетали: ${error.details || ''}`)
+      }
+    } catch (error) {
+      console.error('❌ Error deleting demo access:', error)
+      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to delete demo access'}`)
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ru-RU')
   }
@@ -594,6 +642,7 @@ export default function DemoManagement() {
                       demoAccess={demoAccess}
                       onExtend={() => extendDemoAccess(demoAccess.id, 7)}
                       onRevoke={() => revokeDemoAccess(demoAccess.id)}
+                      onDelete={() => deleteDemoAccess(demoAccess.id)}
                     />
                   </td>
                 </tr>
@@ -611,6 +660,7 @@ export default function DemoManagement() {
             demoAccess={demoAccess}
             onExtend={() => extendDemoAccess(demoAccess.id, 7)}
             onRevoke={() => revokeDemoAccess(demoAccess.id)}
+            onDelete={() => deleteDemoAccess(demoAccess.id)}
           />
         ))}
       </div>
