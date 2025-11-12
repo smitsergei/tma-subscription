@@ -573,7 +573,7 @@ ${inviteLink}
       }
 
     } else {
-      console.error(`❌ Error creating invite link: ${inviteResult.description}`);
+      console.error(`❌ No invite link available for demo access`);
 
       // Если не удалось создать ссылку, отправляем базовое сообщение
       const fallbackResponse = await fetch(
