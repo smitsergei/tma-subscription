@@ -100,24 +100,56 @@ export async function addUserToChannel(
 
     // Если пользователя нет в канале, создаем приглашение
     if (!data.ok || !data.result || ['left', 'kicked', 'restricted'].includes(data.result.status)) {
-      const inviteResponse = await fetch(
-        `https://api.telegram.org/bot${botToken}/createChatInviteLink`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            chat_id: channelId,
-            name: `Приглашение для доступа #${userId}`,
-            creates_join_request: false,
-            member_limit: 1,
-            expire_date: Math.floor(Date.now() / 1000) + 24 * 60 * 60 // Ссылка действует 24 часа
-          })
-        }
-      )
+      console.log('🤖 BOT SYNC: User not in channel, creating invite link...')
 
-      const inviteData = await inviteResponse.json()
+      // Сначала пробуем создать ссылку без ограничений
+      let inviteData = null;
+      try {
+        const inviteResponse = await fetch(
+          `https://api.telegram.org/bot${botToken}/createChatInviteLink`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: channelId,
+              name: `Доступ к каналу для подписчиков #${Date.now()}`,
+              creates_join_request: false,
+              // Без member_limit и expire_date для большей надежности
+            })
+          }
+        )
+
+        inviteData = await inviteResponse.json()
+        console.log('🤖 BOT SYNC: Unrestricted invite response:', inviteData)
+      } catch (error) {
+        console.error('🤖 BOT SYNC: Error creating unrestricted invite:', error)
+      }
+
+      // Если не удалось создаем ссылку с ограничениями
+      if (!inviteData?.ok) {
+        console.log('🤖 BOT SYNC: Trying to create invite with restrictions...')
+        const inviteResponse = await fetch(
+          `https://api.telegram.org/bot${botToken}/createChatInviteLink`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: channelId,
+              name: `Доступ к каналу для пользователя #${userId}`,
+              creates_join_request: false,
+              member_limit: 10, // Увеличим лимит
+              expire_date: Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60 // 3 дня
+            })
+          }
+        )
+
+        inviteData = await inviteResponse.json()
+        console.log('🤖 BOT SYNC: Restricted invite response:', inviteData)
+      }
 
       if (inviteData.ok && inviteData.result?.invite_link) {
         console.log('🤖 BOT SYNC: Created invite link:', inviteData.result.invite_link)
@@ -139,7 +171,85 @@ export async function addUserToChannel(
         }
       } else {
         console.error('🤖 BOT SYNC: Failed to create invite link:', inviteData)
-        return { success: false, error: 'Failed to create invite link' }
+
+        // Проверим, возможно пользователь уже имеет доступ
+        try {
+          const memberCheck = await fetch(
+            `https://api.telegram.org/bot${botToken}/getChatMember`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                chat_id: channelId,
+                user_id: parseInt(userId)
+              })
+            }
+          )
+
+          const memberData = await memberCheck.json()
+
+          if (memberData.ok && ['member', 'administrator', 'creator'].includes(memberData.result?.status)) {
+            console.log('🤖 BOT SYNC: User actually has access, sending direct notification...')
+
+            // Получаем информацию о канале
+            const channelResponse = await fetch(
+              `https://api.telegram.org/bot${botToken}/getChat`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  chat_id: channelId
+                })
+              }
+            )
+
+            const channelData = await channelResponse.json()
+            const channelName = channelData.ok ? channelData.result.title : 'Канал'
+
+            const message = `✅ У вас уже есть доступ к каналу!
+
+📢 Канал: ${channelName}
+
+🔍 Если вы не видите канал:
+1. Перезапустите Telegram
+2. Обновите список чатов
+3. Найдите канал "${channelName}" в поиске
+
+Доступ подтвержден вашей активной подпиской!`
+
+            const messageResponse = await fetch(
+              `https://api.telegram.org/bot${botToken}/sendMessage`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  chat_id: parseInt(userId),
+                  text: message,
+                  parse_mode: 'HTML'
+                })
+              }
+            )
+
+            const messageResult = await messageResponse.json()
+
+            if (messageResult.ok) {
+              console.log('✅ BOT SYNC: Direct access notification sent successfully')
+              return { success: true, warning: 'User already has access, direct notification sent' }
+            } else {
+              console.error('❌ BOT SYNC: Failed to send direct notification:', messageResult)
+            }
+          }
+        } catch (checkError) {
+          console.error('🤖 BOT SYNC: Error checking user access:', checkError)
+        }
+
+        return { success: false, error: 'Failed to create invite link and user access check failed' }
       }
     }
 
