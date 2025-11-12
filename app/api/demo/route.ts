@@ -198,6 +198,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Проверяем, использовал ли пользователь демо-доступ для этого продукта ранее
+    const previousDemoAccess = await prisma.demoAccess.findFirst({
+      where: {
+        userId: telegramId as bigint,
+        productId: productId
+      },
+      orderBy: {
+        startedAt: 'desc'
+      }
+    });
+
+    if (previousDemoAccess) {
+      console.log('🔍 User has previous demo access:', {
+        userId: telegramId.toString(),
+        productId: productId,
+        startedAt: previousDemoAccess.startedAt.toISOString(),
+        isActive: previousDemoAccess.isActive,
+        expiresAt: previousDemoAccess.expiresAt.toISOString()
+      });
+
+      return createJsonResponse(
+        {
+          error: 'You have already used demo access for this product',
+          demoAccess: {
+            id: previousDemoAccess.id,
+            startedAt: previousDemoAccess.startedAt.toISOString(),
+            expiresAt: previousDemoAccess.expiresAt.toISOString(),
+            isActive: previousDemoAccess.isActive,
+            wasUsed: true
+          }
+        },
+        400
+      )
+    }
+
     // Проверяем, есть ли активная платная подписка
     const existingSubscription = await prisma.subscription.findFirst({
       where: {

@@ -55,12 +55,50 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
     clearPaymentData
   } = useNOWPayments()
 
-  // Функция для загрузки продуктов
+  // Функция для загрузки продуктов со статусом демо-доступа
   const loadProducts = async () => {
     try {
       setProductsLoading(true)
-      console.log('🔍 Loading products from API...')
+      console.log('🔍 Loading products with demo status from API...')
 
+      // Получаем Telegram init данные
+      const webAppData = parseTelegramInitData()
+
+      const response = await fetch('/api/products/with-demo-status' + (webAppData ? `?initData=${encodeURIComponent(webAppData)}` : ''), {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          ...(webAppData && { 'x-telegram-init-data': webAppData })
+        }
+      })
+      const data = await response.json()
+
+      console.log('🔍 Products with demo status API response:', data)
+
+      if (data.success) {
+        setProducts(data.data)
+        console.log(`✅ Loaded ${data.data.length} products with demo status`)
+      } else {
+        console.error('❌ Products API error:', data.error)
+        // Fallback к обычному API если новый не сработал
+        console.log('🔄 Fallback to regular products API...')
+        await loadProductsFallback()
+      }
+    } catch (error) {
+      console.error('❌ Error loading products with demo status:', error)
+      // Fallback к обычному API при ошибке
+      console.log('🔄 Fallback to regular products API due to error...')
+      await loadProductsFallback()
+    } finally {
+      setProductsLoading(false)
+    }
+  }
+
+  // Fallback функция для загрузки продуктов
+  const loadProductsFallback = async () => {
+    try {
       const response = await fetch('/api/products', {
         cache: 'no-store',
         headers: {
@@ -71,18 +109,12 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
       })
       const data = await response.json()
 
-      console.log('🔍 Products API response:', data)
-
       if (data.success) {
         setProducts(data.data)
-        console.log(`✅ Loaded ${data.data.length} products`)
-      } else {
-        console.error('❌ Products API error:', data.error)
+        console.log(`✅ Loaded ${data.data.length} products (fallback)`)
       }
     } catch (error) {
-      console.error('❌ Error loading products:', error)
-    } finally {
-      setProductsLoading(false)
+      console.error('❌ Error in fallback products loading:', error)
     }
   }
 
@@ -205,13 +237,25 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
       } else {
         // Обработка ошибок
         if (response.status === 400 && result.demoAccess) {
-          alert(`📋 У вас уже есть активный демо-доступ!
+          if (result.demoAccess.wasUsed) {
+            // Демо уже был использован ранее
+            alert(`📋 Вы уже использовали демо-доступ для этого продукта!
 
 📦 ${product.name}
-⏰ Осталось дней: ${result.demoAccess.daysRemaining}
+📅 Демо-период был: ${new Date(result.demoAccess.startedAt).toLocaleDateString('ru-RU')} - ${new Date(result.demoAccess.expiresAt).toLocaleDateString('ru-RU')}
+
+🛒 Для получения доступа к контенту оформите полную подписку.
+Кнопка "Демо" больше недоступна для этого продукта.`)
+          } else {
+            // Есть активный демо-доступ
+            alert(`📋 У вас есть активный демо-доступ!
+
+📦 ${product.name}
+⏰ Осталось дней: ${result.demoAccess.daysRemaining || Math.ceil((new Date(result.demoAccess.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
 📅 Истекает: ${new Date(result.demoAccess.expiresAt).toLocaleDateString('ru-RU')}
 
 Используйте текущий демо-доступ или оформите полную подписку.`)
+          }
         } else {
           alert(`❌ Ошибка при оформлении демо-доступа: ${result.error || 'Неизвестная ошибка'}`)
         }
@@ -662,6 +706,19 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                             </button>
                           )}
 
+                          {/* Кнопка для случая, когда демо уже использован */}
+                          {product.demoStatus?.hasUsed && (
+                            <button
+                              disabled={true}
+                              className="touch-target btn transition-all duration-200 flex-1 opacity-50 cursor-not-allowed bg-gray-400 text-gray-200"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span>Демо использовано</span>
+                            </button>
+                          )}
+
                           <button
                             onClick={() => handlePurchase(product)}
                             disabled={purchaseLoading === product.productId || paymentLoading}
@@ -695,7 +752,7 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                         </div>
 
                         {/* Информация о демо-доступе */}
-                        {product.allowDemo && (
+                        {product.allowDemo && !product.demoStatus?.hasUsed && (
                           <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                             <div className="flex items-start space-x-2">
                               <svg className="w-4 h-4 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -705,6 +762,40 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                                 <p className="text-sm text-green-800 font-medium">Бесплатный демо-доступ</p>
                                 <p className="text-xs text-green-600 mt-1">
                                   Попробуйте {product.demoDays} дней бесплатно. По окончании демо-периода доступ будет автоматически прекращен.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Информация о том, что демо уже использован */}
+                        {product.demoStatus?.hasUsed && (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                            <div className="flex items-start space-x-2">
+                              <svg className="w-4 h-4 text-gray-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-700 font-medium">Демо-доступ использован</p>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  Вы уже использовали демо-период для этого продукта. Для получения доступа оформите полную подписку.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Информация об активном демо-доступе */}
+                        {product.demoStatus?.isActive && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-start space-x-2">
+                              <svg className="w-4 h-4 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div className="flex-1">
+                                <p className="text-sm text-blue-800 font-medium">Активный демо-доступ</p>
+                                <p className="text-xs text-blue-600 mt-1">
+                                  Осталось {product.demoStatus.demoAccess?.daysRemaining || 0} дней. Наслаждайтесь доступом к контенту!
                                 </p>
                               </div>
                             </div>
