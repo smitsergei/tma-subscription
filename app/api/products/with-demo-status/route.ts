@@ -276,14 +276,16 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error in products with demo status fetch:', error);
-    return createJsonResponse(
-      {
-        success: false,
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return new NextResponse(safeStringify({
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
 }
 
