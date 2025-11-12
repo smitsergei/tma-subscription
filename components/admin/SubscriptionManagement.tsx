@@ -32,9 +32,10 @@ interface DropdownMenuProps {
   subscription: Subscription
   onEdit: () => void
   onDelete: () => void
+  onSendInvite: () => void
 }
 
-function DropdownMenu({ subscription, onEdit, onDelete }: DropdownMenuProps) {
+function DropdownMenu({ subscription, onEdit, onDelete, onSendInvite }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -70,6 +71,19 @@ function DropdownMenu({ subscription, onEdit, onDelete }: DropdownMenuProps) {
             </button>
             <button
               onClick={() => {
+                onSendInvite()
+                setIsOpen(false)
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2"
+              disabled={subscription.status !== 'active'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Послать ссылку
+            </button>
+            <button
+              onClick={() => {
                 onDelete()
                 setIsOpen(false)
               }}
@@ -91,9 +105,10 @@ interface SubscriptionCardProps {
   subscription: Subscription
   onEdit: () => void
   onDelete: () => void
+  onSendInvite: () => void
 }
 
-function SubscriptionCard({ subscription, onEdit, onDelete, isSelected, onToggleSelect }: SubscriptionCardProps & {
+function SubscriptionCard({ subscription, onEdit, onDelete, onSendInvite, isSelected, onToggleSelect }: SubscriptionCardProps & {
   isSelected?: boolean
   onToggleSelect?: () => void
 }) {
@@ -151,6 +166,7 @@ function SubscriptionCard({ subscription, onEdit, onDelete, isSelected, onToggle
           subscription={subscription}
           onEdit={onEdit}
           onDelete={onDelete}
+          onSendInvite={onSendInvite}
         />
       </div>
 
@@ -454,6 +470,38 @@ export default function SubscriptionManagement() {
     setShowEditModal(true)
   }
 
+  const sendInviteLink = async (subscription: Subscription) => {
+    if (subscription.status !== 'active') {
+      alert('Отправка ссылки возможна только для активных подписок')
+      return
+    }
+
+    if (!confirm(`Отправить ссылку для вступления в канал "${subscription.product.channel.name}" пользователю ${subscription.user.firstName}?`)) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/subscriptions/send-invite', createAuthenticatedRequest({
+        method: 'POST',
+        body: JSON.stringify({
+          subscriptionId: subscription.subscriptionId
+        })
+      }))
+
+      if (response.ok) {
+        const result = await response.json()
+        alert('✅ Ссылка успешно отправлена пользователю!')
+        console.log('Invite link result:', result)
+      } else {
+        const error = await response.json()
+        alert(`❌ Ошибка: ${error.error || 'Failed to send invite link'}\nДетали: ${error.details || ''}`)
+      }
+    } catch (error) {
+      console.error('Error sending invite link:', error)
+      alert(`❌ Ошибка сети: ${error instanceof Error ? error.message : 'Failed to send invite link'}`)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -660,6 +708,7 @@ export default function SubscriptionManagement() {
                       subscription={subscription}
                       onEdit={() => openEditModal(subscription)}
                       onDelete={() => deleteSubscription(subscription.subscriptionId)}
+                      onSendInvite={() => sendInviteLink(subscription)}
                     />
                   </td>
                 </tr>
@@ -679,6 +728,7 @@ export default function SubscriptionManagement() {
             onToggleSelect={() => toggleSubscriptionSelection(subscription.subscriptionId)}
             onEdit={() => openEditModal(subscription)}
             onDelete={() => deleteSubscription(subscription.subscriptionId)}
+            onSendInvite={() => sendInviteLink(subscription)}
           />
         ))}
       </div>
