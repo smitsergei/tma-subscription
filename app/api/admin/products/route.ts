@@ -5,6 +5,26 @@ import { revalidatePath } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
 
+// Утилита для безопасной сериализации BigInt
+function safeStringify(obj: any): string {
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+    return value;
+  });
+}
+
+// Функция для создания аутентифицированного ответа
+function createJsonResponse(data: any, status: number = 200): NextResponse {
+  return new NextResponse(safeStringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
 async function checkAdminAuth(request: NextRequest): Promise<boolean> {
   console.log('🔍 AUTH: Starting admin authentication check')
 
@@ -80,7 +100,7 @@ async function checkAdminAuth(request: NextRequest): Promise<boolean> {
 export async function GET(request: NextRequest) {
   try {
     if (!(await checkAdminAuth(request))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createJsonResponse({ error: 'Unauthorized' }, 401)
     }
 
     const products = await prisma.product.findMany({
@@ -120,13 +140,13 @@ export async function GET(request: NextRequest) {
       _count: product._count
     }))
 
-    return NextResponse.json({ products: serializedProducts })
+    return createJsonResponse({ products: serializedProducts })
 
   } catch (error) {
     console.error('Error fetching products:', error)
-    return NextResponse.json(
+    return createJsonResponse(
       { error: 'Internal server error' },
-      { status: 500 }
+      500
     )
   }
 }
@@ -134,7 +154,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     if (!(await checkAdminAuth(request))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createJsonResponse({ error: 'Unauthorized' }, 401)
     }
 
     const { name, description, price, channelTelegramId, channelName, channelUsername, periodDays, isActive, allowDemo, demoDays } = await request.json()
@@ -152,23 +172,23 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return NextResponse.json(
+      return createJsonResponse(
         { error: 'Product name is required and must be a non-empty string' },
-        { status: 400 }
+        400
       )
     }
 
     if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
-      return NextResponse.json(
+      return createJsonResponse(
         { error: 'Product price is required and must be a positive number' },
-        { status: 400 }
+        400
       )
     }
 
     if (!channelTelegramId || typeof channelTelegramId !== 'string' || channelTelegramId.trim().length === 0) {
-      return NextResponse.json(
+      return createJsonResponse(
         { error: 'Channel Telegram ID is required and must be a non-empty string' },
-        { status: 400 }
+        400
       )
     }
 
@@ -296,7 +316,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ product: serializedProduct })
+    return createJsonResponse({ product: serializedProduct })
 
   } catch (error) {
     console.error('🔥 PRODUCT ERROR: Error creating product:', error)
@@ -324,13 +344,13 @@ export async function POST(request: NextRequest) {
       console.error('🔥 PRODUCT ERROR: Failed to send error to logger:', logError)
     }
 
-    return NextResponse.json(
+    return createJsonResponse(
       {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error',
         errorId: Date.now().toString()
       },
-      { status: 500 }
+      500
     )
   }
 }
@@ -341,13 +361,13 @@ export async function PUT(request: NextRequest) {
 
   try {
     if (!(await checkAdminAuth(request))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createJsonResponse({ error: 'Unauthorized' }, 401)
     }
 
     if (!productId) {
-      return NextResponse.json(
+      return createJsonResponse(
         { error: 'product id is required' },
-        { status: 400 }
+        400
       )
     }
 
@@ -476,7 +496,7 @@ export async function PUT(request: NextRequest) {
     revalidatePath('/app')
     revalidatePath('/admin')
 
-    return NextResponse.json({ product: serializedProduct })
+    return createJsonResponse({ product: serializedProduct })
 
   } catch (error) {
     console.error('Error updating product:', error)
@@ -484,12 +504,12 @@ export async function PUT(request: NextRequest) {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     })
-    return NextResponse.json(
+    return createJsonResponse(
       {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 500 }
+      500
     )
   }
 }
@@ -501,13 +521,13 @@ export async function DELETE(request: NextRequest) {
 
   try {
     if (!(await checkAdminAuth(request))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createJsonResponse({ error: 'Unauthorized' }, 401)
     }
 
     if (!productId) {
-      return NextResponse.json(
+      return createJsonResponse(
         { error: 'product id is required' },
-        { status: 400 }
+        400
       )
     }
 
@@ -520,9 +540,9 @@ export async function DELETE(request: NextRequest) {
     })
 
     if (activeSubscriptions > 0) {
-      return NextResponse.json(
+      return createJsonResponse(
         { error: 'Cannot delete product with active subscriptions' },
-        { status: 400 }
+        400
       )
     }
 
@@ -636,7 +656,7 @@ export async function DELETE(request: NextRequest) {
     revalidatePath('/app')
     revalidatePath('/admin')
 
-    return NextResponse.json({ success: true })
+    return createJsonResponse({ success: true })
 
   } catch (error) {
     console.error('🔥 DELETE ERROR: Error deleting product:', error)
@@ -666,23 +686,23 @@ export async function DELETE(request: NextRequest) {
 
     // Проверяем, если это ошибка внешнего ключа
     if (error instanceof Error && error.message.includes('Foreign key constraint violated')) {
-      return NextResponse.json(
+      return createJsonResponse(
         {
           error: 'Cannot delete product: it is still referenced by other records. Please contact administrator.',
           details: 'Foreign key constraint violation',
           errorId: Date.now().toString()
         },
-        { status: 400 }
+        400
       )
     }
 
-    return NextResponse.json(
+    return createJsonResponse(
       {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error',
         errorId: Date.now().toString()
       },
-      { status: 500 }
+      500
     )
   }
 }

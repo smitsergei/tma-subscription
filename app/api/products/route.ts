@@ -4,6 +4,27 @@ import { revalidatePath } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
 
+// Утилита для безопасной сериализации BigInt
+function safeStringify(obj: any): string {
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+    return value;
+  });
+}
+
+// Функция для создания аутентифицированного ответа
+function createJsonResponse(data: any, status: number = 200, headers?: Record<string, string>): NextResponse {
+  return new NextResponse(safeStringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 PRODUCTS: Starting products fetch')
@@ -101,15 +122,13 @@ export async function GET(request: NextRequest) {
     revalidatePath('/api/products')
     revalidatePath('/app')
 
-    return NextResponse.json({
+    return createJsonResponse({
       success: true,
       data: productsWithDiscounts
-    }, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
+    }, 200, {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0'
     })
   } catch (error) {
     console.error('🔍 PRODUCTS: Error fetching products:', error)
@@ -123,15 +142,13 @@ export async function GET(request: NextRequest) {
       console.error('🔍 PRODUCTS: BigInt serialization error detected')
     }
 
-    return NextResponse.json(
+    return createJsonResponse(
       { success: false, error: 'Ошибка загрузки продуктов', details: (error as Error).message },
+      500,
       {
-        status: 500,
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       }
     )
   }
