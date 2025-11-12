@@ -89,12 +89,12 @@ export async function addUserToChannel(
         } else {
           console.error('❌ BOT SYNC: Failed to send access confirmation:', messageData)
           // Если не удалось отправить сообщение, все равно считаем успехом (пользователь в канале)
-          return { success: true, warning: 'User is in channel but notification failed' }
+          return { success: true } as { success: boolean; warning?: string }
         }
       } catch (error) {
         console.error('❌ BOT SYNC: Error sending access confirmation:', error)
         // Если не удалось отправить сообщение, все равно считаем успехом (пользователь в канале)
-        return { success: true, warning: 'User is in channel but notification failed' }
+        return { success: true } as { success: boolean; warning?: string }
       }
     }
 
