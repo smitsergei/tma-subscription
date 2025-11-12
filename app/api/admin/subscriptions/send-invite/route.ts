@@ -135,15 +135,24 @@ export async function POST(request: NextRequest) {
 
     if (result.success) {
       console.log('✅ SEND_INVITE API: Invite link process completed successfully')
+
+      let message = 'Сообщение успешно отправлено пользователю!'
+      if (result.warning) {
+        console.log('⚠️ SEND_INVITE API: Warning:', result.warning)
+        message = `Пользователь уже в канале. ${result.warning}`
+      }
+
       return NextResponse.json({
         success: true,
-        message: 'Invite link sent successfully',
+        message: message,
         inviteLink: result.inviteLink,
+        warning: result.warning,
         details: {
           userName: subscription.user.firstName,
           channelName: subscription.product.channel.name,
           subscriptionStatus: subscription.status,
-          telegramUserId: subscription.userId.toString()
+          telegramUserId: subscription.userId.toString(),
+          userAlreadyInChannel: result.warning ? true : false
         }
       })
     } else {

@@ -491,7 +491,12 @@ export default function SubscriptionManagement() {
       if (response.ok) {
         const result = await response.json()
         if (result.success) {
-          alert('✅ Ссылка успешно отправлена пользователю!')
+          // Показываем разные сообщения в зависимости от ситуации
+          if (result.warning || result.details?.userAlreadyInChannel) {
+            alert(`✅ Пользователь уже состоит в канале "${subscription.product.channel.name}" и получил уведомление о доступе!`)
+          } else {
+            alert('✅ Ссылка успешно отправлена пользователю!')
+          }
         } else {
           // Специальная обработка для ошибки блокировки пользователя
           if (result.error === 'User has blocked the bot') {

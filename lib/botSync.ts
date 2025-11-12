@@ -34,10 +34,68 @@ export async function addUserToChannel(
     const data = await response.json()
     console.log('🤖 BOT SYNC: Chat member status:', data.result?.status)
 
-    // Если пользователь уже в канале
+    // Если пользователь уже в канале, отправляем уведомление
     if (data.ok && data.result && ['member', 'administrator', 'creator'].includes(data.result.status)) {
-      console.log('🤖 BOT SYNC: User already in channel')
-      return { success: true }
+      console.log('🤖 BOT SYNC: User already in channel, sending notification...')
+
+      try {
+        // Получаем информацию о канале для уведомления
+        const channelResponse = await fetch(
+          `https://api.telegram.org/bot${botToken}/getChat`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: channelId
+            })
+          }
+        )
+
+        const channelData = await channelResponse.json()
+        const channelName = channelData.ok ? channelData.result.title : 'Канал'
+
+        const message = `🎉 Ваш доступ к каналу подтвержден!
+
+📢 Канал: ${channelName}
+✅ Вы уже являетесь участником канала
+
+Если у вас нет доступа к каналу, попробуйте:
+1. Перезапустить Telegram
+2. Нажать на название канала в списке
+3. Обновить список каналов`
+
+        const messageResponse = await fetch(
+          `https://api.telegram.org/bot${botToken}/sendMessage`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: parseInt(userId),
+              text: message,
+              parse_mode: 'HTML'
+            })
+          }
+        )
+
+        const messageData = await messageResponse.json()
+
+        if (messageData.ok) {
+          console.log('✅ BOT SYNC: Access confirmation sent to user:', userId)
+          return { success: true }
+        } else {
+          console.error('❌ BOT SYNC: Failed to send access confirmation:', messageData)
+          // Если не удалось отправить сообщение, все равно считаем успехом (пользователь в канале)
+          return { success: true, warning: 'User is in channel but notification failed' }
+        }
+      } catch (error) {
+        console.error('❌ BOT SYNC: Error sending access confirmation:', error)
+        // Если не удалось отправить сообщение, все равно считаем успехом (пользователь в канале)
+        return { success: true, warning: 'User is in channel but notification failed' }
+      }
     }
 
     // Если пользователя нет в канале, создаем приглашение
