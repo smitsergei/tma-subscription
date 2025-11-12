@@ -234,7 +234,7 @@ async function sendExpirationNotification(
                 {
                   text: '🛍️ Управление подписками',
                   web_app: {
-                    url: `${process.env.APP_URL}/app`
+                    url: `${process.env.APP_URL?.replace(/\n/g, '')}/app`
                   }
                 }
               ]
@@ -375,7 +375,7 @@ ${daysRemaining <= 1
                   {
                     text: '🛍️ Управление подписками',
                     web_app: {
-                      url: `${process.env.APP_URL}/app`
+                      url: `${process.env.APP_URL?.replace(/\n/g, '')}/app`
                     }
                   }
                 ]

@@ -500,7 +500,7 @@ ${inviteLink}
                   {
                     text: '📱 Открыть Mini App',
                     web_app: {
-                      url: `${process.env.APP_URL}/app`
+                      url: `${process.env.APP_URL?.replace(/\n/g, '')}/app`
                     }
                   }
                 ]
@@ -541,7 +541,7 @@ ${inviteLink}
                   {
                     text: '📱 Открыть Mini App',
                     web_app: {
-                      url: `${process.env.APP_URL}/app`
+                      url: `${process.env.APP_URL?.replace(/\n/g, '')}/app`
                     }
                   }
                 ]

@@ -336,7 +336,7 @@ async function sendSubscriptionExpirationNotification(
                 {
                   text: '🛍️ Управление подписками',
                   web_app: {
-                    url: `${process.env.APP_URL}/app`
+                    url: `${process.env.APP_URL?.replace(/\n/g, '')}/app`
                   }
                 }
               ]
@@ -387,7 +387,7 @@ async function sendDemoExpirationNotification(
                 {
                   text: '🛍️ Управление подписками',
                   web_app: {
-                    url: `${process.env.APP_URL}/app`
+                    url: `${process.env.APP_URL?.replace(/\n/g, '')}/app`
                   }
                 }
               ]
