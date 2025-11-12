@@ -4,6 +4,26 @@ import { validateTelegramInitData } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
+// Утилита для безопасной сериализации BigInt
+function safeStringify(obj: any): string {
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+    return value;
+  });
+}
+
+// Функция для создания аутентифицированного ответа
+function createJsonResponse(data: any, status: number = 200): NextResponse {
+  return new NextResponse(safeStringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
 async function checkAdminAuth(request: NextRequest): Promise<boolean> {
   const initData = request.headers.get('x-telegram-init-data')
   if (!initData) return false
@@ -31,7 +51,7 @@ async function checkAdminAuth(request: NextRequest): Promise<boolean> {
 export async function GET(request: NextRequest) {
   try {
     if (!(await checkAdminAuth(request))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createJsonResponse({ error: 'Unauthorized' }, 401)
     }
 
     const { searchParams } = new URL(request.url)
@@ -218,7 +238,7 @@ export async function GET(request: NextRequest) {
       total = await prisma.user.count({ where })
     }
 
-    return NextResponse.json({
+    return createJsonResponse({
       users: usersWithSubscriptions.map(user => ({
         telegramId: user.telegramId,
         firstName: user.firstName,
@@ -236,9 +256,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching users:', error)
-    return NextResponse.json(
+    return createJsonResponse(
       { error: 'Internal server error' },
-      { status: 500 }
+      500
     )
   }
 }
@@ -246,15 +266,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     if (!(await checkAdminAuth(request))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createJsonResponse({ error: 'Unauthorized' }, 401)
     }
 
     const { telegramId, firstName, username } = await request.json()
 
     if (!telegramId) {
-      return NextResponse.json(
+      return createJsonResponse(
         { error: 'telegramId is required' },
-        { status: 400 }
+        400
       )
     }
 
@@ -264,9 +284,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingUser) {
-      return NextResponse.json(
+      return createJsonResponse(
         { error: 'User already exists' },
-        { status: 409 }
+        409
       )
     }
 
@@ -278,13 +298,21 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ user })
+    // Конвертируем BigInt в string для ответа
+    const serializedUser = {
+      telegramId: user.telegramId.toString(),
+      firstName: user.firstName,
+      username: user.username,
+      createdAt: user.createdAt
+    }
+
+    return createJsonResponse({ user: serializedUser })
 
   } catch (error) {
     console.error('Error creating user:', error)
-    return NextResponse.json(
+    return createJsonResponse(
       { error: 'Internal server error' },
-      { status: 500 }
+      500
     )
   }
 }
@@ -292,16 +320,16 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     if (!(await checkAdminAuth(request))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createJsonResponse({ error: 'Unauthorized' }, 401)
     }
 
     const { searchParams } = new URL(request.url)
     const telegramId = searchParams.get('telegramId')
 
     if (!telegramId) {
-      return NextResponse.json(
+      return createJsonResponse(
         { error: 'telegramId is required' },
-        { status: 400 }
+        400
       )
     }
 
@@ -317,13 +345,13 @@ export async function DELETE(request: NextRequest) {
       where: { telegramId: BigInt(telegramId) }
     })
 
-    return NextResponse.json({ success: true })
+    return createJsonResponse({ success: true })
 
   } catch (error) {
     console.error('Error deleting user:', error)
-    return NextResponse.json(
+    return createJsonResponse(
       { error: 'Internal server error' },
-      { status: 500 }
+      500
     )
   }
 }

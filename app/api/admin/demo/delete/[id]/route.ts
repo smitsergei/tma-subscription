@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
+// Утилита для безопасной сериализации BigInt
+function safeStringify(obj: any): string {
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+    return value;
+  });
+}
+
+// Функция для создания аутентифицированного ответа
+function createJsonResponse(data: any, status: number = 200): NextResponse {
+  return new NextResponse(safeStringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -37,9 +57,9 @@ export async function DELETE(
     })
 
     if (!existingDemo) {
-      return NextResponse.json(
+      return createJsonResponse(
         { error: 'Демо-доступ не найден' },
-        { status: 404 }
+        404
       )
     }
 
@@ -75,7 +95,7 @@ export async function DELETE(
 
     console.log('✅ Demo access deleted successfully:', demoId)
 
-    return NextResponse.json({
+    return createJsonResponse({
       success: true,
       message: 'Демо-доступ успешно удален',
       deletedDemo: {
@@ -87,12 +107,12 @@ export async function DELETE(
 
   } catch (error) {
     console.error('❌ Error deleting demo access:', error)
-    return NextResponse.json(
+    return createJsonResponse(
       {
         error: 'Внутренняя ошибка сервера',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 500 }
+      500
     )
   }
 }
