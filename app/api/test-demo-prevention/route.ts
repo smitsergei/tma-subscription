@@ -17,9 +17,6 @@ export async function GET(request: NextRequest) {
       },
       _count: {
         id: true
-      },
-      _sum: {
-        demoDays: true
       }
     })
 
