@@ -136,23 +136,25 @@ export async function POST(request: NextRequest) {
     if (result.success) {
       console.log('✅ SEND_INVITE API: Invite link process completed successfully')
 
-      let message = 'Сообщение успешно отправлено пользователю!'
-      if (result.warning) {
+      const hasWarning = 'warning' in result && result.warning;
+      let message = 'Сообщение успешно отправлено пользователю!';
+
+      if (hasWarning) {
         console.log('⚠️ SEND_INVITE API: Warning:', result.warning)
-        message = `Пользователь уже в канале. ${result.warning}`
+        message = `Пользователь уже в канале. ${(result as any).warning}`
       }
 
       return NextResponse.json({
         success: true,
         message: message,
         inviteLink: result.inviteLink,
-        warning: result.warning,
+        warning: hasWarning ? (result as any).warning : undefined,
         details: {
           userName: subscription.user.firstName,
           channelName: subscription.product.channel.name,
           subscriptionStatus: subscription.status,
           telegramUserId: subscription.userId.toString(),
-          userAlreadyInChannel: result.warning ? true : false
+          userAlreadyInChannel: hasWarning
         }
       })
     } else {
