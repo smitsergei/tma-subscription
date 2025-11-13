@@ -39,23 +39,27 @@ export function TmaPageContent() {
         <div className="flex mt-3 bg-gray-100 rounded-lg p-1">
           <button
             onClick={() => setActiveTab('products')}
-            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 py-2 px-2 sm:px-3 rounded-md text-xs sm:text-sm font-medium transition-colors flex flex-col sm:flex-row items-center justify-center gap-1 ${
               activeTab === 'products'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            🛍️ Подписки
+            <span className="text-lg sm:text-base">🛍️</span>
+            <span className="hidden sm:inline">Подписки</span>
+            <span className="sm:hidden text-xs">Магазин</span>
           </button>
           <button
             onClick={() => setActiveTab('subscriptions')}
-            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 py-2 px-2 sm:px-3 rounded-md text-xs sm:text-sm font-medium transition-colors flex flex-col sm:flex-row items-center justify-center gap-1 ${
               activeTab === 'subscriptions'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            📋 Мои подписки
+            <span className="text-lg sm:text-base">📋</span>
+            <span className="hidden sm:inline">Мои подписки</span>
+            <span className="sm:hidden text-xs">Подписки</span>
           </button>
         </div>
       </div>
