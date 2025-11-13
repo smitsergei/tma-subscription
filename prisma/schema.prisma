@@ -19,16 +19,18 @@ enum PromoType {
 }
 
 model User {
-  telegramId    BigInt         @id @map("telegram_id")
+  telegramId    BigInt            @id @map("telegram_id")
   username      String?
-  firstName     String?        @map("first_name")
-  createdAt     DateTime       @default(now()) @map("created_at")
+  firstName     String?           @map("first_name")
+  createdAt     DateTime          @default(now()) @map("created_at")
   admin         Admin?
   payments      Payment[]
   subscriptions Subscription[]
   discountUsage DiscountUsage[]
   promoUsage    PromoUsage[]
   demoAccess    DemoAccess[]
+  broadcasts    Broadcast[]
+  broadcastMessages BroadcastMessage[]
 
   @@map("users")
 }
@@ -198,4 +200,91 @@ model DemoAccess {
   product Product @relation(fields: [productId], references: [productId])
 
   @@map("demo_access")
+}
+
+// Модели для системы рассылок
+enum BroadcastTargetType {
+  ALL_USERS
+  ACTIVE_SUBSCRIPTIONS
+  EXPIRED_SUBSCRIPTIONS
+  TRIAL_USERS
+  PRODUCT_SPECIFIC
+  CHANNEL_SPECIFIC
+  CUSTOM_FILTER
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum FilterType {
+  PRODUCT_ID
+  CHANNEL_ID
+  SUBSCRIPTION_STATUS
+  USER_TAG
+  REGISTRATION_DATE
+}
+
+model Broadcast {
+  broadcastId       String            @id @default(cuid()) @map("broadcast_id")
+  title             String
+  message           String
+  targetType        BroadcastTargetType @map("target_type")
+  status            BroadcastStatus   @default(DRAFT)
+  scheduledAt       DateTime?         @map("scheduled_at")
+  sentAt            DateTime?         @map("sent_at")
+  createdBy         BigInt            @map("created_by")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  // Статистика
+  totalRecipients   Int               @default(0) @map("total_recipients")
+  sentCount         Int               @default(0) @map("sent_count")
+  failedCount       Int               @default(0) @map("failed_count")
+
+  // Связи
+  creator           User              @relation(fields: [createdBy], references: [telegramId])
+  messages          BroadcastMessage[]
+  filters           BroadcastFilter[]
+
+  @@map("broadcasts")
+}
+
+model BroadcastMessage {
+  messageId         String        @id @default(cuid()) @map("message_id")
+  broadcastId       String        @map("broadcast_id")
+  userId            BigInt        @map("user_id")
+  status            MessageStatus @default(PENDING)
+  sentAt            DateTime?     @map("sent_at")
+  error             String?
+  telegramMessageId Int?          @map("telegram_message_id")
+  createdAt         DateTime      @default(now()) @map("created_at")
+
+  broadcast         Broadcast     @relation(fields: [broadcastId], references: [broadcastId], onDelete: Cascade)
+  user              User          @relation(fields: [userId], references: [telegramId])
+
+  @@map("broadcast_messages")
+}
+
+model BroadcastFilter {
+  filterId     String     @id @default(cuid()) @map("filter_id")
+  broadcastId  String     @map("broadcast_id")
+  filterType   FilterType
+  filterValue  String
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  broadcast    Broadcast  @relation(fields: [broadcastId], references: [broadcastId], onDelete: Cascade)
+
+  @@map("broadcast_filters")
 }

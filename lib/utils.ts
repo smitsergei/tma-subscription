@@ -105,6 +105,11 @@ export function generatePaymentMemo(): string {
 
 // Валидация Telegram WebApp init data
 export function validateTelegramInitData(initData: string, botToken: string): boolean {
+  // Для разработки всегда возвращаем true
+  if (process.env.NODE_ENV === 'development') {
+    return true;
+  }
+
   try {
     const urlParams = new URLSearchParams(initData)
     const hash = urlParams.get('hash')

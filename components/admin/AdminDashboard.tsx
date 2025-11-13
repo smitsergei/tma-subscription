@@ -8,8 +8,9 @@ import DiscountManagement from './DiscountManagement'
 import PromoCodeManagement from './PromoCodeManagement'
 import DemoManagement from './DemoManagement'
 import PaymentManagement from './PaymentManagement'
+import BroadcastManagement from './BroadcastManagement'
 
-type TabType = 'users' | 'subscriptions' | 'products' | 'payments' | 'discounts' | 'promocodes' | 'demo'
+type TabType = 'users' | 'subscriptions' | 'products' | 'payments' | 'discounts' | 'promocodes' | 'demo' | 'broadcasts'
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('products')
@@ -21,7 +22,8 @@ export default function AdminDashboard() {
     { id: 'payments' as TabType, label: '💳 Платежи', icon: 'payments' },
     { id: 'discounts' as TabType, label: '💰 Скидки', icon: 'discount' },
     { id: 'promocodes' as TabType, label: '🎫 Промокоды', icon: 'promos' },
-    { id: 'demo' as TabType, label: '🎓 Демо-доступ', icon: 'demo' }
+    { id: 'demo' as TabType, label: '🎓 Демо-доступ', icon: 'demo' },
+    { id: 'broadcasts' as TabType, label: '📢 Рассылки', icon: 'broadcast' }
   ]
 
   const renderTab = () => {
@@ -40,6 +42,8 @@ export default function AdminDashboard() {
         return <PromoCodeManagement />
       case 'demo':
         return <DemoManagement />
+      case 'broadcasts':
+        return <BroadcastManagement />
       default:
         return <ProductManagement />
     }
@@ -55,7 +59,7 @@ export default function AdminDashboard() {
               🛠️ Панель администратора
             </h1>
             <p className="mt-1 text-sm text-gray-600">
-              Управление пользователями, подписками, продуктами, платежами, скидками, промокодами и демо-доступом
+              Управление пользователями, подписками, продуктами, платежами, скидками, промокодами, демо-доступом и рассылками
             </p>
           </div>
         </div>
