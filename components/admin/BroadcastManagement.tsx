@@ -54,22 +54,39 @@ export default function BroadcastManagement() {
   const [estimatedRecipients, setEstimatedRecipients] = useState(0)
 
   // Загрузка рассылок
-  const loadBroadcasts = async () => {
+  const loadBroadcasts = async (currentPage?: number, currentFilters?: typeof filters) => {
     try {
+      console.log('🔍 Loading broadcasts...')
+      const page = currentPage || pagination.page
+      const filterStatus = currentFilters?.status || filters.status
+
       const params = new URLSearchParams({
-        page: pagination.page.toString(),
+        page: page.toString(),
         limit: '10',
-        ...(filters.status && { status: filters.status })
+        ...(filterStatus && { status: filterStatus })
       })
 
-      const response = await fetch(`/api/admin/broadcasts?${params}`, createAuthenticatedRequest())
+      console.log('📡 Request params:', Object.fromEntries(params.entries()))
+      const authRequest = createAuthenticatedRequest()
+      console.log('📡 Auth headers:', authRequest.headers)
 
-      if (!response.ok) throw new Error('Ошибка загрузки рассылок')
+      const response = await fetch(`/api/admin/broadcasts?${params}`, authRequest)
+      console.log('📡 Response status:', response.status, response.statusText)
+
+      if (!response.ok) {
+        const error = await response.json()
+        console.error('❌ Failed to load broadcasts:', error)
+        throw new Error(`Ошибка загрузки рассылок: ${response.status}`)
+      }
 
       const data = await response.json()
-      setBroadcasts(data.broadcasts)
-      setPagination(data.pagination)
+      console.log('✅ Broadcasts fetched successfully:', data.broadcasts?.length || 0, 'broadcasts')
+      console.log('✅ Pagination data:', data.pagination)
+
+      setBroadcasts(data.broadcasts || [])
+      setPagination(prev => ({ ...prev, ...data.pagination, page: page }))
     } catch (err) {
+      console.error('❌ Error loading broadcasts:', err)
       setError(err instanceof Error ? err.message : 'Ошибка загрузки')
     } finally {
       setLoading(false)
@@ -97,7 +114,7 @@ export default function BroadcastManagement() {
         filters: []
       })
       setEstimatedRecipients(0)
-      loadBroadcasts()
+      loadBroadcasts(1, filters)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка создания')
     }
@@ -115,7 +132,7 @@ export default function BroadcastManagement() {
 
       if (!response.ok) throw new Error('Ошибка отправки рассылки')
 
-      loadBroadcasts()
+      loadBroadcasts(pagination.page, filters)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка отправки')
     }
@@ -133,7 +150,7 @@ export default function BroadcastManagement() {
 
       if (!response.ok) throw new Error('Ошибка удаления рассылки')
 
-      loadBroadcasts()
+      loadBroadcasts(pagination.page, filters)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка удаления')
     }
@@ -174,8 +191,11 @@ export default function BroadcastManagement() {
   }
 
   useEffect(() => {
-    loadBroadcasts()
-  }, [pagination.page, filters])
+    // Загружаем данные при первом рендере
+    setLoading(true)
+    setError('')
+    loadBroadcasts(pagination.page, filters)
+  }, []) // Пустой массив зависимостей для первоначальной загрузки
 
   return (
     <div className="p-6">
@@ -194,7 +214,13 @@ export default function BroadcastManagement() {
       <div className="flex gap-4 mb-6">
         <select
           value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+          onChange={(e) => {
+            const newFilters = { status: e.target.value }
+            setFilters(newFilters)
+            setPagination({ ...pagination, page: 1 })
+            setLoading(true)
+            loadBroadcasts(1, newFilters)
+          }}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">Все статусы</option>
@@ -343,7 +369,12 @@ export default function BroadcastManagement() {
         <div className="flex justify-center mt-6 gap-2">
           <button
             disabled={pagination.page === 1}
-            onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+            onClick={() => {
+              const newPage = pagination.page - 1
+              setPagination({ ...pagination, page: newPage })
+              setLoading(true)
+              loadBroadcasts(newPage, filters)
+            }}
             className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Назад
@@ -353,7 +384,12 @@ export default function BroadcastManagement() {
           </span>
           <button
             disabled={pagination.page === pagination.totalPages}
-            onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+            onClick={() => {
+              const newPage = pagination.page + 1
+              setPagination({ ...pagination, page: newPage })
+              setLoading(true)
+              loadBroadcasts(newPage, filters)
+            }}
             className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Вперед
