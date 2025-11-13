@@ -10,12 +10,12 @@ export async function GET(
 ) {
   try {
     // Проверка прав администратора
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    
+    if (!initData) {
       return NextResponse.json({ error: 'Отсутствует авторизация' }, { status: 401 });
     }
 
-    const initData = authHeader.substring(7);
+    
     const urlParams = new URLSearchParams(initData);
     const userStr = urlParams.get('user');
     if (!userStr) {

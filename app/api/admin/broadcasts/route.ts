@@ -7,12 +7,11 @@ import { BroadcastTargetType, BroadcastStatus } from '@prisma/client';
 export async function GET(request: NextRequest) {
   try {
     // Проверка прав администратора
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const initData = request.headers.get('x-telegram-init-data');
+    if (!initData) {
       return NextResponse.json({ error: 'Отсутствует авторизация' }, { status: 401 });
     }
 
-    const initData = authHeader.substring(7);
     const isValid = validateTelegramInitData(initData, process.env.BOT_TOKEN || '');
 
     if (!isValid) {
@@ -90,12 +89,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Проверка прав администратора
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const initData = request.headers.get('x-telegram-init-data');
+    if (!initData) {
       return NextResponse.json({ error: 'Отсутствует авторизация' }, { status: 401 });
     }
 
-    const initData = authHeader.substring(7);
     const isValid = validateTelegramInitData(initData, process.env.BOT_TOKEN || '');
 
     if (!isValid) {
