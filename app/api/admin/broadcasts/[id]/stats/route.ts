@@ -10,7 +10,7 @@ export async function GET(
 ) {
   try {
     // Проверка прав администратора
-    
+    const initData = request.headers.get('x-telegram-init-data');
     if (!initData) {
       return NextResponse.json({ error: 'Отсутствует авторизация' }, { status: 401 });
     }
