@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Eye, Users, AlertCircle } from 'lucide-react'
 import { BroadcastTargetType } from '@prisma/client'
+import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
 interface BroadcastFilter {
   filterType: string
@@ -54,18 +55,14 @@ export default function BroadcastPreview({ targetType, filters, onPreviewUpdate 
     setError('')
 
     try {
-      const token = localStorage.getItem('adminToken')
-
       const response = await fetch('/api/admin/broadcasts/preview', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          targetType,
-          filters,
-          limit: 50
+        ...createAuthenticatedRequest({
+          body: JSON.stringify({
+            targetType,
+            filters,
+            limit: 50
+          })
         })
       })
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Send, Users, Clock, CheckCircle, XCircle, AlertCircle, Plus, Eye, Edit, Trash2, BarChart3, Calendar } from 'lucide-react'
 import { BroadcastTargetType, BroadcastStatus } from '@prisma/client'
+import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 import BroadcastPreview from './BroadcastPreview'
 
 interface Broadcast {
@@ -55,18 +56,13 @@ export default function BroadcastManagement() {
   // Загрузка рассылок
   const loadBroadcasts = async () => {
     try {
-      const token = localStorage.getItem('adminToken')
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: '10',
         ...(filters.status && { status: filters.status })
       })
 
-      const response = await fetch(`/api/admin/broadcasts?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const response = await fetch(`/api/admin/broadcasts?${params}`, createAuthenticatedRequest())
 
       if (!response.ok) throw new Error('Ошибка загрузки рассылок')
 
@@ -83,15 +79,11 @@ export default function BroadcastManagement() {
   // Создание рассылки
   const handleCreate = async () => {
     try {
-      const token = localStorage.getItem('adminToken')
-
       const response = await fetch('/api/admin/broadcasts', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+        ...createAuthenticatedRequest({
+          body: JSON.stringify(formData)
+        })
       })
 
       if (!response.ok) throw new Error('Ошибка создания рассылки')
@@ -116,13 +108,9 @@ export default function BroadcastManagement() {
     if (!confirm('Вы уверены, что хотите отправить рассылку?')) return
 
     try {
-      const token = localStorage.getItem('adminToken')
-
       const response = await fetch(`/api/admin/broadcasts/${broadcastId}/send`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        ...createAuthenticatedRequest()
       })
 
       if (!response.ok) throw new Error('Ошибка отправки рассылки')
@@ -138,13 +126,9 @@ export default function BroadcastManagement() {
     if (!confirm('Вы уверены, что хотите удалить рассылку?')) return
 
     try {
-      const token = localStorage.getItem('adminToken')
-
       const response = await fetch(`/api/admin/broadcasts/${broadcastId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        ...createAuthenticatedRequest()
       })
 
       if (!response.ok) throw new Error('Ошибка удаления рассылки')
@@ -496,12 +480,7 @@ function BroadcastStats({ broadcast, onClose }: { broadcast: Broadcast; onClose:
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const token = localStorage.getItem('adminToken')
-        const response = await fetch(`/api/admin/broadcasts/${broadcast.broadcastId}/stats`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
+        const response = await fetch(`/api/admin/broadcasts/${broadcast.broadcastId}/stats`, createAuthenticatedRequest())
 
         if (response.ok) {
           const data = await response.json()
