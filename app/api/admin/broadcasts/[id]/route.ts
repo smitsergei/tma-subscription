@@ -141,7 +141,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { title, message, scheduledAt, status } = body;
+    const { title, message, scheduledAt, status, filters, excludedUsers = [] } = body;
 
     const updateData: any = {};
     if (title !== undefined) updateData.title = title;
@@ -152,6 +152,43 @@ export async function PUT(
         updateData.status = status;
       } else if (broadcast.status === BroadcastStatus.DRAFT && scheduledAt) {
         updateData.status = BroadcastStatus.SCHEDULED;
+      }
+    }
+
+    // Обновление фильтров и исключенных пользователей
+    if (filters !== undefined || excludedUsers.length > 0) {
+      // Удаляем существующие фильтры
+      await prisma.broadcastFilter.deleteMany({
+        where: { broadcastId: params.id }
+      });
+
+      // Создаем новые фильтры
+      const newFilters = [];
+
+      // Добавляем существующие фильтры (кроме EXCLUDED_USERS)
+      if (filters) {
+        filters.forEach((filter: any) => {
+          if (filter.filterType !== 'EXCLUDED_USERS') {
+            newFilters.push({
+              filterType: filter.filterType,
+              filterValue: filter.filterValue
+            });
+          }
+        });
+      }
+
+      // Добавляем исключенных пользователей как специальный фильтр
+      if (excludedUsers.length > 0) {
+        newFilters.push({
+          filterType: 'EXCLUDED_USERS',
+          filterValue: JSON.stringify(excludedUsers)
+        });
+      }
+
+      if (newFilters.length > 0) {
+        updateData.filters = {
+          create: newFilters
+        };
       }
     }
 

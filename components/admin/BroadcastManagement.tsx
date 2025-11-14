@@ -191,6 +191,10 @@ export default function BroadcastManagement() {
 
       const broadcastData = await response.json()
 
+      // Извлекаем исключенных пользователей из фильтров
+      const excludedUsersFilter = broadcastData.filters?.find((f: any) => f.filterType === 'EXCLUDED_USERS')
+      const extractedExcludedUsers = excludedUsersFilter ? JSON.parse(excludedUsersFilter.filterValue) : []
+
       // Устанавливаем режим редактирования и заполняем форму
       setIsEditMode(true)
       setEditingBroadcast(broadcastData)
@@ -200,8 +204,9 @@ export default function BroadcastManagement() {
         targetType: broadcastData.targetType,
         scheduledAt: broadcastData.scheduledAt ? new Date(broadcastData.scheduledAt).toISOString().slice(0, 16) : '',
         filters: broadcastData.filters || [],
-        excludedUsers: []
+        excludedUsers: extractedExcludedUsers
       })
+      setExcludedUsers(extractedExcludedUsers)
       setShowCreateModal(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки рассылки')
