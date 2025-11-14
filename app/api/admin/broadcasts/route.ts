@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { validateTelegramInitData } from '@/lib/utils';
-import { BroadcastTargetType, BroadcastStatus } from '@prisma/client';
+import { BroadcastTargetType, BroadcastStatus, FilterType } from '@prisma/client';
 
 // GET /api/admin/broadcasts - Получение списка рассылок
 export async function GET(request: NextRequest) {
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
             })) : []),
             // Добавляем исключенных пользователей как специальный фильтр
             ...(excludedUsers.length > 0 ? [{
-              filterType: 'EXCLUDED_USERS',
+              filterType: FilterType.EXCLUDED_USERS,
               filterValue: JSON.stringify(excludedUsers)
             }] : [])
           ]
