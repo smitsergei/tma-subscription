@@ -40,6 +40,8 @@ export default function BroadcastManagement() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showStatsModal, setShowStatsModal] = useState(false)
   const [selectedBroadcast, setSelectedBroadcast] = useState<Broadcast | null>(null)
+  const [editingBroadcast, setEditingBroadcast] = useState<Broadcast | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 })
   const [filters, setFilters] = useState({ status: '' })
 
@@ -98,8 +100,12 @@ export default function BroadcastManagement() {
   // Создание рассылки
   const handleCreate = async () => {
     try {
-      const response = await fetch('/api/admin/broadcasts', {
-        method: 'POST',
+      const isEdit = isEditMode && editingBroadcast
+      const url = isEdit ? `/api/admin/broadcasts/${editingBroadcast.broadcastId}` : '/api/admin/broadcasts'
+      const method = isEdit ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
         ...createAuthenticatedRequest({
           body: JSON.stringify({
             ...formData,
@@ -108,23 +114,33 @@ export default function BroadcastManagement() {
         })
       })
 
-      if (!response.ok) throw new Error('Ошибка создания рассылки')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Ошибка ${isEdit ? 'обновления' : 'создания'} рассылки`)
+      }
 
       setShowCreateModal(false)
-      setFormData({
-        title: '',
-        message: '',
-        targetType: BroadcastTargetType.ALL_USERS,
-        scheduledAt: '',
-        filters: [],
-        excludedUsers: []
-      })
-      setEstimatedRecipients(0)
-      setExcludedUsers([])
-      loadBroadcasts(1, filters)
+      resetForm()
+      loadBroadcasts(pagination.page, filters)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка создания')
+      setError(err instanceof Error ? err.message : `Ошибка ${isEditMode ? 'обновления' : 'создания'}`)
     }
+  }
+
+  // Сброс формы
+  const resetForm = () => {
+    setIsEditMode(false)
+    setEditingBroadcast(null)
+    setFormData({
+      title: '',
+      message: '',
+      targetType: BroadcastTargetType.ALL_USERS,
+      scheduledAt: '',
+      filters: [],
+      excludedUsers: []
+    })
+    setEstimatedRecipients(0)
+    setExcludedUsers([])
   }
 
   // Отправка рассылки
@@ -160,6 +176,35 @@ export default function BroadcastManagement() {
       loadBroadcasts(pagination.page, filters)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка удаления')
+    }
+  }
+
+  // Редактирование рассылки
+  const handleEdit = async (broadcast: Broadcast) => {
+    try {
+      // Получаем полную информацию о рассылке включая фильтры
+      const response = await fetch(`/api/admin/broadcasts/${broadcast.broadcastId}`, {
+        ...createAuthenticatedRequest()
+      })
+
+      if (!response.ok) throw new Error('Ошибка загрузки рассылки')
+
+      const broadcastData = await response.json()
+
+      // Устанавливаем режим редактирования и заполняем форму
+      setIsEditMode(true)
+      setEditingBroadcast(broadcastData)
+      setFormData({
+        title: broadcastData.title,
+        message: broadcastData.message,
+        targetType: broadcastData.targetType,
+        scheduledAt: broadcastData.scheduledAt ? new Date(broadcastData.scheduledAt).toISOString().slice(0, 16) : '',
+        filters: broadcastData.filters || [],
+        excludedUsers: []
+      })
+      setShowCreateModal(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки рассылки')
     }
   }
 
@@ -329,6 +374,15 @@ export default function BroadcastManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-2">
+                        {(broadcast.status === BroadcastStatus.DRAFT || broadcast.status === BroadcastStatus.SCHEDULED) && (
+                          <button
+                            onClick={() => handleEdit(broadcast)}
+                            className="text-gray-600 hover:text-gray-900"
+                            title="Редактировать"
+                          >
+                            <Edit size={18} />
+                          </button>
+                        )}
                         {broadcast.status === BroadcastStatus.DRAFT && (
                           <button
                             onClick={() => handleSend(broadcast.broadcastId)}
@@ -408,7 +462,9 @@ export default function BroadcastManagement() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Новая рассылка</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              {isEditMode ? 'Редактирование рассылки' : 'Новая рассылка'}
+            </h3>
 
             <div className="space-y-4">
               <div>
@@ -488,7 +544,10 @@ export default function BroadcastManagement() {
 
             <div className="flex justify-end gap-4 mt-6">
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  setShowCreateModal(false)
+                  resetForm()
+                }}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
                 Отмена
@@ -498,7 +557,7 @@ export default function BroadcastManagement() {
                 disabled={!formData.title || !formData.message}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Создать
+                {isEditMode ? 'Сохранить изменения' : 'Создать'}
               </button>
             </div>
           </div>
