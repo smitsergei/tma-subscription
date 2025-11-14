@@ -127,6 +127,13 @@ export async function POST(
 // Получение списка получателей на основе типа цели и фильтров
 async function getRecipients(targetType: BroadcastTargetType, filters: any[]) {
   let whereClause: any = {};
+  let excludedUsers: string[] = [];
+
+  // Сначала извлекаем исключенных пользователей из фильтров
+  const excludedUsersFilter = filters.find(f => f.filterType === 'EXCLUDED_USERS');
+  if (excludedUsersFilter) {
+    excludedUsers = JSON.parse(excludedUsersFilter.filterValue);
+  }
 
   switch (targetType) {
     case BroadcastTargetType.ALL_USERS:
@@ -201,6 +208,9 @@ async function getRecipients(targetType: BroadcastTargetType, filters: any[]) {
     case BroadcastTargetType.CUSTOM_FILTER:
       // Применение кастомных фильтров
       filters.forEach(filter => {
+        // Пропускаем фильтр исключенных пользователей - он обрабатывается отдельно
+        if (filter.filterType === 'EXCLUDED_USERS') return;
+
         switch (filter.filterType) {
           case 'REGISTRATION_DATE':
             // Фильтр по дате регистрации
@@ -236,6 +246,13 @@ async function getRecipients(targetType: BroadcastTargetType, filters: any[]) {
         }
       });
       break;
+  }
+
+  // Добавляем исключение пользователей
+  if (excludedUsers.length > 0) {
+    whereClause.telegramId = {
+      notIn: excludedUsers.map(id => BigInt(id))
+    };
   }
 
   const users = await prisma.user.findMany({

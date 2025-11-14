@@ -1,0 +1,18 @@
+root: .
+structure:
+  - README.md
+  - marketing:
+    - overview.md
+    - features.md
+    - benefits.md
+    - use-cases.md
+    - pricing.md
+  - technical:
+    - architecture.md
+    - installation.md
+    - configuration.md
+    - api-reference.md
+    - database.md
+    - deployment.md
+    - security.md
+    - troubleshooting.md

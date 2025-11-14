@@ -168,6 +168,9 @@ async function getPreviewRecipients(targetType: BroadcastTargetType, filters: an
       // Применение кастомных фильтров
       if (filters) {
         filters.forEach((filter: any) => {
+          // Пропускаем фильтр исключенных пользователей - он обрабатывается отдельно
+          if (filter.filterType === 'EXCLUDED_USERS') return;
+
           switch (filter.filterType) {
             case 'REGISTRATION_DATE':
               // Фильтр по дате регистрации
@@ -351,6 +354,9 @@ async function getTotalRecipientsCount(targetType: BroadcastTargetType, filters:
     case BroadcastTargetType.CUSTOM_FILTER:
       if (filters) {
         filters.forEach((filter: any) => {
+          // Пропускаем фильтр исключенных пользователей - он обрабатывается отдельно
+          if (filter.filterType === 'EXCLUDED_USERS') return;
+
           switch (filter.filterType) {
             case 'REGISTRATION_DATE':
               const dateFilter = JSON.parse(filter.filterValue);
