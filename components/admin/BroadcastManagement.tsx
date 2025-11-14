@@ -49,9 +49,11 @@ export default function BroadcastManagement() {
     message: '',
     targetType: BroadcastTargetType.ALL_USERS,
     scheduledAt: '',
-    filters: [] as BroadcastFilter[]
+    filters: [] as BroadcastFilter[],
+    excludedUsers: [] as string[]
   })
   const [estimatedRecipients, setEstimatedRecipients] = useState(0)
+  const [excludedUsers, setExcludedUsers] = useState<string[]>([])
 
   // Загрузка рассылок
   const loadBroadcasts = async (currentPage?: number, currentFilters?: typeof filters) => {
@@ -99,7 +101,10 @@ export default function BroadcastManagement() {
       const response = await fetch('/api/admin/broadcasts', {
         method: 'POST',
         ...createAuthenticatedRequest({
-          body: JSON.stringify(formData)
+          body: JSON.stringify({
+            ...formData,
+            excludedUsers
+          })
         })
       })
 
@@ -111,9 +116,11 @@ export default function BroadcastManagement() {
         message: '',
         targetType: BroadcastTargetType.ALL_USERS,
         scheduledAt: '',
-        filters: []
+        filters: [],
+        excludedUsers: []
       })
       setEstimatedRecipients(0)
+      setExcludedUsers([])
       loadBroadcasts(1, filters)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка создания')
@@ -463,7 +470,10 @@ export default function BroadcastManagement() {
               <BroadcastPreview
                 targetType={formData.targetType}
                 filters={formData.filters}
-                onPreviewUpdate={setEstimatedRecipients}
+                onPreviewUpdate={(count, excluded) => {
+                  setEstimatedRecipients(count)
+                  setExcludedUsers(excluded)
+                }}
               />
 
               {/* Информация о количестве получателей */}

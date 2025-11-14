@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, message, targetType, scheduledAt, filters } = body;
+    const { title, message, targetType, scheduledAt, filters, excludedUsers = [] } = body;
 
     if (!title || !message || !targetType) {
       return NextResponse.json({
@@ -141,12 +141,20 @@ export async function POST(request: NextRequest) {
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
         createdBy: telegramId,
         status: scheduledAt ? BroadcastStatus.SCHEDULED : BroadcastStatus.DRAFT,
-        filters: filters ? {
-          create: filters.map((filter: any) => ({
-            filterType: filter.filterType,
-            filterValue: filter.filterValue
-          }))
-        } : undefined
+        filters: {
+          create: [
+            // Добавляем существующие фильтры
+            ...(filters ? filters.map((filter: any) => ({
+              filterType: filter.filterType,
+              filterValue: filter.filterValue
+            })) : []),
+            // Добавляем исключенных пользователей как специальный фильтр
+            ...(excludedUsers.length > 0 ? [{
+              filterType: 'EXCLUDED_USERS',
+              filterValue: JSON.stringify(excludedUsers)
+            }] : [])
+          ]
+        }
       },
       include: {
         filters: true,

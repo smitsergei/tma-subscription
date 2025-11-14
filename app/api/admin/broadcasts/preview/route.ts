@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { targetType, filters, limit = 100 } = body;
+    const { targetType, filters, limit = 100, excludedUsers = [] } = body;
 
     if (!targetType) {
       return NextResponse.json({ error: 'Отсутствует targetType' }, { status: 400 });
@@ -48,10 +48,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Получение предпросмотра получателей
-    const previewRecipients = await getPreviewRecipients(targetType, filters, limit);
+    const previewRecipients = await getPreviewRecipients(targetType, filters, limit, excludedUsers);
 
     // Получение общего количества получателей
-    const totalCount = await getTotalRecipientsCount(targetType, filters);
+    const totalCount = await getTotalRecipientsCount(targetType, filters, excludedUsers);
 
     return NextResponse.json({
       totalCount,
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Получение предпросмотра получателей
-async function getPreviewRecipients(targetType: BroadcastTargetType, filters: any[], limit: number) {
+async function getPreviewRecipients(targetType: BroadcastTargetType, filters: any[], limit: number, excludedUsers: string[] = []) {
   let whereClause: any = {};
 
   switch (targetType) {
@@ -181,6 +181,13 @@ async function getPreviewRecipients(targetType: BroadcastTargetType, filters: an
       break;
   }
 
+  // Добавляем исключение пользователей
+  if (excludedUsers.length > 0) {
+    whereClause.telegramId = {
+      notIn: excludedUsers.map(id => BigInt(id))
+    };
+  }
+
   const users = await prisma.user.findMany({
     where: whereClause,
     select: {
@@ -248,7 +255,7 @@ async function getPreviewRecipients(targetType: BroadcastTargetType, filters: an
 }
 
 // Получение общего количества получателей
-async function getTotalRecipientsCount(targetType: BroadcastTargetType, filters: any[]) {
+async function getTotalRecipientsCount(targetType: BroadcastTargetType, filters: any[], excludedUsers: string[] = []) {
   let whereClause: any = {};
 
   // Аналогичная логика фильтрации как в getPreviewRecipients
@@ -353,6 +360,13 @@ async function getTotalRecipientsCount(targetType: BroadcastTargetType, filters:
         });
       }
       break;
+  }
+
+  // Добавляем исключение пользователей
+  if (excludedUsers.length > 0) {
+    whereClause.telegramId = {
+      notIn: excludedUsers.map(id => BigInt(id))
+    };
   }
 
   return await prisma.user.count({

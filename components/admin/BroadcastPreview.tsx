@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Eye, Users, AlertCircle } from 'lucide-react'
+import { Eye, Users, AlertCircle, X, UserMinus } from 'lucide-react'
 import { BroadcastTargetType } from '@prisma/client'
 import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
@@ -24,7 +24,7 @@ interface PreviewRecipient {
 interface BroadcastPreviewProps {
   targetType: BroadcastTargetType
   filters: BroadcastFilter[]
-  onPreviewUpdate?: (totalCount: number) => void
+  onPreviewUpdate?: (totalCount: number, excludedUsers: string[]) => void
 }
 
 export default function BroadcastPreview({ targetType, filters, onPreviewUpdate }: BroadcastPreviewProps) {
@@ -36,6 +36,9 @@ export default function BroadcastPreview({ targetType, filters, onPreviewUpdate 
     recipients: PreviewRecipient[]
   } | null>(null)
   const [error, setError] = useState('')
+  const [excludedUsers, setExcludedUsers] = useState<string[]>([])
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [showExcluded, setShowExcluded] = useState(false)
 
   const getTargetTypeName = (type: BroadcastTargetType) => {
     const names: Record<BroadcastTargetType, string> = {
@@ -50,6 +53,42 @@ export default function BroadcastPreview({ targetType, filters, onPreviewUpdate 
     return names[type] || type
   }
 
+  const toggleUserSelection = (telegramId: string) => {
+    setSelectedUsers(prev =>
+      prev.includes(telegramId)
+        ? prev.filter(id => id !== telegramId)
+        : [...prev, telegramId]
+    )
+  }
+
+  const toggleAllUsers = () => {
+    if (selectedUsers.length === filteredRecipients.length) {
+      setSelectedUsers([])
+    } else {
+      setSelectedUsers(filteredRecipients.map(r => r.telegramId))
+    }
+  }
+
+  const excludeSelectedUsers = () => {
+    const newExcluded = [...excludedUsers, ...selectedUsers]
+    setExcludedUsers(newExcluded)
+    setSelectedUsers([])
+  }
+
+  const removeExcludedUser = (telegramId: string) => {
+    setExcludedUsers(prev => prev.filter(id => id !== telegramId))
+  }
+
+  const getFilteredRecipients = () => {
+    if (!previewData) return []
+    return previewData.recipients.filter(
+      recipient => !excludedUsers.includes(recipient.telegramId)
+    )
+  }
+
+  const filteredRecipients = getFilteredRecipients()
+  const adjustedTotalCount = previewData ? previewData.totalCount - excludedUsers.length : 0
+
   const loadPreview = async () => {
     setLoading(true)
     setError('')
@@ -61,7 +100,8 @@ export default function BroadcastPreview({ targetType, filters, onPreviewUpdate 
           body: JSON.stringify({
             targetType,
             filters,
-            limit: 50
+            limit: 50,
+            excludedUsers
           })
         })
       })
@@ -74,7 +114,7 @@ export default function BroadcastPreview({ targetType, filters, onPreviewUpdate 
       setPreviewData(data)
 
       if (onPreviewUpdate) {
-        onPreviewUpdate(data.totalCount)
+        onPreviewUpdate(adjustedTotalCount, excludedUsers)
       }
 
     } catch (err) {
@@ -88,7 +128,7 @@ export default function BroadcastPreview({ targetType, filters, onPreviewUpdate 
     if (showPreview) {
       loadPreview()
     }
-  }, [targetType, filters, showPreview])
+  }, [targetType, filters, showPreview, excludedUsers])
 
   return (
     <div className="space-y-4">
@@ -137,24 +177,110 @@ export default function BroadcastPreview({ targetType, filters, onPreviewUpdate 
           ) : previewData ? (
             <>
               {/* Статистика */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="text-gray-600 text-sm">Всего получателей</div>
                   <div className="text-2xl font-bold text-gray-900">{previewData.totalCount}</div>
                 </div>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="text-blue-600 text-sm">Будет отправлено</div>
+                  <div className="text-2xl font-bold text-blue-900">{adjustedTotalCount}</div>
+                </div>
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <div className="text-red-600 text-sm">Исключено</div>
+                  <div className="text-2xl font-bold text-red-900">{excludedUsers.length}</div>
+                </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="text-gray-600 text-sm">Показано в предпросмотре</div>
-                  <div className="text-2xl font-bold text-gray-900">{previewData.previewCount}</div>
+                  <div className="text-2xl font-bold text-gray-900">{filteredRecipients.length}</div>
                 </div>
               </div>
 
+              {/* Панель управления */}
+              {selectedUsers.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-yellow-800">
+                      <span className="font-medium">Выбрано пользователей: {selectedUsers.length}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSelectedUsers([])}
+                        className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                      >
+                        Отменить выбор
+                      </button>
+                      <button
+                        onClick={excludeSelectedUsers}
+                        className="flex items-center gap-1 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                      >
+                        <UserMinus size={14} />
+                        Исключить выбранных
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Управление исключенными */}
+              {excludedUsers.length > 0 && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium text-gray-900">
+                      Исключенные пользователи ({excludedUsers.length})
+                    </h4>
+                    <button
+                      onClick={() => setShowExcluded(!showExcluded)}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      {showExcluded ? 'Скрыть' : 'Показать'}
+                    </button>
+                  </div>
+
+                  {showExcluded && (
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {excludedUsers.map(telegramId => {
+                        const user = previewData.recipients.find(r => r.telegramId === telegramId)
+                        return (
+                          <div key={telegramId} className="flex items-center justify-between bg-white p-2 rounded border">
+                            <div className="text-sm">
+                              <span className="font-medium">
+                                {user?.firstName || 'Нет имени'}
+                              </span>
+                              <span className="text-gray-500 ml-2">
+                                @{user?.username || telegramId}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => removeExcludedUser(telegramId)}
+                              className="text-green-600 hover:text-green-800"
+                              title="Вернуть в рассылку"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Таблица получателей */}
-              {previewData.recipients.length > 0 ? (
+              {filteredRecipients.length > 0 ? (
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                   <div className="max-h-96 overflow-y-auto">
                     <table className="w-full">
                       <thead className="bg-gray-50 sticky top-0">
                         <tr>
+                          <th className="px-4 py-2 text-left">
+                            <input
+                              type="checkbox"
+                              checked={selectedUsers.length === filteredRecipients.length && filteredRecipients.length > 0}
+                              onChange={toggleAllUsers}
+                              className="rounded border-gray-300"
+                            />
+                          </th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Пользователь
                           </th>
@@ -173,8 +299,19 @@ export default function BroadcastPreview({ targetType, filters, onPreviewUpdate 
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {previewData.recipients.map((recipient, index) => (
-                          <tr key={`${recipient.telegramId}-${index}`} className="hover:bg-gray-50">
+                        {filteredRecipients.map((recipient, index) => (
+                          <tr
+                            key={`${recipient.telegramId}-${index}`}
+                            className={`hover:bg-gray-50 ${selectedUsers.includes(recipient.telegramId) ? 'bg-blue-50' : ''}`}
+                          >
+                            <td className="px-4 py-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedUsers.includes(recipient.telegramId)}
+                                onChange={() => toggleUserSelection(recipient.telegramId)}
+                                className="rounded border-gray-300"
+                              />
+                            </td>
                             <td className="px-4 py-2">
                               <div>
                                 <div className="text-sm font-medium text-gray-900">
