@@ -3,6 +3,31 @@ import { prisma } from '@/lib/db';
 import { validateTelegramInitData } from '@/lib/utils';
 import { BroadcastStatus } from '@prisma/client';
 
+// Функция для сериализации BigInt в строки
+const serializeBigInt = (obj: any): any => {
+  if (obj === null || obj === undefined) return obj;
+
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(serializeBigInt);
+  }
+
+  if (typeof obj === 'object') {
+    const serialized: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        serialized[key] = serializeBigInt(obj[key]);
+      }
+    }
+    return serialized;
+  }
+
+  return obj;
+};
+
 // GET /api/admin/broadcasts/[id] - Получение детальной информации о рассылке
 export async function GET(
   request: NextRequest,
@@ -60,7 +85,7 @@ export async function GET(
       return NextResponse.json({ error: 'Рассылка не найдена' }, { status: 404 });
     }
 
-    return NextResponse.json(broadcast);
+    return NextResponse.json(serializeBigInt(broadcast));
 
   } catch (error) {
     console.error('[BROADCAST_GET]', error);
@@ -144,7 +169,7 @@ export async function PUT(
       }
     });
 
-    return NextResponse.json(updatedBroadcast);
+    return NextResponse.json(serializeBigInt(updatedBroadcast));
 
   } catch (error) {
     console.error('[BROADCAST_PUT]', error);

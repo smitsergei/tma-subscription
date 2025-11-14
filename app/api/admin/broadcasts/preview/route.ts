@@ -3,6 +3,31 @@ import { prisma } from '@/lib/db';
 import { validateTelegramInitData } from '@/lib/utils';
 import { BroadcastTargetType } from '@prisma/client';
 
+// Функция для сериализации BigInt в строки
+const serializeBigInt = (obj: any): any => {
+  if (obj === null || obj === undefined) return obj;
+
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(serializeBigInt);
+  }
+
+  if (typeof obj === 'object') {
+    const serialized: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        serialized[key] = serializeBigInt(obj[key]);
+      }
+    }
+    return serialized;
+  }
+
+  return obj;
+};
+
 // POST /api/admin/broadcasts/preview - Предпросмотр получателей рассылки
 export async function POST(request: NextRequest) {
   try {
@@ -53,11 +78,11 @@ export async function POST(request: NextRequest) {
     // Получение общего количества получателей
     const totalCount = await getTotalRecipientsCount(targetType, filters, excludedUsers);
 
-    return NextResponse.json({
+    return NextResponse.json(serializeBigInt({
       totalCount,
       previewCount: previewRecipients.length,
       recipients: previewRecipients
-    });
+    }));
 
   } catch (error) {
     console.error('[BROADCAST_PREVIEW]', error);

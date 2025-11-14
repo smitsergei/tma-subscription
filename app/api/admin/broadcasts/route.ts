@@ -3,6 +3,31 @@ import { prisma } from '@/lib/db';
 import { validateTelegramInitData } from '@/lib/utils';
 import { BroadcastTargetType, BroadcastStatus, FilterType } from '@prisma/client';
 
+// Функция для сериализации BigInt в строки
+const serializeBigInt = (obj: any): any => {
+  if (obj === null || obj === undefined) return obj;
+
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(serializeBigInt);
+  }
+
+  if (typeof obj === 'object') {
+    const serialized: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        serialized[key] = serializeBigInt(obj[key]);
+      }
+    }
+    return serialized;
+  }
+
+  return obj;
+};
+
 // GET /api/admin/broadcasts - Получение списка рассылок
 export async function GET(request: NextRequest) {
   try {
@@ -69,7 +94,7 @@ export async function GET(request: NextRequest) {
       prisma.broadcast.count({ where })
     ]);
 
-    return NextResponse.json({
+    return NextResponse.json(serializeBigInt({
       broadcasts,
       pagination: {
         page,
@@ -77,7 +102,7 @@ export async function GET(request: NextRequest) {
         total,
         totalPages: Math.ceil(total / limit)
       }
-    });
+    }));
 
   } catch (error) {
     console.error('[BROADCASTS_GET]', error);
@@ -167,7 +192,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(broadcast, { status: 201 });
+    return NextResponse.json(serializeBigInt(broadcast), { status: 201 });
 
   } catch (error) {
     console.error('[BROADCASTS_POST]', error);
