@@ -1,0 +1,18 @@
+# TMA-Подписка: Полная документация
+
+* [README](README.md)
+* [Маркетинговое описание](marketing/README.md)
+  * [Обзор продукта](marketing/overview.md)
+  * [Функциональные возможности](marketing/features.md)
+  * [Преимущества](marketing/benefits.md)
+  * [Сценарии использования](marketing/use-cases.md)
+  * [Тарифы и ценообразование](marketing/pricing.md)
+* [Техническая документация](technical/README.md)
+  * [Архитектура системы](technical/architecture.md)
+  * [Установка и развертывание](technical/installation.md)
+  * [Конфигурация системы](technical/configuration.md)
+  * [API справочник](technical/api-reference.md)
+  * [База данных](technical/database.md)
+  * [Развертывание](technical/deployment.md)
+  * [Безопасность](technical/security.md)
+  * [Устранение проблем](technical/troubleshooting.md)
