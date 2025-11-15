@@ -20,7 +20,7 @@
 ### 🎯 Атакуемые поверхности
 - **API эндпоинты** — основная поверхность атак
 - **Telegram Bot API** — вектор атак через Telegram
-- **TON Connect** — интеграция с блокчейном
+- **NOWPayments** — интеграция с платежной системой
 - **База данных** — хранилище чувствительных данных
 - **Админ-панель** — привилегированный доступ
 
@@ -140,115 +140,82 @@ export function verifyAdminToken(token: string): any {
 
 ## 💳 Защита платежной системы
 
-### 🔒 TON Connect безопасность
+### 🔒 NOWPayments безопасность
 
-#### ✅ Валидация транзакций
-
-```typescript
-// lib/security/ton/verification.ts
-import { TonClient } from '@ton/ton';
-
-export class PaymentVerifier {
-  private client: TonClient;
-
-  constructor() {
-    this.client = new TonClient({
-      endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-      apiKey: process.env.TONCENTER_API_KEY
-    });
-  }
-
-  async verifyTransaction(txHash: string, expectedAmount: string, expectedRecipient: string): Promise<boolean> {
-    try {
-      // Получаем транзакцию из блокчейна
-      const transaction = await this.client.getTransaction(txHash);
-
-      if (!transaction) {
-        throw new Error('Transaction not found');
-      }
-
-      // Проверяем получателя
-      const recipient = transaction.out_msgs[0]?.destination?.to_string();
-      if (recipient !== expectedRecipient) {
-        throw new Error('Invalid recipient');
-      }
-
-      // Проверяем сумму (для USDT - в нанотонах)
-      const amount = transaction.out_msgs[0]?.value?.toString();
-      if (amount !== expectedAmount) {
-        throw new Error('Invalid amount');
-      }
-
-      // Проверяем, что транзакция успешна
-      if (transaction.in_msg?.status !== 1) {
-        throw new Error('Transaction failed');
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Transaction verification failed:', error);
-      return false;
-    }
-  }
-
-  // Защита от двойных платежей
-  async checkDuplicatePayment(txHash: string): Promise<boolean> {
-    const existingPayment = await prisma.payment.findUnique({
-      where: { tx_hash: txHash }
-    });
-
-    return existingPayment !== null;
-  }
-}
-```
-
-#### 🛡️ Генерация безопасных memo
+#### ✅ Валидация вебхуков
 
 ```typescript
-// lib/security/ton/memo.ts
+// lib/security/nowpayments/webhook.ts
 import crypto from 'crypto';
 
-export function generateSecureMemo(paymentId: string): string {
-  const timestamp = Date.now();
-  const nonce = crypto.randomBytes(8).toString('hex');
+export class WebhookVerifier {
+  static verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
+    const expectedSignature = crypto
+      .createHmac('sha512', secret)
+      .update(payload)
+      .digest('hex');
 
-  // Формат: TMA_PAY_{paymentId}_{timestamp}_{nonce}
-  return `TMA_PAY_${paymentId}_${timestamp}_${nonce}`;
-}
+    return crypto.timingSafeEqual(
+      Buffer.from(signature, 'hex'),
+      Buffer.from(expectedSignature, 'hex')
+    );
+  }
 
-export function parseMemo(memo: string): { paymentId: string; timestamp: number } | null {
-  try {
-    const parts = memo.split('_');
-    if (parts.length !== 4 || parts[0] !== 'TMA' || parts[1] !== 'PAY') {
+  static parseWebhookPayload(payload: string): any {
+    try {
+      return JSON.parse(payload);
+    } catch (error) {
+      console.error('Invalid webhook payload:', error);
       return null;
     }
-
-    return {
-      paymentId: parts[2],
-      timestamp: parseInt(parts[3])
-    };
-  } catch (error) {
-    return null;
   }
 }
 ```
 
-### ⏰ Время жизни транзакций
+#### 🛡️ Валидация платежных данных
+
+```typescript
+// lib/security/payments/validator.ts
+export class PaymentValidator {
+  static validatePaymentData(data: any): boolean {
+    const required = ['payment_id', 'amount', 'currency', 'payment_status'];
+
+    return required.every(field => data[field] !== undefined && data[field] !== null);
+  }
+
+  static validateAmount(amount: number, currency: string): boolean {
+    const minAmounts = {
+      'USDT': 10,
+      'BTC': 0.0001,
+      'ETH': 0.01,
+      'LTC': 0.01
+    };
+
+    return amount >= (minAmounts[currency] || 10);
+  }
+
+  static sanitizePaymentId(paymentId: string): string {
+    return paymentId.replace(/[^a-zA-Z0-9_-]/g, '');
+  }
+}
+```
+
+### ⏰ Время жизни платежа
 
 ```typescript
 // lib/security/payments/timeout.ts
 export class PaymentTimeout {
-  private static readonly TRANSACTION_TIMEOUT = 30 * 60 * 1000; // 30 минут
+  private static readonly PAYMENT_TIMEOUT = 60 * 60 * 1000; // 1 час
 
   static isExpired(createdAt: Date): boolean {
     const now = Date.now();
     const created = new Date(createdAt).getTime();
 
-    return (now - created) > this.TRANSACTION_TIMEOUT;
+    return (now - created) > this.PAYMENT_TIMEOUT;
   }
 
   static getExpiryDate(): Date {
-    return new Date(Date.now() + this.TRANSACTION_TIMEOUT);
+    return new Date(Date.now() + this.PAYMENT_TIMEOUT);
   }
 }
 ```
@@ -660,7 +627,7 @@ export const securityConfig = {
       'BOT_SECRET',
       'JWT_SECRET',
       'ENCRYPTION_KEY',
-      'TON_WALLET_ADDRESS'
+      'NOWPAYMENTS_API_KEY'
     ];
 
     const missing = requiredSecrets.filter(secret => !process.env[secret]);

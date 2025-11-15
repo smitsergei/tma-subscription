@@ -98,7 +98,7 @@ POST /api/payment/initiate
     "memo": "TMA_PAY_pay_1234567890",
     "transaction": {
       "to": "EQD...123",
-      "amount": "29000000", // в нанотонах
+      "amount": "29.00", // в долларах
       "payload": "base64_encoded_payload"
     },
     "expires_at": "2024-01-01T12:00:00Z"
@@ -720,7 +720,7 @@ const payment = await fetch('/api/payment/initiate', {
   })
 });
 
-// 3. Создаем транзакцию через TON Connect
+// 3. Создаем транзакцию через NOWPayments
 const result = await tonConnect.sendTransaction(payment.data.transaction);
 
 // 4. Верифицируем платеж

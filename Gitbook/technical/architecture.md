@@ -113,19 +113,17 @@ tma-subscription/
 │   │   ├── SubscriptionManagement.tsx # Подписки
 │   │   ├── BroadcastManagement.tsx  # Рассылки
 │   │   └── ...
-│   ├── TonConnectButton.tsx         # Кнопка TON Connect
+│   ├── PaymentButton.tsx              # Кнопка оплаты
 │   ├── ProductList.tsx              # Список продуктов
 │   ├── UserSubscriptions.tsx        # Подписки пользователя
 │   └── LoadingSpinner.tsx           # Индикатор загрузки
 ├── 📁 lib/                          # Утилиты и конфигурации
 │   ├── 📁 telegram/                 # Telegram API интеграция
-│   ├── 📁 ton/                      # TON Connect интеграция
 │   ├── 📁 payments/                 # Платежная система
 │   ├── 📁 db/                       # База данных
 │   └── 📁 utils/                    # Общие утилиты
 ├── 📁 types/                        # TypeScript типы
 │   ├── telegram.ts                  # Telegram типы
-│   ├── ton.ts                       # TON типы
 │   ├── payment.ts                   # Платежные типы
 │   └── database.ts                  # Типы БД
 ├── 📁 prisma/                       # Prisma ORM
@@ -286,19 +284,18 @@ sequenceDiagram
     participant T as Telegram Mini App
     participant A as API
     participant DB as Database
-    participant TC as TON Connect
-    participant BC as Blockchain
+    participant NP as NOWPayments
+    participant PG as Payment Gateway
 
     U->>T: Выбирает продукт
     T->>A: Запуск платежа (/api/payment/initiate)
     A->>DB: Создание записи о платеже
-    A->>A: Генерация уникального memo
-    A->>T: Возврат данных для транзакции
-    T->>TC: Подключение кошелька
-    TC->>U: Подтверждение транзакции
-    TC->>BC: Отправка транзакции
-    BC->>A: Webhook о транзакции
-    A->>A: Верификация через Toncenter
+    A->>NP: Создание платежа через NOWPayments
+    NP->>T: Перенаправление на страницу оплаты
+    T->>PG: Выбор способа оплаты
+    PG->>U: Подтверждение платежа
+    PG->>NP: Уведомление об успешной оплате
+    NP->>A: Webhook о поступлении платежа
     A->>DB: Обновление статуса платежа
     A->>DB: Создание подписки
     A->>T: Уведомление об успехе
@@ -388,9 +385,9 @@ BOT_SECRET=your_bot_webhook_secret
 POSTGRES_URL=postgresql://user:password@host:port/database
 POSTGRES_PRISMA_URL=postgresql://user:password@host:port/database?pgbouncer=true
 
-# TON Configuration
-TONCENTER_API_KEY=your_toncenter_api_key
-TON_WALLET_ADDRESS=your_usdt_wallet_address
+# NOWPayments Configuration
+NOWPAYMENTS_API_KEY=your_nowpayments_api_key
+NOWPAYMENTS_IPN_SECRET=your_ipn_secret
 
 # Security
 NEXTAUTH_SECRET=your_nextauth_secret
@@ -403,13 +400,9 @@ ADMIN_TELEGRAM_ID=your_admin_telegram_id
 APP_URL=https://your-app.vercel.app
 NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 
-# NOWPayments (optional)
-NOWPAYMENTS_API_KEY=your_nowpayments_api_key
-NOWPAYMENTS_IPN_SECRET=your_ipn_secret
-
-# Monitoring
-VERCEL_ANALYTICS_ID=your_analytics_id
+# Monitoring (optional)
 SENTRY_DSN=your_sentry_dsn
+VERCEL_ANALYTICS_ID=your_analytics_id
 ```
 
 ## ⚡ Производительность

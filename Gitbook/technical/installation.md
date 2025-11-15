@@ -245,7 +245,7 @@ curl https://your-app.vercel.app/api/health
 # Проверка подключения к базе
 curl https://your-app.vercel.app/api/db/check
 
-# Проверка TON API
+# Проверка NOWPayments API
 curl https://your-app.vercel.app/api/ton/check
 ```
 
@@ -258,7 +258,7 @@ curl https://your-app.vercel.app/api/ton/check
 #### 💳 Тестирование платежей
 1. **Откройте** Mini App
 2. **Выберите** тестовый продукт
-3. **Попробуйте** подключить TON кошелек
+3. **Попробуйте** подключить NOWPayments кошелек
 4. **Проверьте** создание транзакции (не отправляйте)
 
 ### 🔧 Поиск проблем
@@ -273,7 +273,7 @@ curl https://your-app.vercel.app/api/ton/check
 **Причина**: Проблемы с POSTGRES_URL
 **Решение**: Проверьте строку подключения в Vercel Storage
 
-##### Ошибка: "TON API limit exceeded"
+##### Ошибка: "NOWPayments API limit exceeded"
 **Причина**: Превышен лимит запросов к Toncenter
 **Решение**: Получите платный API ключ или добавьте задержки
 
@@ -322,10 +322,10 @@ curl https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo
 curl https://api.telegram.org/bot<YOUR_BOT_TOKEN>/deleteWebhook
 ```
 
-#### 💰 TON кошелек
+#### 💰 NOWPayments кошелек
 - **Регулярно проверяйте** баланс кошелька
 - **Выводите средства** на холодный кошелек
-- **Мониторьте** транзакции через TON Explorer
+- **Мониторьте** транзакции через NOWPayments Explorer
 
 ---
 
@@ -337,7 +337,7 @@ curl https://api.telegram.org/bot<YOUR_BOT_TOKEN>/deleteWebhook
 - [ ] **Postgres база данных** создана и настроена
 - [ ] **Переменные окружения** заполнены корректно
 - [ ] **Telegram бот** создан и настроен
-- [ ] **TON кошелек** подготовлен для приемов
+- [ ] **NOWPayments кошелек** подготовлен для приемов
 - [ ] **Cron jobs** настроены в Vercel
 - [ ] **Администратор** добавлен в систему
 - [ ] **Каналы** добавлены в систему
@@ -362,7 +362,7 @@ curl https://api.telegram.org/bot<YOUR_BOT_TOKEN>/deleteWebhook
 ### 📚 Полезные ресурсы
 - [Vercel Documentation](https://vercel.com/docs)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
-- [TON Connect Documentation](https://docs.ton.org/develop/dapps/ton-connect)
+- [NOWPayments Documentation](https://docs.ton.org/develop/dapps/ton-connect)
 - [Prisma Documentation](https://www.prisma.io/docs)
 
 ### 🎯 Следующие шаги

@@ -18,7 +18,7 @@
 - **Frontend**: Next.js 14 + React + TypeScript
 - **Backend**: Vercel Serverless Functions
 - **База данных**: Vercel Postgres + Prisma ORM
-- **Платежи**: TON Connect 2.0 + Toncenter API
+- **Платежи**: NOWPayments API (50+ криптовалют и фиат)
 - **Платформа**: Vercel (хостинг, функции, cron jobs)
 
 ## 🚀 Быстрый старт:

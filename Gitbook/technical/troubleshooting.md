@@ -12,7 +12,7 @@
 
 #### 🚨 Критические проблемы (немедленная реакция)
 - [ ] **Сайт недоступен** - Проверить Vercel status
-- [ ] **Платежи не проходят** - Проверить TON API и кошелек
+- [ ] **Платежи не проходят** - Проверить NOWPayments API и кошелек
 - [ ] **Бот не отвечает** - Проверить webhook и токен
 - [ ] **База данных недоступна** - Проверить Vercel Storage
 
@@ -132,7 +132,7 @@ export function debugTelegramValidation(initData: string, botToken: string) {
 
 ## 💳 Проблемы с платежами
 
-### 🔗 TON Connect не работает
+### 🔗 NOWPayments не работает
 
 #### 🔍 Диагностика
 ```typescript
@@ -145,16 +145,16 @@ export async function debugTonConnection() {
     const response = await fetch('https://toncenter.com/api/v3/getAddressBalance', {
       method: 'POST',
       headers: {
-        'X-API-KEY': process.env.TONCENTER_API_KEY!
+        'X-API-KEY': process.env.NOWPAYMENTS_API_KEY!
       },
-      body: JSON.stringify({ address: process.env.TON_WALLET_ADDRESS })
+      body: JSON.stringify({ address: process.env.NOWPAYMENTS_API_KEY })
     });
 
     if (!response.ok) {
-      issues.push('TON Center API key invalid or exhausted');
+      issues.push('NOWPayments Center API key invalid or exhausted');
     }
   } catch (error) {
-    issues.push('TON Center API unavailable');
+    issues.push('NOWPayments Center API unavailable');
   }
 
   // 2. Проверка баланса кошелька
@@ -171,11 +171,11 @@ export async function debugTonConnection() {
 
 #### ⚙️ Решения
 
-**Проблема: API ключ TON Center истек**
+**Проблема: API ключ NOWPayments Center истек**
 ```bash
 # 1. Получите новый ключ на toncenter.com
 # 2. Обновите переменную окружения
-vercel env add TONCENTER_API_KEY production
+vercel env add NOWPAYMENTS_API_KEY production
 
 # 3. Перезапустите функции
 vercel functions list
@@ -199,7 +199,7 @@ export async function debugTransaction(paymentId: string) {
   const isValid = await verifier.verifyTransaction(
     payment.tx_hash!,
     payment.amount,
-    process.env.TON_WALLET_ADDRESS!
+    process.env.NOWPAYMENTS_API_KEY!
   );
 
   return {
@@ -611,7 +611,7 @@ export async function GET() {
     // Проверка Redis
     redis: await checkRedis(),
 
-    // Проверка TON API
+    // Проверка NOWPayments API
     tonApi: await checkTonApi(),
 
     // Проверка Telegram API
@@ -697,7 +697,7 @@ export const config = {
 #### 📞 Контакты для поддержки
 1. **Vercel Support** - Проблемы с инфраструктурой
 2. **Telegram Bot API** - Проблемы с ботом
-3. **TON Center** - Проблемы с блокчейном
+3. **NOWPayments Center** - Проблемы с блокчейном
 4. **Сообщество разработчиков** - Общие вопросы
 
 ### 📋 Сбор информации для поддержки

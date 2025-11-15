@@ -31,7 +31,7 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setMyCommands" \
 ```bash
 # Установка описания бота
 curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setDescription" \
-  -d "description=🚀 Платформа для подписок на эксклюзивный контент. Оплачивайте доступ через TON Connect и получайте мгновенный доступ к закрытым каналам."
+  -d "description=🚀 Платформа для подписок на эксклюзивный контент. Оплачивайте доступ через NOWPayments и получайте мгновенный доступ к закрытым каналам."
 ```
 
 ### 🖼️ Настройка Mini App
@@ -66,14 +66,14 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setDescription" \
 
 ## 💳 Конфигурация платежной системы
 
-### 🚀 TON Connect настройка
+### 🚀 NOWPayments настройка
 
 #### 📋 Требования к кошельку
 ```typescript
 // lib/ton/config.ts
-export const TON_CONFIG = {
+export const NOWPAYMENTS_CONFIG = {
   // Адрес вашего USDT кошелька
-  walletAddress: process.env.TON_WALLET_ADDRESS!,
+  walletAddress: process.env.NOWPAYMENTS_API_KEY!,
 
   // Сеть: TESTNET или MAINNET
   network: process.env.NODE_ENV === 'development' ? 'TESTNET' : 'MAINNET',
@@ -99,8 +99,8 @@ export const TON_CONFIG = {
 
 ```typescript
 // lib/ton/toncenter.ts
-export const TONCENTER_CONFIG = {
-  apiKey: process.env.TONCENTER_API_KEY!,
+export const NOWPAYMENTS_CONFIG = {
+  apiKey: process.env.NOWPAYMENTS_API_KEY!,
 
   // Базовый URL API
   baseUrl: process.env.NODE_ENV === 'development'
@@ -637,7 +637,7 @@ const nextConfig = {
   // Переменные окружения для клиента
   env: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-    NEXT_PUBLIC_TON_NETWORK: process.env.NODE_ENV === 'development' ? 'TESTNET' : 'MAINNET'
+    NEXT_PUBLIC_PAYMENT_NETWORK: process.env.NODE_ENV === 'development' ? 'TESTNET' : 'MAINNET'
   }
 };
 ```
@@ -731,7 +731,7 @@ const nextConfig = {
 
 - [ ] **Переменные окружения** заполнены и проверены
 - [ ] **Telegram бот** настроен с командами и описанием
-- [ ] **TON кошелек** подключен и протестирован
+- [ ] **NOWPayments кошелек** подключен и протестирован
 - [ ] **База данных** оптимизирована с индексами
 - [ ] **Cron jobs** настроены и работают
 - [ ] **Администратор** добавлен в систему
@@ -762,8 +762,8 @@ const nextConfig = {
 
 ### 🔧 Частые проблемы конфигурации
 
-#### Ошибка: "TON Connect не работает"
-**Решение**: Проверьте TON_WALLET_ADDRESS и TONCENTER_API_KEY
+#### Ошибка: "NOWPayments не работает"
+**Решение**: Проверьте NOWPAYMENTS_API_KEY и NOWPAYMENTS_API_KEY
 
 #### Ошибка: "База данных медленная"
 **Решение**: Добавьте недостающие индексы и проверьте connection pool

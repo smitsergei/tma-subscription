@@ -30,7 +30,7 @@ graph TB
     end
 
     subgraph "External Services"
-        TON[TON Network]
+        NOWPayments[NOWPayments Network]
         TELEGRAM[Telegram API]
         MONITORING[Monitoring]
     end
@@ -42,7 +42,7 @@ graph TB
     API --> DB
     API --> REDIS
     DB --> BACKUP
-    API --> TON
+    API --> NOWPayments
     API --> TELEGRAM
     MONITORING --> API
     MONITORING --> DB
@@ -56,7 +56,7 @@ graph TB
 - **Vercel KV** - Redis для кэширования и сессий
 - **Vercel Cron** - Планировщик фоновых задач
 - **Telegram Bot API** - Интеграция с Telegram
-- **TON Network** - Блокчейн для платежей
+- **NOWPayments Network** - Блокчейн для платежей
 
 ---
 
@@ -70,7 +70,7 @@ graph TB
 - [ ] **Vercel KV** для кэширования
 - [ ] **Домен** (рекомендуется для брендинга)
 - [ ] **Telegram бот** с настроенными командами
-- [ ] **TON кошелек** для приемов платежей
+- [ ] **NOWPayments кошелек** для приемов платежей
 
 #### 🔐 Безопасность
 - [ ] **SSL сертификаты** (автоматически через Vercel)
@@ -214,10 +214,10 @@ KV_URL=redis://redis-endpoint:port
 KV_REST_API_URL=https://your-kv-endpoint.vercel.app
 KV_REST_API_TOKEN=your_redis_token
 
-# TON Configuration
-TONCENTER_API_KEY=prod_toncenter_api_key
-TON_WALLET_ADDRESS=0x1234567890abcdef
-NEXT_PUBLIC_TON_NETWORK=MAINNET
+# NOWPayments Configuration
+NOWPAYMENTS_API_KEY=prod_toncenter_api_key
+NOWPAYMENTS_API_KEY=0x1234567890abcdef
+NEXT_PUBLIC_PAYMENT_NETWORK=MAINNET
 
 # Security
 NEXTAUTH_SECRET=prod_nextauth_secret_min_32_chars
@@ -662,11 +662,11 @@ export default function RootLayout({
 - [ ] **API эндпоинты** отвечают корректно
 - [ ] **Telegram бот** работает и отвечает на команды
 - [ ] **Mini App** открывается внутри Telegram
-- [ ] **TON Connect** интеграция работает
+- [ ] **NOWPayments** интеграция работает
 
 #### 💳 Проверка платежей
 - [ ] **Инициация платежа** создает правильную транзакцию
-- [ ] **Верификация платежа** работает с TON API
+- [ ] **Верификация платежа** работает с NOWPayments API
 - [ ] **Автоматическое добавление** в каналы работает
 - [ ] **История платежей** отображается корректно
 - [ ] **Промокоды** применяются правильно
