@@ -17,9 +17,10 @@
 - **Vercel KV (Redis)** - Кэширование и временные данные
 
 ### 💳 Платежи
-- **TON Connect 2.0** - Протокол подключения TON кошельков
-- **Toncenter API** - Взаимодействие с блокчейном TON
-- **NOWPayments API** - Фиатные платежи и крипто конвертация
+- **NOWPayments API** - Основной платежный шлюз (50+ криптовалют и фиат)
+- **Банковские карты** - Прямые фиатные платежи
+- **Криптовалюты** - BTC, ETH, LTC, USDT, USDC и другие
+- **Вебхуки** - Мгновенные уведомления о платежах
 
 ### 🤖 Telegram интеграция
 - **Telegram Bot API** - Управление ботами и каналами
@@ -33,7 +34,7 @@ graph TB
     subgraph "Клиентская сторона"
         A[Telegram Mini App] --> B[React Components]
         C[Admin Panel] --> B
-        B --> D[TonConnect Button]
+        B --> D[NOWPayments Button]
     end
 
     subgraph "Vercel Infrastructure"
@@ -43,9 +44,9 @@ graph TB
     end
 
     subgraph "Внешние сервисы"
-        J[Toncenter API]
+        J[NOWPayments API]
         K[Telegram Bot API]
-        L[NOWPayments API]
+        L[Payment Gateways]
         M[PostgreSQL Database]
         N[Redis Cache]
     end

@@ -10,7 +10,7 @@
 - **Аккаунт Vercel** с тарифом Pro (для Postgres и cron jobs)
 - **GitHub репозиторий** (для автоматического деплоя)
 - **Telegram бот** (создать у [@BotFather](https://t.me/BotFather))
-- **TON кошелек** для приема USDT платежей
+- **NOWPayments аккаунт** для приема платежей
 
 #### 💡 Рекомендуемые
 - **Базовые знания** JavaScript/TypeScript
@@ -126,10 +126,11 @@ POSTGRES_PRISMA_URL=postgresql://user:password@host:port/database?pgbouncer=true
 POSTGRES_URL_NON_POOLING=postgresql://user:password@host:port/database
 
 # ===========================================
-# TON Configuration
+# NOWPayments Configuration
 # ===========================================
-TONCENTER_API_KEY=your_toncenter_api_key_here
-TON_WALLET_ADDRESS=your_usdt_wallet_address_here
+NOWPAYMENTS_API_KEY=your_nowpayments_api_key_here
+NOWPAYMENTS_IPN_SECRET=your_ipn_secret_here
+NOWPAYMENTS_EMAIL=your_nowpayments_email_here
 
 # ===========================================
 # Admin Configuration
@@ -149,12 +150,6 @@ NEXTAUTH_SECRET=your_nextauth_secret_here
 JWT_SECRET=your_jwt_secret_here
 
 # ===========================================
-# Optional: NOWPayments Configuration
-# ===========================================
-NOWPAYMENTS_API_KEY=your_nowpayments_api_key_here
-NOWPAYMENTS_IPN_SECRET=your_ipn_secret_here
-
-# ===========================================
 # Optional: Monitoring Configuration
 # ===========================================
 VERCEL_ANALYTICS_ID=your_analytics_id_here
@@ -163,15 +158,12 @@ SENTRY_DSN=your_sentry_dsn_here
 
 #### 🔑 Получение необходимых ключей
 
-##### TON Center API Key
-1. **Перейдите** на [toncenter.com](https://toncenter.com/)
-2. **Зарегистрируйтесь** и получите API ключ
-3. **Сохраните** ключ в переменные окружения
-
-##### Адрес TON кошелька
-1. **Создайте** TON кошелек (Tonkeeper, MyTonWallet)
-2. **Получите** USDT адрес кошелька
-3. **Сохраните** адрес в переменные окружения
+##### NOWPayments API Key
+1. **Перейдите** на [nowpayments.io](https://nowpayments.io/)
+2. **Зарегистрируйтесь** и создайте API ключ
+3. **Получите IPN секрет** для вебхуков
+4. **Настройте** email для уведомлений
+5. **Сохраните** все данные в переменные окружения
 
 ### Шаг 5: Развертывание на Vercel
 
