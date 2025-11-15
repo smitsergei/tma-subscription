@@ -274,6 +274,98 @@ POST /api/promocodes/apply
 }
 ```
 
+### 🎪 Демо-доступ
+
+**POST** `/api/demo`
+
+Запрос демо-доступа к продукту.
+
+```typescript
+// Запрос
+POST /api/demo
+Headers: X-Telegram-Init-Data
+{
+  "productId": 123
+}
+
+// Ответ при успехе
+{
+  "success": true,
+  "demoAccess": {
+    "demoId": "demo_123",
+    "productId": 123,
+    "userId": 987654321,
+    "expiresAt": "2024-01-15T10:00:00Z",
+    "status": "ACTIVE",
+    "daysRemaining": 7
+  }
+}
+
+// Ответ если демо уже использовано
+{
+  "success": false,
+  "demoAccess": {
+    "wasUsed": true,
+    "startedAt": "2024-01-01T10:00:00Z",
+    "expiresAt": "2024-01-08T10:00:00Z"
+  },
+  "error": "Demo already used"
+}
+
+// Ответ если есть активный демо
+{
+  "success": false,
+  "demoAccess": {
+    "isActive": true,
+    "expiresAt": "2024-01-08T10:00:00Z",
+    "daysRemaining": 3
+  },
+  "error": "Demo already active"
+}
+```
+
+**GET** `/api/user/subscriptions`
+
+Получение подписок пользователя с демо-доступом.
+
+```typescript
+// Запрос
+GET /api/user/subscriptions?initData=...
+Headers: X-Telegram-Init-Data
+
+// Ответ
+{
+  "success": true,
+  "data": [
+    {
+      "subscriptionId": "sub_123",
+      "productId": 123,
+      "status": "active",
+      "expiresAt": "2024-02-01T10:00:00Z",
+      "daysRemaining": 15,
+      "product": {
+        "name": "Premium канал",
+        "channel": {
+          "name": "@premium_channel",
+          "inviteLink": "https://t.me/+abcdef..."
+        }
+      }
+    },
+    {
+      "subscriptionId": "demo_456",
+      "productId": 456,
+      "status": "demo",
+      "expiresAt": "2024-01-08T10:00:00Z",
+      "daysRemaining": 3,
+      "demoAccess": {
+        "demoId": "demo_456",
+        "wasUsed": false
+      }
+    }
+  ]
+}
+```
+
 ---
 
 ## 👨‍💼 Административные API
@@ -479,6 +571,48 @@ Headers: Authorization: Bearer {token}
 
 ### 📢 Управление рассылками
 
+**GET** `/api/admin/broadcasts`
+
+Получение списка рассылок с пагинацией и фильтрацией.
+
+```typescript
+// Запрос
+GET /api/admin/broadcasts?page=1&limit=10&status=DRAFT
+Headers: Authorization: Bearer {token}
+
+// Ответ
+{
+  "success": true,
+  "broadcasts": [
+    {
+      "broadcastId": "broadcast_123",
+      "title": "Новогодняя акция",
+      "message": "🎅 Скидка 30% на все подписки!",
+      "targetType": "EXPIRED_SUBSCRIPTIONS",
+      "status": "DRAFT",
+      "createdAt": "2024-01-01T10:00:00Z",
+      "totalRecipients": 150,
+      "sentCount": 0,
+      "failedCount": 0,
+      "creator": {
+        "firstName": "Admin",
+        "username": "admin"
+      },
+      "_count": {
+        "messages": 0,
+        "filters": 1
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 25,
+    "totalPages": 3
+  }
+}
+```
+
 **POST** `/api/admin/broadcasts`
 
 Создание новой рассылки.
@@ -488,37 +622,104 @@ Headers: Authorization: Bearer {token}
 POST /api/admin/broadcasts
 Headers: Authorization: Bearer {token}
 {
-  "name": "Новогодняя акция",
+  "title": "Новогодняя акция",
   "message": "🎅 Скидка 30% на все подписки до конца года!",
-  "send_type": "scheduled",
-  "scheduled_at": "2024-01-01T10:00:00Z",
+  "targetType": "EXPIRED_SUBSCRIPTIONS",
+  "scheduledAt": "2024-01-01T10:00:00Z",
   "filters": [
     {
-      "type": "subscription_status",
-      "value": "expired"
-    },
-    {
-      "type": "last_payment",
-      "value": "30_days_ago"
+      "filterType": "EXCLUDED_USERS",
+      "filterValue": "[123456789, 987654321]"
     }
-  ]
+  ],
+  "excludedUsers": ["123456789", "987654321"]
 }
 
 // Ответ
 {
+  "broadcastId": "broadcast_456",
+  "title": "Новогодняя акция",
+  "message": "🎅 Скидка 30% на все подписки!",
+  "targetType": "EXPIRED_SUBSCRIPTIONS",
+  "status": "SCHEDULED",
+  "scheduledAt": "2024-01-01T10:00:00Z",
+  "createdAt": "2024-01-01T09:00:00Z",
+  "filters": [...]
+}
+```
+
+**GET** `/api/admin/broadcasts/{id}`
+
+Получение детальной информации о рассылке.
+
+**PUT** `/api/admin/broadcasts/{id}`
+
+Редактирование существующей рассылки.
+
+**DELETE** `/api/admin/broadcasts/{id}`
+
+Удаление рассылки.
+
+**POST** `/api/admin/broadcasts/{id}/send`
+
+Отправка рассылки.
+
+```typescript
+// Запрос
+POST /api/admin/broadcasts/broadcast_123/send
+Headers: Authorization: Bearer {token}
+
+// Ответ
+{
   "success": true,
-  "data": {
-    "id": 1,
-    "name": "Новогодняя акция",
-    "status": "scheduled",
-    "estimated_recipients": 250
-  }
+  "message": "Рассылка отправлена"
 }
 ```
 
 **GET** `/api/admin/broadcasts/{id}/stats`
 
-Статистика рассылки.
+Получение статистики рассылки.
+
+```typescript
+// Ответ
+{
+  "success": true,
+  "stats": {
+    "totalRecipients": 150,
+    "sentCount": 142,
+    "failedCount": 8,
+    "progressPercentage": 94.7
+  },
+  "progressPercentage": 94.7,
+  "recentFailures": [
+    {
+      "user": {
+        "firstName": "John",
+        "username": "john_doe"
+      },
+      "error": "User blocked the bot",
+      "createdAt": "2024-01-01T10:05:00Z"
+    }
+  ]
+}
+```
+
+**GET** `/api/admin/broadcasts/preview`
+
+Предпросмотр получателей рассылки.
+
+```typescript
+// Запрос
+GET /api/admin/broadcasts/preview?targetType=EXPIRED_SUBSCRIPTIONS&filters=...
+Headers: Authorization: Bearer {token}
+
+// Ответ
+{
+  "success": true,
+  "estimatedCount": 150,
+  "excludedUsers": ["123456789"]
+}
+```
 
 ---
 
@@ -662,14 +863,40 @@ GET /api/cron/check-subscriptions
 - `expired` - истекла
 - `cancelled` - отменена
 - `pending` - ожидает активации
+- `demo` - демо-доступ
+
+### Статусы демо-доступа
+
+- `ACTIVE` - активный демо-период
+- `EXPIRED` - демо-период истек
+- `USED` - демо-период был использован ранее
+- `CANCELLED` - демо-доступ отменен
 
 ### Статусы рассылок
 
-- `draft` - черновик
-- `scheduled` - запланирована
-- `sending` - отправляется
-- `completed` - завершена
-- `cancelled` - отменена
+- `DRAFT` - черновик
+- `SCHEDULED` - запланирована
+- `SENDING` - отправляется
+- `COMPLETED` - завершена
+- `FAILED` - ошибка отправки
+- `CANCELLED` - отменена
+
+### Типы аудитории для рассылок
+
+- `ALL_USERS` - все пользователи системы
+- `ACTIVE_SUBSCRIPTIONS` - пользователи с активными подписками
+- `EXPIRED_SUBSCRIPTIONS` - пользователи с истекшими подписками
+- `TRIAL_USERS` - пользователи с триальным доступом
+- `PRODUCT_SPECIFIC` - подписчики конкретного продукта
+- `CHANNEL_SPECIFIC` - подписчики конкретного канала
+- `CUSTOM_FILTER` - кастомные фильтры
+
+### Типы фильтров рассылок
+
+- `EXCLUDED_USERS` - исключенные пользователи
+- `PRODUCT_FILTER` - фильтр по продуктам
+- `CHANNEL_FILTER` - фильтр по каналам
+- `SUBSCRIPTION_STATUS` - фильтр по статусу подписки
 
 ---
 

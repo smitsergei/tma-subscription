@@ -136,33 +136,33 @@ export function debugTelegramValidation(initData: string, botToken: string) {
 
 #### 🔍 Диагностика
 ```typescript
-// lib/debug/ton.ts
-export async function debugTonConnection() {
+// lib/debug/payments.ts
+export async function debugPaymentConnection() {
   const issues = [];
 
-  // 1. Проверка API ключа
+  // 1. Проверка API ключа NOWPayments
   try {
-    const response = await fetch('https://toncenter.com/api/v3/getAddressBalance', {
-      method: 'POST',
+    const response = await fetch('https://api.nowpayments.io/v1/status', {
+      method: 'GET',
       headers: {
         'X-API-KEY': process.env.NOWPAYMENTS_API_KEY!
-      },
-      body: JSON.stringify({ address: process.env.NOWPAYMENTS_API_KEY })
+      }
     });
 
     if (!response.ok) {
-      issues.push('NOWPayments Center API key invalid or exhausted');
+      issues.push('NOWPayments API key invalid or exhausted');
     }
   } catch (error) {
-    issues.push('NOWPayments Center API unavailable');
+    issues.push('NOWPayments API unavailable');
   }
 
-  // 2. Проверка баланса кошелька
+  // 2. Проверка статуса платежей
   try {
-    const balance = await getWalletBalance();
-    console.log('Wallet balance:', balance);
+    const response = await fetch('/api/payments/status');
+    const status = await response.json();
+    console.log('Payment system status:', status);
   } catch (error) {
-    issues.push('Wallet balance check failed');
+    issues.push('Payment system status check failed');
   }
 
   return issues;
@@ -171,9 +171,9 @@ export async function debugTonConnection() {
 
 #### ⚙️ Решения
 
-**Проблема: API ключ NOWPayments Center истек**
+**Проблема: API ключ NOWPayments истек**
 ```bash
-# 1. Получите новый ключ на toncenter.com
+# 1. Получите новый ключ на nowpayments.io
 # 2. Обновите переменную окружения
 vercel env add NOWPAYMENTS_API_KEY production
 

@@ -413,49 +413,52 @@ CREATE INDEX idx_demo_access_expires_at ON demo_access(expires_at);
 
 ```sql
 CREATE TABLE broadcasts (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255),
+  broadcast_id VARCHAR(255) PRIMARY KEY,  -- UUID или CUID
+  title VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
-  send_type VARCHAR(50) DEFAULT 'immediate', -- 'immediate' or 'scheduled'
+  target_type VARCHAR(50) NOT NULL, -- 'ALL_USERS', 'ACTIVE_SUBSCRIPTIONS', 'EXPIRED_SUBSCRIPTIONS', 'TRIAL_USERS', 'PRODUCT_SPECIFIC', 'CHANNEL_SPECIFIC', 'CUSTOM_FILTER'
+  status VARCHAR(50) DEFAULT 'DRAFT', -- 'DRAFT', 'SCHEDULED', 'SENDING', 'COMPLETED', 'FAILED', 'CANCELLED'
   scheduled_at TIMESTAMP,
-  status VARCHAR(50) DEFAULT 'draft', -- 'draft', 'scheduled', 'sending', 'completed', 'cancelled', 'failed'
+  sent_at TIMESTAMP,
   total_recipients INTEGER DEFAULT 0,
-  total_sent INTEGER DEFAULT 0,
-  total_delivered INTEGER DEFAULT 0,
-  total_failed INTEGER DEFAULT 0,
-  error_message TEXT,
+  sent_count INTEGER DEFAULT 0,
+  failed_count INTEGER DEFAULT 0,
   created_by BIGINT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  sent_at TIMESTAMP,
-  completed_at TIMESTAMP,
 
-  FOREIGN KEY (created_by) REFERENCES admins(telegram_id) ON DELETE SET NULL
+  FOREIGN KEY (created_by) REFERENCES users(telegram_id) ON DELETE SET NULL
 );
 
 -- Индексы
 CREATE INDEX idx_broadcasts_status ON broadcasts(status);
+CREATE INDEX idx_broadcasts_target_type ON broadcasts(target_type);
 CREATE INDEX idx_broadcasts_scheduled_at ON broadcasts(scheduled_at);
 CREATE INDEX idx_broadcasts_created_by ON broadcasts(created_by);
+CREATE INDEX idx_broadcasts_created_at ON broadcasts(created_at);
 ```
 
 **Описание полей:**
-- `send_type` - Тип отправки
+- `broadcast_id` - Уникальный идентификатор рассылки
+- `title` - Заголовок рассылки
+- `message` - Текст сообщения
+- `target_type` - Тип целевой аудитории
 - `status` - Статус рассылки
-- `total_*` - Счетчики для статистики
-- `error_message` - Ошибка при отправке
+- `total_recipients` - Общее количество получателей
+- `sent_count` - Количество отправленных сообщений
+- `failed_count` - Количество ошибок при отправке
 
 ### 🎯 BroadcastFilters (Фильтры рассылок)
 
 ```sql
 CREATE TABLE broadcast_filters (
-  id SERIAL PRIMARY KEY,
-  broadcast_id INTEGER NOT NULL,
-  filter_type VARCHAR(50) NOT NULL, -- 'subscription_status', 'payment_status', 'demo_access', 'user_activity'
-  filter_value TEXT NOT NULL, -- JSON с параметрами фильтра
+  filter_id VARCHAR(255) PRIMARY KEY,  -- UUID или CUID
+  broadcast_id VARCHAR(255) NOT NULL,
+  filter_type VARCHAR(50) NOT NULL, -- 'EXCLUDED_USERS', 'PRODUCT_FILTER', 'CHANNEL_FILTER', 'SUBSCRIPTION_STATUS'
+  filter_value TEXT NOT NULL, -- JSON строка с параметрами фильтра
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (broadcast_id) REFERENCES broadcasts(id) ON DELETE CASCADE
+  FOREIGN KEY (broadcast_id) REFERENCES broadcasts(broadcast_id) ON DELETE CASCADE
 );
 
 -- Индексы
@@ -465,22 +468,22 @@ CREATE INDEX idx_broadcast_filters_type ON broadcast_filters(filter_type);
 
 **Примеры filter_value:**
 ```json
+// Исключенные пользователи
+["123456789", "987654321"]
+
+// Фильтр по продукту
+{
+  "product_id": 123
+}
+
+// Фильтр по каналу
+{
+  "channel_id": 456
+}
+
 // Статус подписки
 {
-  "status": "active",
-  "channel_id": 123
-}
-
-// Активность пользователей
-{
-  "last_login": "30_days_ago",
-  "min_spent": "100"
-}
-
-// Платежный статус
-{
-  "payment_status": "completed",
-  "date_range": "last_month"
+  "status": "active"
 }
 ```
 
@@ -488,17 +491,16 @@ CREATE INDEX idx_broadcast_filters_type ON broadcast_filters(filter_type);
 
 ```sql
 CREATE TABLE broadcast_messages (
-  id SERIAL PRIMARY KEY,
-  broadcast_id INTEGER NOT NULL,
+  message_id VARCHAR(255) PRIMARY KEY,  -- UUID или CUID
+  broadcast_id VARCHAR(255) NOT NULL,
   user_id BIGINT NOT NULL,
-  message_id BIGINT, -- ID сообщения в Telegram
-  status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'sent', 'delivered', 'failed'
-  error_message TEXT,
+  status VARCHAR(50) DEFAULT 'PENDING', -- 'PENDING', 'SENT', 'FAILED'
   sent_at TIMESTAMP,
-  delivered_at TIMESTAMP,
+  error TEXT,
+  telegram_message_id INTEGER, -- ID сообщения в Telegram
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (broadcast_id) REFERENCES broadcasts(id) ON DELETE CASCADE,
+  FOREIGN KEY (broadcast_id) REFERENCES broadcasts(broadcast_id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE
 );
 
@@ -506,6 +508,7 @@ CREATE TABLE broadcast_messages (
 CREATE INDEX idx_broadcast_messages_broadcast_id ON broadcast_messages(broadcast_id);
 CREATE INDEX idx_broadcast_messages_user_id ON broadcast_messages(user_id);
 CREATE INDEX idx_broadcast_messages_status ON broadcast_messages(status);
+CREATE INDEX idx_broadcast_messages_created_at ON broadcast_messages(created_at);
 ```
 
 ---

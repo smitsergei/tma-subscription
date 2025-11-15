@@ -95,17 +95,19 @@ export const NOWPAYMENTS_CONFIG = {
 };
 ```
 
-#### ⚙️ Настройка Toncenter API
+#### ⚙️ Настройка NOWPayments API
 
 ```typescript
-// lib/ton/toncenter.ts
+// lib/payments/nowpayments.ts
 export const NOWPAYMENTS_CONFIG = {
   apiKey: process.env.NOWPAYMENTS_API_KEY!,
+  ipnSecret: process.env.NOWPAYMENTS_IPN_SECRET!,
 
   // Базовый URL API
-  baseUrl: process.env.NODE_ENV === 'development'
-    ? 'https://testnet.toncenter.com/api/v3'
-    : 'https://toncenter.com/api/v3',
+  baseUrl: 'https://api.nowpayments.io/v1',
+
+  // Поддерживаемые криптовалюты
+  supportedCurrencies: ['BTC', 'ETH', 'LTC', 'USDT', 'USDC', 'BNB', 'TRON'],
 
   // Лимиты запросов
   rateLimit: {
@@ -393,7 +395,7 @@ const nextConfig = {
               "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
-              "connect-src 'self' https://toncenter.com https://api.nowpayments.io"
+              "connect-src 'self' https://api.nowpayments.io https://nowpayments.io"
             ].join('; '),
           },
         ],

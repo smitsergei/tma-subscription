@@ -593,7 +593,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
-      "connect-src 'self' https://api.telegram.org https://toncenter.com",
+      "connect-src 'self' https://api.telegram.org https://api.nowpayments.io",
       "font-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",

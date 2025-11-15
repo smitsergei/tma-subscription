@@ -215,8 +215,8 @@ KV_REST_API_URL=https://your-kv-endpoint.vercel.app
 KV_REST_API_TOKEN=your_redis_token
 
 # NOWPayments Configuration
-NOWPAYMENTS_API_KEY=prod_toncenter_api_key
-NOWPAYMENTS_API_KEY=0x1234567890abcdef
+NOWPAYMENTS_API_KEY=your_nowpayments_api_key
+NOWPAYMENTS_IPN_SECRET=your_ipn_secret
 NEXT_PUBLIC_PAYMENT_NETWORK=MAINNET
 
 # Security
@@ -637,7 +637,7 @@ export default function RootLayout({
         {/* Preconnect к внешним ресурсам */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://api.telegram.org" />
-        <link rel="preconnect" href="https://toncenter.com" />
+        <link rel="preconnect" href="https://api.nowpayments.io" />
 
         {/* DNS prefetch */}
         <link rel="dns-prefetch" href="https://cdn.vercel.app" />
