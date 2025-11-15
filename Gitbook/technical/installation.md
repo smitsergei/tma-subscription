@@ -362,7 +362,7 @@ curl https://api.telegram.org/bot<YOUR_BOT_TOKEN>/deleteWebhook
 ### 📚 Полезные ресурсы
 - [Vercel Documentation](https://vercel.com/docs)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
-- [NOWPayments Documentation](https://docs.ton.org/develop/dapps/ton-connect)
+- [NOWPayments Documentation](https://docs.nowpayments.io/)
 - [Prisma Documentation](https://www.prisma.io/docs)
 
 ### 🎯 Следующие шаги
