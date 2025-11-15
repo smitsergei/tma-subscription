@@ -36,7 +36,14 @@ export default function BroadcastPreview({ targetType, filters, onPreviewUpdate 
     recipients: PreviewRecipient[]
   } | null>(null)
   const [error, setError] = useState('')
-  const [excludedUsers, setExcludedUsers] = useState<string[]>([])
+
+  // Инициализируем исключенных пользователей из фильтров
+  const getInitialExcludedUsers = () => {
+    const excludedFilter = filters?.find(f => f.filterType === 'EXCLUDED_USERS')
+    return excludedFilter ? JSON.parse(excludedFilter.filterValue) : []
+  }
+
+  const [excludedUsers, setExcludedUsers] = useState<string[]>(getInitialExcludedUsers())
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [showExcluded, setShowExcluded] = useState(false)
 
@@ -123,6 +130,12 @@ export default function BroadcastPreview({ targetType, filters, onPreviewUpdate 
       setLoading(false)
     }
   }
+
+  // Обновляем исключенных пользователей при изменении фильтров
+  useEffect(() => {
+    const newExcludedUsers = getInitialExcludedUsers()
+    setExcludedUsers(newExcludedUsers)
+  }, [filters])
 
   useEffect(() => {
     if (showPreview) {
