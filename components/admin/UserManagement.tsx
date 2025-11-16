@@ -8,6 +8,7 @@ interface User {
   firstName: string
   username: string
   createdAt: string
+  isAdmin: boolean
   subscriptions: Subscription[]
 }
 
@@ -37,9 +38,10 @@ interface DropdownMenuProps {
   user: User
   onAddSubscription: () => void
   onDelete: () => void
+  onToggleAdmin: () => void
 }
 
-function DropdownMenu({ user, onAddSubscription, onDelete }: DropdownMenuProps) {
+function DropdownMenu({ user, onAddSubscription, onDelete, onToggleAdmin }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -60,7 +62,7 @@ function DropdownMenu({ user, onAddSubscription, onDelete }: DropdownMenuProps) 
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 z-20 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+          <div className="absolute right-0 z-20 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
             <button
               onClick={() => {
                 onAddSubscription()
@@ -72,6 +74,22 @@ function DropdownMenu({ user, onAddSubscription, onDelete }: DropdownMenuProps) 
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Добавить подписку
+            </button>
+            <button
+              onClick={() => {
+                onToggleAdmin()
+                setIsOpen(false)
+              }}
+              className={`w-full text-left px-4 py-2 text-sm ${
+                user.isAdmin
+                  ? 'text-orange-600 hover:bg-orange-50'
+                  : 'text-blue-600 hover:bg-blue-50'
+              } flex items-center gap-2`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              {user.isAdmin ? 'Отнять права админа' : 'Сделать администратором'}
             </button>
             <button
               onClick={() => {
@@ -96,9 +114,10 @@ interface UserCardProps {
   user: User
   onAddSubscription: () => void
   onDelete: () => void
+  onToggleAdmin: () => void
 }
 
-function UserCard({ user, onAddSubscription, onDelete }: UserCardProps) {
+function UserCard({ user, onAddSubscription, onDelete, onToggleAdmin }: UserCardProps) {
   const activeSubscriptionsCount = user.subscriptions.filter(sub => sub.status === 'active').length
 
   return (
@@ -106,13 +125,22 @@ function UserCard({ user, onAddSubscription, onDelete }: UserCardProps) {
       {/* Header */}
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-3 flex-1">
-          <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className={`w-12 h-12 ${
+            user.isAdmin ? 'bg-orange-600' : 'bg-blue-600'
+          } rounded-full flex items-center justify-center flex-shrink-0`}>
             <span className="text-white font-semibold text-lg">
               {user.firstName?.[0]?.toUpperCase() || 'U'}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-lg truncate">{user.firstName}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-gray-900 text-lg truncate">{user.firstName}</h3>
+              {user.isAdmin && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                  👑 Администратор
+                </span>
+              )}
+            </div>
             <p className="text-gray-600 text-sm">@{user.username || 'no_username'}</p>
           </div>
         </div>
@@ -120,6 +148,7 @@ function UserCard({ user, onAddSubscription, onDelete }: UserCardProps) {
           user={user}
           onAddSubscription={onAddSubscription}
           onDelete={onDelete}
+          onToggleAdmin={onToggleAdmin}
         />
       </div>
 
@@ -191,6 +220,7 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
+  const [userType, setUserType] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -206,7 +236,8 @@ export default function UserManagement() {
         page: page.toString(),
         limit: '20',
         ...(search && { search }),
-        ...(status && { status })
+        ...(status && { status }),
+        ...(userType && { userType })
       })
 
       const response = await fetch(`/api/admin/users?${params}`, createAuthenticatedRequest())
@@ -224,14 +255,14 @@ export default function UserManagement() {
 
   useEffect(() => {
     fetchUsers()
-  }, [page, search, status])
+  }, [page, search, status, userType])
 
-  // Reset to first page when search or status changes
+  // Reset to first page when search, status or userType changes
   useEffect(() => {
     if (page > 1) {
       setPage(1)
     }
-  }, [search, status])
+  }, [search, status, userType])
 
   const createUser = async () => {
     try {
@@ -271,6 +302,33 @@ export default function UserManagement() {
     } catch (error) {
       console.error('Error deleting user:', error)
       alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to delete user'}`)
+    }
+  }
+
+  const toggleAdmin = async (telegramId: string, currentIsAdmin: boolean) => {
+    const action = currentIsAdmin ? 'отнять права администратора' : 'сделать администратором'
+
+    if (!confirm(`Вы уверены, что хотите ${action} у этого пользователя?`)) return
+
+    try {
+      const response = await fetch('/api/admin/users', createAuthenticatedRequest({
+        method: 'PATCH',
+        body: JSON.stringify({
+          telegramId,
+          isAdmin: !currentIsAdmin
+        })
+      }))
+
+      if (response.ok) {
+        fetchUsers()
+        alert(`Права администратора успешно ${currentIsAdmin ? 'отняты' : 'предоставлены'}`)
+      } else {
+        const error = await response.json()
+        alert(`Ошибка: ${error.error || 'Failed to update admin status'}\nДетали: ${error.details || ''}`)
+      }
+    } catch (error) {
+      console.error('Error updating admin status:', error)
+      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to update admin status'}`)
     }
   }
 
@@ -344,6 +402,15 @@ export default function UserManagement() {
           className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <select
+          value={userType}
+          onChange={(e) => setUserType(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">Все типы</option>
+          <option value="admin">👑 Администраторы</option>
+          <option value="user">👤 Пользователи</option>
+        </select>
+        <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -364,6 +431,9 @@ export default function UserManagement() {
                   Пользователь
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Тип
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Telegram ID
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -382,16 +452,34 @@ export default function UserManagement() {
                 <tr key={user.telegramId} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className={`w-10 h-10 ${
+                        user.isAdmin ? 'bg-orange-600' : 'bg-blue-600'
+                      } rounded-full flex items-center justify-center flex-shrink-0`}>
                         <span className="text-white font-medium">
                           {user.firstName?.[0]?.toUpperCase() || 'U'}
                         </span>
                       </div>
                       <div className="ml-4">
-                        <div className="font-medium text-gray-900">{user.firstName}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-gray-900">{user.firstName}</div>
+                          {user.isAdmin && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                              👑 Администратор
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm text-gray-500">@{user.username || 'no_username'}</div>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                      user.isAdmin
+                        ? 'bg-orange-100 text-orange-800'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {user.isAdmin ? '👑 Администратор' : '👤 Пользователь'}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm text-gray-900 font-mono">{user.telegramId.toString()}</span>
@@ -419,6 +507,7 @@ export default function UserManagement() {
                       user={user}
                       onAddSubscription={() => addSubscription(user.telegramId.toString())}
                       onDelete={() => deleteUser(user.telegramId.toString())}
+                      onToggleAdmin={() => toggleAdmin(user.telegramId.toString(), user.isAdmin)}
                     />
                   </td>
                 </tr>
@@ -436,6 +525,7 @@ export default function UserManagement() {
             user={user}
             onAddSubscription={() => addSubscription(user.telegramId.toString())}
             onDelete={() => deleteUser(user.telegramId.toString())}
+            onToggleAdmin={() => toggleAdmin(user.telegramId.toString(), user.isAdmin)}
           />
         ))}
       </div>
@@ -447,20 +537,21 @@ export default function UserManagement() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
           <h3 className="mt-2 text-sm font-medium text-gray-900">
-            {(search || status) ? 'Пользователи не найдены' : 'Нет пользователей'}
+            {(search || status || userType) ? 'Пользователи не найдены' : 'Нет пользователей'}
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            {(search || status)
-              ? `Попробуйте изменить ${search ? 'поисковый запрос' : ''}${search && status ? ' или ' : ''}${status ? 'фильтр статуса' : ''}`
+            {(search || status || userType)
+              ? `Попробуйте изменить ${search ? 'поисковый запрос' : ''}${search && (status || userType) ? ' или ' : ''}${status ? 'фильтр статуса' : ''}${status && userType ? ' или ' : ''}${userType ? 'фильтр типа пользователя' : ''}`
               : 'Начните с добавления первого пользователя'
             }
           </p>
           <div className="mt-6">
-            {(search || status) && (
+            {(search || status || userType) && (
               <button
                 onClick={() => {
                   setSearch('')
                   setStatus('')
+                  setUserType('')
                 }}
                 className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2 mr-4"
               >

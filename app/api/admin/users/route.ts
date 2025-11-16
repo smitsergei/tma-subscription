@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status')
+    const userType = searchParams.get('userType') // 'admin' | 'user' | ''
 
     const skip = (page - 1) * limit
 
@@ -72,13 +73,23 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    // Get users with their subscriptions for proper filtering
+    // Filter by user type (admin/user)
+    if (userType === 'admin') {
+      where.admin = {
+        isNot: null
+      }
+    } else if (userType === 'user') {
+      where.admin = null
+    }
+
+    // Get users with their subscriptions and admin status for proper filtering
     const users = await prisma.user.findMany({
       where,
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
+        admin: true,
         subscriptions: {
           select: {
             subscriptionId: true,
@@ -148,6 +159,7 @@ export async function GET(request: NextRequest) {
         return {
           ...user,
           telegramId: user.telegramId.toString(),
+          isAdmin: !!user.admin,
           subscriptions: subscriptions.map(sub => ({
             subscriptionId: sub.subscriptionId,
             userId: sub.userId.toString(),
@@ -244,6 +256,7 @@ export async function GET(request: NextRequest) {
         firstName: user.firstName,
         username: user.username,
         createdAt: user.createdAt,
+        isAdmin: user.isAdmin,
         subscriptions: user.subscriptions
       })),
       pagination: {
@@ -310,6 +323,53 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating user:', error)
+    return createJsonResponse(
+      { error: 'Internal server error' },
+      500
+    )
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    if (!(await checkAdminAuth(request))) {
+      return createJsonResponse({ error: 'Unauthorized' }, 401)
+    }
+
+    const { telegramId, isAdmin } = await request.json()
+
+    if (!telegramId || typeof isAdmin !== 'boolean') {
+      return createJsonResponse(
+        { error: 'telegramId and isAdmin (boolean) are required' },
+        400
+      )
+    }
+
+    const userId = BigInt(telegramId)
+
+    if (isAdmin) {
+      // Добавить администратора
+      await prisma.admin.upsert({
+        where: { telegramId: userId },
+        update: {},
+        create: { telegramId: userId }
+      })
+    } else {
+      // Удалить администратора
+      await prisma.admin.delete({
+        where: { telegramId: userId }
+      }).catch(() => {
+        // Игнорируем ошибку если администратор не существует
+      })
+    }
+
+    return createJsonResponse({
+      success: true,
+      message: isAdmin ? 'User promoted to admin' : 'Admin privileges revoked'
+    })
+
+  } catch (error) {
+    console.error('Error updating user admin status:', error)
     return createJsonResponse(
       { error: 'Internal server error' },
       500
