@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
           await notifyAdminsAboutPaymentAttempt(
             {
               telegramId: telegramId.toString(),
-              firstName: user.first_name,
+              firstName: user.first_name || 'Unknown',
               username: user.username || undefined
             },
             {

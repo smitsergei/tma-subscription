@@ -327,7 +327,7 @@ async function processConfirmedPayment(payment: any, txHash: string): Promise<an
     await notifyAdminsAboutNewSubscription(
       {
         telegramId: payment.userId.toString(),
-        firstName: payment.user.firstName,
+        firstName: payment.user.firstName || 'Unknown',
         username: payment.user.username || undefined
       },
       {

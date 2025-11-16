@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
             await notifyAdminsAboutNewSubscription(
               {
                 telegramId: payment.userId.toString(),
-                firstName: payment.user.firstName,
+                firstName: payment.user.firstName || 'Unknown',
                 username: payment.user.username || undefined
               },
               {

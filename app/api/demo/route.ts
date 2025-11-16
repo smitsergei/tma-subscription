@@ -304,7 +304,7 @@ export async function POST(request: NextRequest) {
       await notifyAdminsAboutDemoAccess(
         {
           telegramId: telegramId.toString(),
-          firstName: user.firstName,
+          firstName: user.firstName || 'Unknown',
           username: user.username || undefined
         },
         {
