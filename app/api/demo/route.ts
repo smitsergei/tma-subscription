@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData } from '@/lib/utils'
+import { notifyAdminsAboutDemoAccess } from '@/lib/adminNotifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -297,6 +298,28 @@ export async function POST(request: NextRequest) {
       productId: demoAccess.productId,
       expiresAt: demoAccess.expiresAt.toISOString()
     });
+
+    // Отправляем уведомление администраторам
+    try {
+      await notifyAdminsAboutDemoAccess(
+        {
+          telegramId: telegramId.toString(),
+          firstName: user.firstName,
+          username: user.username || undefined
+        },
+        {
+          name: product.name,
+          periodDays: product.demoDays,
+          channelName: product.channel.name
+        },
+        {
+          demoDays: product.demoDays
+        }
+      )
+    } catch (error) {
+      console.error('❌ DEMO: Error sending admin notification:', error)
+      // Не прерываем процесс при ошибке уведомления
+    }
 
     // Добавляем пользователя в канал через Telegram Bot API
     try {

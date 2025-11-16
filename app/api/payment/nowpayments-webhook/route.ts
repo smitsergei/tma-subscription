@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyNOWPaymentsIPN } from '@/lib/utils'
 import { syncChannelAccess } from '@/lib/botSync'
+import { notifyAdminsAboutNewSubscription } from '@/lib/adminNotifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -203,6 +204,32 @@ export async function POST(request: NextRequest) {
             console.log('✅ Channel access synchronized successfully')
           } else {
             console.error('❌ Failed to sync channel access:', syncResult.error)
+          }
+
+          // Отправляем уведомление администраторам
+          try {
+            await notifyAdminsAboutNewSubscription(
+              {
+                telegramId: payment.userId.toString(),
+                firstName: payment.user.firstName,
+                username: payment.user.username || undefined
+              },
+              {
+                name: payment.product.name,
+                price: parseFloat(payment.amount.toString()),
+                currency: payment.currency,
+                periodDays: payment.product.periodDays,
+                channelName: payment.product.channel?.name || 'Канал'
+              },
+              {
+                paymentId: payment.paymentId,
+                expiresAt: expiresAt,
+                paymentMethod: 'NOWPayments'
+              }
+            )
+          } catch (error) {
+            console.error('❌ NOWPAYMENTS: Error sending admin notification:', error)
+            // Не прерываем процесс при ошибке уведомления
           }
         }
       } else {

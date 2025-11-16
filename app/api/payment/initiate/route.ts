@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { validateTelegramInitData, generatePaymentMemo } from '@/lib/utils'
 import { Decimal } from 'decimal.js'
+import { notifyAdminsAboutPaymentAttempt } from '@/lib/adminNotifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -181,6 +182,41 @@ export async function POST(request: NextRequest) {
       memo,
       nowPaymentId: nowPaymentsResponse.payment_id
     })
+
+    // Отправляем уведомление администраторам о попытке покупки
+    if (finalProductId) {
+      try {
+        // Получаем информацию о продукте для уведомления
+        const product = await prisma.product.findUnique({
+          where: { productId: finalProductId },
+          include: { channel: true }
+        })
+
+        if (product) {
+          await notifyAdminsAboutPaymentAttempt(
+            {
+              telegramId: telegramId.toString(),
+              firstName: user.first_name,
+              username: user.username || undefined
+            },
+            {
+              name: product.name,
+              price: finalAmount,
+              currency: currency,
+              periodDays: product.periodDays,
+              channelName: product.channel?.name || 'Канал'
+            },
+            {
+              paymentId: payment.paymentId,
+              paymentMethod: 'NOWPayments'
+            }
+          )
+        }
+      } catch (error) {
+        console.error('❌ PAYMENT INITIATE: Error sending admin notification:', error)
+        // Не прерываем процесс при ошибке уведомления
+      }
+    }
 
     // Возвращаем URL для перенаправления на страницу оплаты
     const paymentUrl = `${baseUrl}/payment?payment_id=${payment.paymentId}`

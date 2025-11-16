@@ -4,6 +4,7 @@ import { validateTelegramInitData } from '@/lib/utils'
 import { Address, beginCell, toNano } from '@ton/ton'
 import { TonClient } from '@ton/ton'
 import { syncChannelAccess } from '@/lib/botSync'
+import { notifyAdminsAboutNewSubscription } from '@/lib/adminNotifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -320,6 +321,32 @@ async function processConfirmedPayment(payment: any, txHash: string): Promise<an
       txHash
     }
   })
+
+  // Отправляем уведомление администраторам
+  try {
+    await notifyAdminsAboutNewSubscription(
+      {
+        telegramId: payment.userId.toString(),
+        firstName: payment.user.firstName,
+        username: payment.user.username || undefined
+      },
+      {
+        name: payment.product.name,
+        price: parseFloat(payment.amount.toString()),
+        currency: payment.currency,
+        periodDays: payment.product.periodDays,
+        channelName: payment.product.channel?.name || 'Канал'
+      },
+      {
+        paymentId: payment.paymentId,
+        expiresAt: expiresAt,
+        paymentMethod: 'TON'
+      }
+    )
+  } catch (error) {
+    console.error('❌ VERIFY: Error sending admin notification:', error)
+    // Не прерываем процесс при ошибке уведомления
+  }
 
   console.log('✅ VERIFY: Payment processed successfully')
 
