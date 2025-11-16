@@ -2,6 +2,55 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { prisma } from '@/lib/db'
 
+// Проверка, является ли пользователь администратором
+async function checkIsAdmin(chatId: number): Promise<boolean> {
+  try {
+    // Сначала проверяем в базе данных
+    const adminInDb = await prisma.admin.findUnique({
+      where: { telegramId: BigInt(chatId) }
+    })
+
+    if (adminInDb) {
+      console.log('✅ Admin found in database:', chatId)
+      return true
+    }
+
+    // Если не найден в БД, проверяем переменные окружения для обратной совместимости
+    const adminTelegramId = process.env.ADMIN_TELEGRAM_ID
+
+    if (adminTelegramId) {
+      const isEnvAdmin = chatId.toString() === adminTelegramId || chatId === parseInt(adminTelegramId)
+      if (isEnvAdmin) {
+        console.log('✅ Admin found in environment variables:', chatId)
+
+        // Добавляем администратора в базу данных для будущего использования
+        await prisma.admin.upsert({
+          where: { telegramId: BigInt(chatId) },
+          update: {},
+          create: { telegramId: BigInt(chatId) }
+        }).catch(error => {
+          console.error('⚠️ Failed to add admin to database:', error)
+        })
+
+        return true
+      }
+    }
+
+    console.log('❌ User is not an admin:', chatId)
+    return false
+  } catch (error) {
+    console.error('❌ Error checking admin status:', error)
+
+    // В случае ошибки, пробуем проверку через переменные окружения
+    const adminTelegramId = process.env.ADMIN_TELEGRAM_ID
+    if (adminTelegramId) {
+      return chatId.toString() === adminTelegramId || chatId === parseInt(adminTelegramId)
+    }
+
+    return false
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Получаем тело запроса
@@ -109,53 +158,97 @@ export async function POST(request: NextRequest) {
 
       if (text === '/admin') {
         // Проверяем, является ли пользователь администратором
-        const adminTelegramId = process.env.ADMIN_TELEGRAM_ID
+        const isAdmin = await checkIsAdmin(chatId)
 
         console.log('🔐 Admin check:', {
           chatId: chatId,
           chatIdType: typeof chatId,
-          adminId: adminTelegramId,
-          adminIdType: typeof adminTelegramId,
-          comparison: chatId.toString() === adminTelegramId
+          isAdmin: isAdmin
         })
 
-        if (!adminTelegramId) {
-          console.log('❌ Admin not configured')
-          await sendMessage(chatId, '❌ Администратор не настроен')
-          responseSent = true
-          return
-        }
-
-        if (chatId.toString() !== adminTelegramId && chatId !== parseInt(adminTelegramId)) {
+        if (!isAdmin) {
           console.log('❌ Access denied for user:', chatId)
-          await sendMessage(chatId, '❌ Доступ запрещен')
+          await sendMessage(chatId, '❌ Доступ запрещен. У вас нет прав администратора.')
           responseSent = true
-          // Убираем return, чтобы другие команды продолжали работать (fixed)
         } else {
+          await sendMessage(
+            chatId,
+            '👑 Панель администратора\n\n' +
+            'Доступные функции:\n' +
+            '📊 Статистика продаж\n' +
+            '📝 Управление продуктами\n' +
+            '👥 Управление подписками\n' +
+            '👥 Управление пользователями\n' +
+            '📣 Рассылки\n\n' +
+            'Откройте админ-панель:',
+            {
+              reply_markup: {
+                inline_keyboard: [[
+                  {
+                    text: '👑 Открыть админ-панель',
+                    web_app: {
+                      url: process.env.APP_URL?.replace(/\n/g, '') + '/admin'
+                    }
+                  }
+                ]]
+              }
+            }
+          )
+          responseSent = true
+        }
+      }
 
-        await sendMessage(
-          chatId,
-          '👑 Панель администратора\n\n' +
-          'Доступные функции:\n' +
-          '📊 Статистика продаж\n' +
-          '📝 Управление продуктами\n' +
-          '👥 Управление подписками\n\n' +
-          'Откройте админ-панель:',
-          {
-            reply_markup: {
-              inline_keyboard: [[
-                {
-                  text: '👑 Открыть админ-панель',
-                  web_app: {
-                    url: process.env.APP_URL?.replace(/\n/g, '') + '/admin'
+      if (text === '/admins') {
+        // Показываем список всех администраторов (только для админов)
+        const isAdmin = await checkIsAdmin(chatId)
+
+        if (!isAdmin) {
+          await sendMessage(chatId, '❌ Доступ запрещен. Эта команда доступна только администраторам.')
+          responseSent = true
+        } else {
+          try {
+            const admins = await prisma.admin.findMany({
+              include: {
+                user: {
+                  select: {
+                    firstName: true,
+                    username: true
                   }
                 }
-              ]]
+              }
+            })
+
+            if (admins.length === 0) {
+              await sendMessage(chatId, '📋 Администраторы не найдены в базе данных.')
+            } else {
+              let adminList = '👑 <b>Список администраторов:</b>\n\n'
+
+              admins.forEach((admin, index) => {
+                const user = admin.user
+                const name = user?.firstName || 'Неизвестно'
+                const username = user?.username ? `(@${user.username})` : ''
+                const telegramId = admin.telegramId.toString()
+
+                adminList += `${index + 1}. <b>${name}</b> ${username}\n`
+                adminList += `   🆔 ID: ${telegramId}\n\n`
+              })
+
+              // Добавляем информацию о администраторе из окружения если он есть
+              const envAdminId = process.env.ADMIN_TELEGRAM_ID
+              if (envAdminId && !admins.find(a => a.telegramId.toString() === envAdminId)) {
+                adminList += `\n🔧 <b>Администратор из окружения:</b>\n`
+                adminList += `🆔 ID: ${envAdminId}\n`
+                adminList += `ℹ️ Рекомендуется добавить в базу данных`
+              }
+
+              await sendMessage(chatId, adminList)
             }
+          } catch (error) {
+            console.error('Error fetching admins:', error)
+            await sendMessage(chatId, '❌ Произошла ошибка при получении списка администраторов.')
           }
-        )
-        responseSent = true
-      } // Конец else блока для администратора
+          responseSent = true
+        }
       }
 
       if (text === '/help') {
@@ -165,9 +258,11 @@ export async function POST(request: NextRequest) {
           '<b>🔹 Доступные команды:</b>\n' +
           '• /start - Главное меню\n' +
           '• /help - Эта справка\n' +
-          '• /mysubscriptions - Мои подписки\n\n' +
+          '• /mysubscriptions - Мои подписки\n' +
+          '• /admin - Панель администратора (только для админов)\n' +
+          '• /admins - Список администраторов (только для админов)\n\n' +
           '<b>🔹 Как оформить подписку:</b>\n' +
-          '1. Нажмите "🚀 Открыть Mini App"\n' +
+          '1. Нажмите "🚪 Открыть Mini App"\n' +
           '2. Выберите интересующий канал\n' +
           '3. Оплатите через доступную платежную систему\n' +
           '4. Получите доступ к закрытому контенту\n\n' +
@@ -177,7 +272,7 @@ export async function POST(request: NextRequest) {
             reply_markup: {
               inline_keyboard: [[
                 {
-                  text: '🚀 Открыть Mini App',
+                  text: '🚪 Открыть Mini App',
                   web_app: {
                     url: process.env.APP_URL?.replace(/\n/g, '') + '/app'
                   }
