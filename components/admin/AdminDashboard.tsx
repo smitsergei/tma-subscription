@@ -8,6 +8,7 @@ import DiscountManagement from './DiscountManagement'
 import PromoCodeManagement from './PromoCodeManagement'
 import DemoManagement from './DemoManagement'
 import PaymentManagement from './PaymentManagement'
+import PaymentManagementMobile from './PaymentManagementMobile'
 import BroadcastManagement from './BroadcastManagement'
 
 type TabType = 'users' | 'subscriptions' | 'products' | 'payments' | 'discounts' | 'promocodes' | 'demo' | 'broadcasts'
@@ -36,7 +37,8 @@ export default function AdminDashboard() {
       case 'products':
         return <ProductManagement />
       case 'payments':
-        return <PaymentManagement />
+        // Используем мобильную версию для платежей на всех устройствах для лучшего UX
+        return <PaymentManagementMobile />
       case 'discounts':
         return <DiscountManagement />
       case 'promocodes':
@@ -140,39 +142,44 @@ export default function AdminDashboard() {
 
         {/* Main Content */}
         <div className="flex flex-col flex-1 min-h-screen">
-          {/* Desktop Header */}
-          <div className="hidden lg:block bg-white border-b border-gray-200">
-            <div className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    {tabs.find(t => t.id === activeTab)?.icon} {tabs.find(t => t.id === activeTab)?.label}
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Управление {tabs.find(t => t.id === activeTab)?.label.toLowerCase()}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-sm text-gray-500">
-                    {new Date().toLocaleDateString('ru-RU', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    })}
+          {/* Desktop Header - скрыт для платежей, так как мобильная версия имеет свой хедер */}
+          {activeTab !== 'payments' && (
+            <div className="hidden lg:block bg-white border-b border-gray-200">
+              <div className="px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {tabs.find(t => t.id === activeTab)?.icon} {tabs.find(t => t.id === activeTab)?.label}
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Управление {tabs.find(t => t.id === activeTab)?.label.toLowerCase()}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="text-sm text-gray-500">
+                      {new Date().toLocaleDateString('ru-RU', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Tab Content */}
-          <main className="flex-1 p-4 lg:p-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="p-6">
-                  {renderTab()}
+          <main className="flex-1">
+            <div className={`${activeTab === 'payments' ? '' : 'max-w-7xl mx-auto p-4 lg:p-6'}`}>
+              {activeTab !== 'payments' && (
+                <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                  <div className="p-6">
+                    {renderTab()}
+                  </div>
                 </div>
-              </div>
+              )}
+              {activeTab === 'payments' && renderTab()}
             </div>
           </main>
 
