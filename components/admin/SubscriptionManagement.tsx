@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
 interface Subscription {
@@ -251,6 +251,11 @@ export default function SubscriptionManagement() {
     expiresAt: ''
   })
 
+  const [userSearch, setUserSearch] = useState('')
+  const [userSearchLoading, setUserSearchLoading] = useState(false)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const userSearchRef = useRef<HTMLDivElement>(null)
+
   const [editSubscription, setEditSubscription] = useState({
     status: '',
     expiresAt: ''
@@ -263,6 +268,9 @@ export default function SubscriptionManagement() {
     batchStatus: '',
     batchExpiresAt: ''
   })
+
+  const [batchUserSearches, setBatchUserSearches] = useState<string[]>([''])
+  const [batchUserDropdowns, setBatchUserDropdowns] = useState<boolean[]>([false])
 
   const fetchSubscriptions = async () => {
     try {
@@ -287,13 +295,7 @@ export default function SubscriptionManagement() {
 
   const fetchUsersAndProducts = async () => {
     try {
-      const usersResponse = await fetch('/api/admin/users?limit=100', createAuthenticatedRequest())
       const productsResponse = await fetch('/api/admin/products-v2', createAuthenticatedRequest())
-
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json()
-        setUsers(usersData.users || [])
-      }
 
       if (productsResponse.ok) {
         const productsData = await productsResponse.json()
@@ -304,10 +306,73 @@ export default function SubscriptionManagement() {
     }
   }
 
+  const fetchUsers = async (searchTerm: string) => {
+    try {
+      setUserSearchLoading(true)
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '20',
+        ...(searchTerm && { search: searchTerm })
+      })
+
+      const response = await fetch(`/api/admin/users?${params}`, createAuthenticatedRequest())
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data.users || [])
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    } finally {
+      setUserSearchLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchSubscriptions()
     fetchUsersAndProducts()
   }, [page, status])
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (userSearch.trim()) {
+        fetchUsers(userSearch)
+      } else {
+        setUsers([])
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [userSearch])
+
+  useEffect(() => {
+    const timeoutIds = batchUserSearches.map((search, index) => {
+      return setTimeout(() => {
+        if (search?.trim()) {
+          fetchUsers(search)
+        }
+      }, 300)
+    })
+
+    return () => timeoutIds.forEach(id => clearTimeout(id))
+  }, [batchUserSearches])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userSearchRef.current && !userSearchRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false)
+        setBatchUserDropdowns(prev => prev.map(() => false))
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const selectUser = (user: any) => {
+    setNewSubscription({...newSubscription, userId: user.telegramId.toString()})
+    setUserSearch(`${user.firstName} ${user.username ? '@' + user.username : ''}`)
+    setShowUserDropdown(false)
+  }
 
   const createSubscription = async () => {
     try {
@@ -319,6 +384,8 @@ export default function SubscriptionManagement() {
       if (response.ok) {
         setShowCreateModal(false)
         setNewSubscription({ userId: '', productId: '', status: 'active', expiresAt: '' })
+        setUserSearch('')
+        setUsers([])
         fetchSubscriptions()
       } else {
         const error = await response.json()
@@ -396,6 +463,8 @@ export default function SubscriptionManagement() {
       ...prev,
       subscriptions: [...prev.subscriptions, { userId: '', productId: '', status: 'active', expiresAt: '' }]
     }))
+    setBatchUserSearches(prev => [...prev, ''])
+    setBatchUserDropdowns(prev => [...prev, false])
   }
 
   const removeBatchSubscription = (index: number) => {
@@ -403,6 +472,8 @@ export default function SubscriptionManagement() {
       ...prev,
       subscriptions: prev.subscriptions.filter((_, i) => i !== index)
     }))
+    setBatchUserSearches(prev => prev.filter((_, i) => i !== index))
+    setBatchUserDropdowns(prev => prev.filter((_, i) => i !== index))
   }
 
   const updateBatchSubscription = (index: number, field: string, value: string) => {
@@ -412,6 +483,21 @@ export default function SubscriptionManagement() {
         i === index ? { ...sub, [field]: value } : sub
       )
     }))
+  }
+
+  const updateBatchUserSearch = (index: number, value: string) => {
+    setBatchUserSearches(prev => prev.map((search, i) => i === index ? value : search))
+    setBatchUserDropdowns(prev => prev.map((open, i) => i === index ? true : open))
+  }
+
+  const selectBatchUser = (index: number, user: any) => {
+    updateBatchSubscription(index, 'userId', user.telegramId.toString())
+    updateBatchUserSearch(index, `${user.firstName} ${user.username ? '@' + user.username : ''}`)
+    setBatchUserDropdowns(prev => prev.map((open, i) => i === index ? false : open))
+  }
+
+  const toggleBatchUserDropdown = (index: number, open: boolean) => {
+    setBatchUserDropdowns(prev => prev.map((dropdown, i) => i === index ? open : dropdown))
   }
 
   const executeBatchOperation = async () => {
@@ -448,6 +534,16 @@ export default function SubscriptionManagement() {
 
         setShowBatchModal(false)
         setSelectedSubscriptions([])
+        setBatchData({
+          subscriptions: [{ userId: '', productId: '', status: 'active', expiresAt: '' }],
+          mode: 'create' as 'create' | 'update',
+          subscriptionIds: [],
+          batchStatus: '',
+          batchExpiresAt: ''
+        })
+        setBatchUserSearches([''])
+        setBatchUserDropdowns([false])
+        setUsers([])
         fetchSubscriptions()
       } else {
         const error = await response.json()
@@ -802,18 +898,76 @@ export default function SubscriptionManagement() {
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Создать подписку</h3>
             <div className="space-y-4">
-              <select
-                value={newSubscription.userId}
-                onChange={(e) => setNewSubscription({...newSubscription, userId: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Выберите пользователя</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.telegramId.toString()}>
-                    {user.firstName} {user.lastName} (@{user.username})
-                  </option>
-                ))}
-              </select>
+              {/* User Search */}
+              <div className="relative" ref={userSearchRef}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Поиск пользователя *</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Начните вводить имя или username..."
+                    value={userSearch}
+                    onChange={(e) => {
+                      setUserSearch(e.target.value)
+                      setShowUserDropdown(true)
+                    }}
+                    onFocus={() => setShowUserDropdown(true)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                  {userSearchLoading && (
+                    <div className="absolute right-3 top-2.5">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
+                </div>
+
+                {/* User Dropdown */}
+                {showUserDropdown && userSearch.trim() && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {users.length > 0 ? (
+                      users.map((user) => (
+                        <div
+                          key={user.telegramId}
+                          onClick={() => selectUser(user)}
+                          className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-white font-medium text-sm">
+                                {user.firstName?.[0]?.toUpperCase() || 'U'}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 truncate">{user.firstName}</div>
+                              <div className="text-sm text-gray-500">
+                                @{user.username || 'no_username'} • ID: {user.telegramId}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : !userSearchLoading ? (
+                      <div className="px-3 py-4 text-center text-gray-500 text-sm">
+                        Пользователи не найдены
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              {/* Selected User Info */}
+              {newSubscription.userId && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm text-blue-800">
+                      Выбран пользователь: {userSearch}
+                    </span>
+                  </div>
+                </div>
+              )}
               <select
                 value={newSubscription.productId}
                 onChange={(e) => setNewSubscription({...newSubscription, productId: e.target.value})}
@@ -844,7 +998,12 @@ export default function SubscriptionManagement() {
             </div>
             <div className="flex justify-end space-x-3 mt-6">
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  setShowCreateModal(false)
+                  setNewSubscription({ userId: '', productId: '', status: 'active', expiresAt: '' })
+                  setUserSearch('')
+                  setUsers([])
+                }}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               >
                 Отмена
@@ -924,18 +1083,50 @@ export default function SubscriptionManagement() {
                 <div className="space-y-2">
                   {batchData.subscriptions.map((sub, index) => (
                     <div key={index} className="flex gap-2 items-center bg-gray-50 p-3 rounded-lg">
-                      <select
-                        value={sub.userId}
-                        onChange={(e) => updateBatchSubscription(index, 'userId', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="">Выберите пользователя</option>
-                        {users.map((user) => (
-                          <option key={user.id} value={user.telegramId.toString()}>
-                            {user.firstName} {user.lastName} (@{user.username})
-                          </option>
-                        ))}
-                      </select>
+                      {/* User Search */}
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          placeholder="Поиск пользователя..."
+                          value={batchUserSearches[index] || ''}
+                          onChange={(e) => updateBatchUserSearch(index, e.target.value)}
+                          onFocus={() => toggleBatchUserDropdown(index, true)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+
+                        {/* User Dropdown */}
+                        {batchUserDropdowns[index] && batchUserSearches[index]?.trim() && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {users.length > 0 ? (
+                              users.map((user) => (
+                                <div
+                                  key={user.telegramId}
+                                  onClick={() => selectBatchUser(index, user)}
+                                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                      <span className="text-white font-medium text-sm">
+                                        {user.firstName?.[0]?.toUpperCase() || 'U'}
+                                      </span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-gray-900 truncate">{user.firstName}</div>
+                                      <div className="text-sm text-gray-500">
+                                        @{user.username || 'no_username'} • ID: {user.telegramId}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            ) : !userSearchLoading ? (
+                              <div className="px-3 py-4 text-center text-gray-500 text-sm">
+                                Пользователи не найдены
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
                       <select
                         value={sub.productId}
                         onChange={(e) => updateBatchSubscription(index, 'productId', e.target.value)}
@@ -1006,7 +1197,19 @@ export default function SubscriptionManagement() {
 
             <div className="flex justify-end space-x-3 mt-6">
               <button
-                onClick={() => setShowBatchModal(false)}
+                onClick={() => {
+                  setShowBatchModal(false)
+                  setBatchData({
+                    subscriptions: [{ userId: '', productId: '', status: 'active', expiresAt: '' }],
+                    mode: 'create' as 'create' | 'update',
+                    subscriptionIds: [],
+                    batchStatus: '',
+                    batchExpiresAt: ''
+                  })
+                  setBatchUserSearches([''])
+                  setBatchUserDropdowns([false])
+                  setUsers([])
+                }}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               >
                 Отмена
