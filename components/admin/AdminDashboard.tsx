@@ -14,16 +14,17 @@ type TabType = 'users' | 'subscriptions' | 'products' | 'payments' | 'discounts'
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('products')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const tabs = [
-    { id: 'users' as TabType, label: '👥 Пользователи', icon: 'users' },
-    { id: 'subscriptions' as TabType, label: '📋 Подписки', icon: 'subscriptions' },
-    { id: 'products' as TabType, label: '📦 Продукты', icon: 'products' },
-    { id: 'payments' as TabType, label: '💳 Платежи', icon: 'payments' },
-    { id: 'discounts' as TabType, label: '💰 Скидки', icon: 'discount' },
-    { id: 'promocodes' as TabType, label: '🎫 Промокоды', icon: 'promos' },
-    { id: 'demo' as TabType, label: '🎓 Демо-доступ', icon: 'demo' },
-    { id: 'broadcasts' as TabType, label: '📢 Рассылки', icon: 'broadcast' }
+    { id: 'users' as TabType, label: 'Пользователи', icon: '👥', mobileIcon: 'users' },
+    { id: 'subscriptions' as TabType, label: 'Подписки', icon: '📋', mobileIcon: 'subscriptions' },
+    { id: 'products' as TabType, label: 'Продукты', icon: '📦', mobileIcon: 'products' },
+    { id: 'payments' as TabType, label: 'Платежи', icon: '💳', mobileIcon: 'payments' },
+    { id: 'discounts' as TabType, label: 'Скидки', icon: '💰', mobileIcon: 'discount' },
+    { id: 'promocodes' as TabType, label: 'Промокоды', icon: '🎫', mobileIcon: 'promos' },
+    { id: 'demo' as TabType, label: 'Демо', icon: '🎓', mobileIcon: 'demo' },
+    { id: 'broadcasts' as TabType, label: 'Рассылки', icon: '📢', mobileIcon: 'broadcast' }
   ]
 
   const renderTab = () => {
@@ -50,56 +51,148 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm mb-8">
-          <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold text-gray-900">
-              🛠️ Панель администратора
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Управление пользователями, подписками, продуктами, платежами, скидками, промокодами, демо-доступом и рассылками
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold text-gray-900">🛠️ Админ-панель</h1>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="bg-white rounded-lg shadow-sm mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="border-t border-gray-200 bg-white">
+            <nav className="px-2 py-3 space-y-1">
               {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id)
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className={`${
+                    activeTab === tab.id
+                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent'
+                  } w-full flex items-center px-3 py-2 text-sm font-medium rounded-md border transition-all duration-200`}
+                >
+                  <span className="mr-3 text-lg">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        )}
+      </div>
+
+      <div className="flex">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:flex lg:flex-shrink-0">
+          <div className="flex flex-col w-64">
+            <div className="flex flex-col flex-grow bg-white border-r border-gray-200 pt-5 pb-4 overflow-y-auto">
+              {/* Desktop Header */}
+              <div className="flex items-center flex-shrink-0 px-4 mb-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">T</span>
+                    </div>
+                  </div>
+                  <div className="ml-3">
+                    <h1 className="text-lg font-semibold text-gray-900">TMA Подписка</h1>
+                    <p className="text-xs text-gray-500">Панель управления</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Navigation */}
+              <nav className="flex-1 px-2 space-y-1">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`${
+                      activeTab === tab.id
+                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-l-4 border-blue-500'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent'
+                    } group w-full flex items-center px-3 py-3 text-sm font-medium rounded-r-lg transition-all duration-200`}
+                  >
+                    <span className="mr-3 text-xl group-hover:scale-110 transition-transform">{tab.icon}</span>
+                    <span className="flex-1 text-left">{tab.label}</span>
+                    {activeTab === tab.id && (
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    )}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex flex-col flex-1 min-h-screen">
+          {/* Desktop Header */}
+          <div className="hidden lg:block bg-white border-b border-gray-200">
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {tabs.find(t => t.id === activeTab)?.icon} {tabs.find(t => t.id === activeTab)?.label}
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Управление {tabs.find(t => t.id === activeTab)?.label.toLowerCase()}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-500">
+                    {new Date().toLocaleDateString('ru-RU', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <main className="flex-1 p-4 lg:p-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                <div className="p-6">
+                  {renderTab()}
+                </div>
+              </div>
+            </div>
+          </main>
+
+          {/* Bottom Mobile Navigation */}
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+            <div className="grid grid-cols-5 gap-1">
+              {tabs.slice(0, 5).map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`${
                     activeTab === tab.id
-                      ? 'border-b-2 border-blue-500 text-blue-600'
-                      : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200`}
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-gray-400 hover:text-gray-600'
+                  } flex flex-col items-center justify-center py-2 px-1 transition-colors duration-200`}
                 >
-                  <span className="mr-2">{tab.label}</span>
+                  <span className="text-xl mb-1">{tab.icon}</span>
+                  <span className="text-xs font-medium">{tab.label}</span>
                 </button>
               ))}
-            </nav>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className="bg-white rounded-lg shadow-sm">
-          {renderTab()}
-        </div>
-
-        {/* Footer Stats */}
-        <div className="mt-8 bg-white rounded-lg shadow-sm">
-          <div className="px-6 py-4">
-            <div className="flex flex-wrap justify-between items-center">
-              <div className="text-sm text-gray-500">
-                Панель администратора • TMA-Подписка
-              </div>
-              <div className="text-sm text-gray-500">
-                Последнее обновление: {new Date().toLocaleString('ru-RU')}
-              </div>
             </div>
           </div>
         </div>
