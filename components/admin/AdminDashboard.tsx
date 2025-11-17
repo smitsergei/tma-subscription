@@ -7,7 +7,6 @@ import SubscriptionManagement from './SubscriptionManagement'
 import DiscountManagement from './DiscountManagement'
 import PromoCodeManagement from './PromoCodeManagement'
 import DemoManagement from './DemoManagement'
-import PaymentManagement from './PaymentManagement'
 import PaymentManagementMobile from './PaymentManagementMobile'
 import BroadcastManagement from './BroadcastManagement'
 
