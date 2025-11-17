@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
     for (const payment of pendingPayments) {
       try {
         // Извлекаем NOWPayments ID из memo
-        const nowPaymentIdMatch = payment.memo.match(/NP:(\d+)/);
+        const nowPaymentIdMatch = payment.memo?.match(/NP:(\d+)/);
         if (!nowPaymentIdMatch) {
           console.log(`Skipping payment ${payment.paymentId} - no NOWPayments ID found`);
           continue;
