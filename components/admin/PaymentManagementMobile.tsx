@@ -332,6 +332,77 @@ export default function PaymentManagementMobile() {
     }
   }
 
+  // Проверка статуса платежа через NOWPayments API
+  const handleCheckPaymentStatus = async (paymentId: string) => {
+    try {
+      setActionLoading(true)
+
+      const response = await fetch('/api/admin/payments', createAuthenticatedRequest({
+        method: 'PUT',
+        body: JSON.stringify({
+          paymentId
+        })
+      }))
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        telegramUtils.triggerHaptic('notification', 'success')
+        telegramUtils.showAlert(data.message || 'Статус платежа обновлен')
+        setShowModal(false)
+        setSelectedPayment(null)
+        loadPayments(pagination.page)
+      } else {
+        telegramUtils.triggerHaptic('notification', 'error')
+        setError(data.error || 'Ошибка проверки статуса')
+      }
+    } catch (err) {
+      console.error('CheckPaymentStatus error:', err)
+      telegramUtils.triggerHaptic('notification', 'error')
+      setError(`Ошибка проверки статуса: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Массовая проверка статусов всех ожидающих платежей
+  const handleCheckAllPendingPayments = async () => {
+    try {
+      setActionLoading(true)
+
+      const response = await fetch('/api/admin/payments/check-all-pending', createAuthenticatedRequest({
+        method: 'POST'
+      }))
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        telegramUtils.triggerHaptic('notification', 'success')
+        telegramUtils.showAlert(
+          `Проверка завершена!\n\n📊 Проверено: ${data.data?.checked || 0}\n✅ Обновлено: ${data.data?.updated || 0}\n\n${data.message || ''}`
+        )
+        loadPayments(pagination.page)
+      } else {
+        telegramUtils.triggerHaptic('notification', 'error')
+        setError(data.error || 'Ошибка массовой проверки')
+      }
+    } catch (err) {
+      console.error('CheckAllPendingPayments error:', err)
+      telegramUtils.triggerHaptic('notification', 'error')
+      setError(`Ошибка массовой проверки: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   // Effects
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -621,6 +692,38 @@ export default function PaymentManagementMobile() {
             ))}
           </div>
 
+          {/* Mass Check Button */}
+          {(stats && stats.pending > 0) && (
+            <div className="mb-4">
+              <button
+                onClick={handleCheckAllPendingPayments}
+                disabled={actionLoading}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-sm"
+              >
+                {actionLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Проверка...
+                  </>
+                ) : (
+                  <>
+                    🔍 Проверить все ожидающие ({stats.pending})
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* No Pending Message */}
+          {stats && stats.pending === 0 && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-center gap-2 text-green-800">
+                <span className="text-lg">✅</span>
+                <span className="text-sm font-medium">Нет ожидающих платежей</span>
+              </div>
+            </div>
+          )}
+
           {/* Filters Panel */}
           {showFilters && (
             <div className="space-y-3 p-3 bg-gray-50 rounded-lg -mx-3">
@@ -896,6 +999,23 @@ export default function PaymentManagementMobile() {
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Проверка статуса NOWPayments */}
+              {selectedPayment.memo?.includes('NP:') && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Проверка статуса</label>
+                  <button
+                    onClick={() => {
+                      telegramUtils.triggerHaptic('impact', 'medium')
+                      handleCheckPaymentStatus(selectedPayment.paymentId)
+                    }}
+                    disabled={actionLoading}
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {actionLoading ? 'Проверка...' : '🔍 Проверить статус в NOWPayments'}
+                  </button>
                 </div>
               )}
 
