@@ -34,21 +34,21 @@ export async function POST(request: NextRequest) {
 
     // Выполняем различные проверки в зависимости от действия
     if (!action || action === 'all') {
-      // Запуск всех проверок
-      results.push(await runCheck('subscriptions', '/api/cron/check-subscriptions'))
-      results.push(await runCheck('demo-access', '/api/cron/check-demo-access'))
-      results.push(await runCheck('scheduled-broadcasts', '/api/cron/scheduled-broadcasts'))
+      // Запуск всех проверок с правильными методами
+      results.push(await runCheck('subscriptions', '/api/cron/check-subscriptions', 'GET'))
+      results.push(await runCheck('demo-access', '/api/cron/check-demo-access', 'POST'))
+      results.push(await runCheck('scheduled-broadcasts', '/api/cron/scheduled-broadcasts', 'GET'))
     } else {
       // Запуск конкретной проверки
-      const endpoints: Record<string, string> = {
-        'subscriptions': '/api/cron/check-subscriptions',
-        'demo-access': '/api/cron/check-demo-access',
-        'scheduled-broadcasts': '/api/cron/scheduled-broadcasts'
+      const endpoints: Record<string, {path: string, method: string}> = {
+        'subscriptions': {path: '/api/cron/check-subscriptions', method: 'GET'},
+        'demo-access': {path: '/api/cron/check-demo-access', method: 'POST'},
+        'scheduled-broadcasts': {path: '/api/cron/scheduled-broadcasts', method: 'GET'}
       }
 
       const endpoint = endpoints[action]
       if (endpoint) {
-        results.push(await runCheck(action, endpoint))
+        results.push(await runCheck(action, endpoint.path, endpoint.method))
       } else {
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function runCheck(name: string, endpoint: string): Promise<{name: string, success: boolean, message: string, data?: any}> {
+async function runCheck(name: string, endpoint: string, method: string = 'GET'): Promise<{name: string, success: boolean, message: string, data?: any}> {
   try {
     const baseUrl = process.env.APP_URL || 'http://localhost:3000'
     const cronSecret = process.env.CRON_SECRET
@@ -98,7 +98,7 @@ async function runCheck(name: string, endpoint: string): Promise<{name: string, 
     console.log(`Running check: ${name} -> ${baseUrl}${endpoint}`)
 
     const response = await fetch(`${baseUrl}${endpoint}`, {
-      method: 'GET',
+      method,
       headers
     })
 
