@@ -820,6 +820,10 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                   <div className="text-xs text-gray-500 space-y-1">
                     <div>Поддерживаем Bitcoin, Ethereum, USDT, USDC и другие криптовалюты</div>
                     <div>Мгновенная активация подписки после оплаты</div>
+                    <div className="pt-2 border-t border-gray-200">
+                      <span className="text-gray-600">Платформа разработана и принадлежит </span>
+                      <span className="font-semibold text-gray-700">Smit Finance</span>
+                    </div>
                   </div>
                 </div>
               </>
