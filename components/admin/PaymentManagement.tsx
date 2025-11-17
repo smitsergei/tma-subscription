@@ -350,6 +350,35 @@ export default function PaymentManagement() {
     }
   }
 
+  // Массовая проверка статусов всех ожидающих платежей
+  const handleCheckAllPendingPayments = async () => {
+    try {
+      setActionLoading(true)
+
+      const response = await fetch('/api/admin/payments/check-all-pending', createAuthenticatedRequest({
+        method: 'POST'
+      }))
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert(`Проверка завершена!\n\n📊 Проверено: ${data.data?.checked || 0}\n✅ Обновлено: ${data.data?.updated || 0}\n\n${data.message || ''}`)
+        loadPayments(pagination.page) // Перезагрузка списка
+      } else {
+        setError(data.error || 'Ошибка массовой проверки')
+      }
+    } catch (err) {
+      console.error('CheckAllPendingPayments error:', err)
+      setError(`Ошибка массовой проверки: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   // Первоначальная загрузка
   useEffect(() => {
     console.log('🔍 PaymentManagement: Component mounting...')
@@ -517,6 +546,26 @@ export default function PaymentManagement() {
           </div>
         </div>
       )}
+
+      {/* Кнопка массовой проверки статусов */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-blue-900">🔍 Проверка статусов NOWPayments</h3>
+            <p className="text-sm text-blue-700">Массовая проверка всех ожидающих платежей через NOWPayments API</p>
+          </div>
+          <button
+            onClick={handleCheckAllPendingPayments}
+            disabled={actionLoading || !stats?.pending}
+            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {actionLoading ? '⏳ Проверка...' : `🔄 Проверить все (${stats?.pending || 0})`}
+          </button>
+        </div>
+        {stats?.pending === 0 && (
+          <p className="text-xs text-blue-600 mt-2">Нет ожидающих платежей для проверки</p>
+        )}
+      </div>
 
       {/* Фильтры */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
