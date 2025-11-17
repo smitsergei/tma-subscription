@@ -919,19 +919,21 @@ export default function PaymentManagement() {
               </div>
             )}
 
+            {/* Проверка статуса через NOWPayments API - доступна для всех платежей с NP */}
+            {selectedPayment?.memo?.includes('NP:') && (
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleCheckPaymentStatus(selectedPayment?.paymentId || '')}
+                  disabled={actionLoading}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                >
+                  {actionLoading ? 'Проверка...' : '🔍 Проверить статус в NOWPayments'}
+                </button>
+              </div>
+            )}
+
             {selectedPayment?.status !== 'pending' && (
               <div className="space-y-3">
-                {/* Проверка статуса через NOWPayments API */}
-                {selectedPayment?.memo?.includes('NP:') && (
-                  <button
-                    onClick={() => handleCheckPaymentStatus(selectedPayment?.paymentId || '')}
-                    disabled={actionLoading}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
-                  >
-                    {actionLoading ? 'Проверка...' : '🔍 Проверить статус в NOWPayments'}
-                  </button>
-                )}
-
                 <button
                   onClick={() => handlePaymentAction(selectedPayment?.paymentId || '', 'reset')}
                   disabled={actionLoading}
