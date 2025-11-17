@@ -316,6 +316,40 @@ export default function PaymentManagement() {
     }
   }
 
+  // Проверка статуса платежа через NOWPayments API
+  const handleCheckPaymentStatus = async (paymentId: string) => {
+    try {
+      setActionLoading(true)
+
+      const response = await fetch('/api/admin/payments', createAuthenticatedRequest({
+        method: 'PUT',
+        body: JSON.stringify({
+          paymentId
+        })
+      }))
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert(data.message || 'Статус платежа обновлен')
+        setShowModal(false)
+        setSelectedPayment(null)
+        loadPayments(pagination.page) // Перезагрузка списка
+      } else {
+        setError(data.error || 'Ошибка проверки статуса')
+      }
+    } catch (err) {
+      console.error('CheckPaymentStatus error:', err)
+      setError(`Ошибка проверки статуса: ${err instanceof Error ? err.message : 'Неизвестная ошибка'}`)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   // Первоначальная загрузка
   useEffect(() => {
     console.log('🔍 PaymentManagement: Component mounting...')
@@ -887,6 +921,17 @@ export default function PaymentManagement() {
 
             {selectedPayment?.status !== 'pending' && (
               <div className="space-y-3">
+                {/* Проверка статуса через NOWPayments API */}
+                {selectedPayment?.memo?.includes('NP:') && (
+                  <button
+                    onClick={() => handleCheckPaymentStatus(selectedPayment?.paymentId || '')}
+                    disabled={actionLoading}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                  >
+                    {actionLoading ? 'Проверка...' : '🔍 Проверить статус в NOWPayments'}
+                  </button>
+                )}
+
                 <button
                   onClick={() => handlePaymentAction(selectedPayment?.paymentId || '', 'reset')}
                   disabled={actionLoading}

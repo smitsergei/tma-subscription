@@ -241,39 +241,64 @@ export async function POST(request: NextRequest) {
       } else {
         console.log('ℹ️ Custom payment without product, no subscription created')
       }
-    } else if (body.payment_status === 'failed') {
-      console.log('❌ Payment failed, updating subscription status...')
+    } else if (body.payment_status === 'failed' || body.payment_status === 'expired' || body.payment_status === 'refunded') {
+      console.log(`❌ Payment ${body.payment_status}, checking if subscription should be deactivated...`)
 
-      // Деактивация подписки если платеж не удался
-      const updatedSubscriptions = await prisma.subscription.updateMany({
-        where: {
-          userId: payment.userId,
-          productId: payment.productId,
-          status: 'active'
-        },
-        data: {
-          status: 'expired',
-          updatedAt: new Date()
-        }
-      })
+      // Проверяем, что статус платежа действительно изменился
+      if (payment.status !== 'failed') {
+        console.log(`💾 Payment status changed from ${payment.status} to failed`)
 
-      // Синхронизация доступа к каналу при неудачном платеже
-      if (updatedSubscriptions.count > 0 && payment.product?.channel) {
-        console.log('🤖 Syncing channel access for failed payment...')
+        // Проверяем, есть ли у пользователя ДРУГИЕ УСПЕШНЫЕ платежи на этот же продукт
+        const otherSuccessfulPayments = await prisma.payment.findMany({
+          where: {
+            userId: payment.userId,
+            productId: payment.productId,
+            status: 'success',
+            paymentId: {
+              not: localPaymentId // исключаем текущий платеж
+            }
+          }
+        })
 
-        const syncResult = await syncChannelAccess(
-          payment.userId.toString(),
-          payment.product.channel.channelId.toString(),
-          'expired',
-          payment.product.name,
-          payment.product.channel.name || 'Канал'
-        )
-
-        if (syncResult.success) {
-          console.log('✅ Channel access synchronized successfully for failed payment')
+        if (otherSuccessfulPayments.length > 0) {
+          console.log(`✅ User has ${otherSuccessfulPayments.length} other successful payments for this product. Keeping subscription active.`)
         } else {
-          console.error('❌ Failed to sync channel access for failed payment:', syncResult.error)
+          console.log(`⚠️ No other successful payments found for this product. Deactivating subscription...`)
+
+          // Деактивируем подписку только если НЕТ других успешных платежей
+          const updatedSubscriptions = await prisma.subscription.updateMany({
+            where: {
+              userId: payment.userId,
+              productId: payment.productId,
+              status: 'active'
+            },
+            data: {
+              status: 'expired',
+              updatedAt: new Date()
+            }
+          })
+
+          // Синхронизация доступа к каналу при неудачном платеже
+          if (updatedSubscriptions.count > 0 && payment.product?.channel) {
+            console.log('🤖 Syncing channel access for failed payment...')
+
+            const syncResult = await syncChannelAccess(
+              payment.userId.toString(),
+              payment.product.channel.channelId.toString(),
+              'expired',
+              payment.product.name,
+              payment.product.channel.name || 'Канал'
+            )
+
+            if (syncResult.success) {
+              console.log('✅ Channel access synchronized successfully for failed payment')
+            } else {
+              console.error('❌ Failed to sync channel access for failed payment:', syncResult.error)
+            }
+          }
         }
+      } else {
+        console.log(`⚠️ Payment ${localPaymentId} already has status failed, skipping subscription update`)
       }
     }
 

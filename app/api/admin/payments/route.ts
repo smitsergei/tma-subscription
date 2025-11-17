@@ -402,3 +402,184 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PUT - обновление статуса платежа через NOWPayments API
+export async function PUT(request: NextRequest) {
+  try {
+    console.log('🔍 ADMIN PAYMENTS: Starting PUT request to check payment status')
+
+    // Проверка прав администратора
+    if (!(await checkAdminAuth(request))) {
+      console.log('🔍 ADMIN PAYMENTS: Admin authentication failed')
+      return createJsonResponse(
+        { success: false, error: 'Доступ запрещен' },
+        403
+      )
+    }
+
+    const body = await request.json()
+    const { paymentId } = body
+
+    if (!paymentId) {
+      return createJsonResponse(
+        { success: false, error: 'Payment ID обязателен' },
+        400
+      )
+    }
+
+    // Поиск платежа
+    const payment = await prisma.payment.findUnique({
+      where: { paymentId },
+      include: {
+        user: true,
+        product: {
+          include: { channel: true }
+        }
+      }
+    })
+
+    if (!payment) {
+      return createJsonResponse(
+        { success: false, error: 'Платеж не найден' },
+        404
+      )
+    }
+
+    // Проверяем, есть ли у платежа информация о NOWPayments
+    const nowPaymentIdMatch = payment.memo?.match(/NP:(\d+)/)
+    if (!nowPaymentIdMatch) {
+      return createJsonResponse(
+        { success: false, error: 'Платеж не связан с NOWPayments' },
+        400
+      )
+    }
+
+    const nowPaymentId = nowPaymentIdMatch[1]
+
+    // Запрос к NOWPayments API для получения статуса платежа
+    const npResponse = await fetch(`https://api.nowpayments.io/v1/payment/${nowPaymentId}`, {
+      method: 'GET',
+      headers: {
+        'x-api-key': process.env.NOWPAYMENTS_API_KEY!,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!npResponse.ok) {
+      console.error(`NOWPayments API error: ${npResponse.status}`)
+      return createJsonResponse(
+        { success: false, error: 'Ошибка получения данных от NOWPayments' },
+        500
+      )
+    }
+
+    const npPaymentData = await npResponse.json()
+    console.log(`NOWPayments status for ${nowPaymentId}:`, npPaymentData.payment_status)
+
+    // Если статус в NOWPayments отличается от локального
+    if (npPaymentData.payment_status !== payment.status) {
+      const newStatus = mapPaymentStatus(npPaymentData.payment_status)
+
+      // Обновляем платеж
+      const updatedPayment = await prisma.payment.update({
+        where: { paymentId },
+        data: {
+          status: newStatus,
+          txHash: npPaymentData.transaction_id || payment.txHash,
+          memo: `${payment.memo} | Checked:${new Date().toISOString()}`
+        }
+      })
+
+      console.log(`Updated payment ${paymentId} from ${payment.status} to ${newStatus}`)
+
+      // Если статус изменился на failed/expired, проверяем нужно ли деактивировать подписки
+      if (newStatus === 'failed' && payment.status !== 'failed') {
+        // Проверяем, есть ли у пользователя ДРУГИЕ УСПЕШНЫЕ платежи на этот же продукт
+        const otherSuccessfulPayments = await prisma.payment.findMany({
+          where: {
+            userId: payment.userId,
+            productId: payment.productId,
+            status: 'success',
+            paymentId: {
+              not: paymentId // исключаем текущий платеж
+            }
+          }
+        })
+
+        if (otherSuccessfulPayments.length > 0) {
+          console.log(`✅ User has ${otherSuccessfulPayments.length} other successful payments for this product. Keeping subscription active.`)
+        } else {
+          console.log(`⚠️ No other successful payments found for this product. Deactivating subscription...`)
+
+          const updatedSubscriptions = await prisma.subscription.updateMany({
+            where: {
+              userId: payment.userId,
+              productId: payment.productId,
+              status: 'active'
+            },
+            data: {
+              status: 'expired',
+              updatedAt: new Date()
+            }
+          })
+
+          if (updatedSubscriptions.count > 0 && payment.product?.channel) {
+            console.log('Deactivating channel access for expired payment...')
+            // Здесь можно добавить синхронизацию с каналом
+          }
+        }
+      }
+
+      return createJsonResponse({
+        success: true,
+        data: {
+          payment: {
+            ...updatedPayment,
+            userId: updatedPayment.userId.toString()
+          },
+          nowpayments_status: npPaymentData.payment_status,
+          old_status: payment.status,
+          new_status: newStatus,
+          message: `Статус платежа обновлен с ${payment.status} на ${newStatus}`
+        }
+      }, 200)
+    }
+
+    return createJsonResponse({
+      success: true,
+      data: {
+        payment: {
+          ...payment,
+          userId: payment.userId.toString()
+        },
+        nowpayments_status: npPaymentData.payment_status,
+        message: 'Статус платежа актуален'
+      }
+    }, 200)
+
+  } catch (error) {
+    console.error('Error checking payment status:', error)
+    return createJsonResponse(
+      { success: false, error: 'Ошибка проверки статуса платежа' },
+      500
+    )
+  }
+}
+
+function mapPaymentStatus(npStatus: string): 'pending' | 'success' | 'failed' {
+  switch (npStatus) {
+    case 'finished':
+    case 'confirmed':
+      return 'success'
+    case 'failed':
+    case 'expired':
+    case 'refunded':
+      return 'failed'
+    case 'waiting':
+    case 'confirming':
+    case 'sending':
+    case 'partially_paid':
+    default:
+      return 'pending'
+  }
+}
+
