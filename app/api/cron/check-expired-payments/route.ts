@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     console.error('Error in expired payments check:', error)
     return NextResponse.json(
       { success: false, error: 'Ошибка проверки истекших платежей' },
-      500
+      { status: 500 }
     )
   }
 }
