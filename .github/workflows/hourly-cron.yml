@@ -1,0 +1,45 @@
+name: Hourly Cron Checks
+
+on:
+  schedule:
+    # Запуск каждый час в начале часа (0 минут)
+    - cron: '0 * * * *'
+  workflow_dispatch:  # Возможность запустить вручную
+
+jobs:
+  run-cron-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run cron checks
+        run: |
+          echo "Starting hourly cron checks at $(date)"
+
+          # URL вашего приложения в Vercel
+          APP_URL="${{ secrets.APP_URL }}"
+          GITHUB_SECRET="${{ secrets.GITHUB_ACTIONS_SECRET }}"
+
+          if [ -z "$APP_URL" ] || [ -z "$GITHUB_SECRET" ]; then
+            echo "Error: Missing required secrets"
+            exit 1
+          fi
+
+          # Выполняем все проверки
+          response=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $GITHUB_SECRET" \
+            -d '{"action": "all"}' \
+            "$APP_URL/api/cron/github-check")
+
+          echo "Response: $response"
+
+          # Проверяем результат
+          success=$(echo "$response" | jq -r '.success // false')
+
+          if [ "$success" = "true" ]; then
+            echo "✅ All cron checks completed successfully"
+          else
+            echo "❌ Some cron checks failed"
+            echo "$response" | jq '.'
+            exit 1
+          fi
