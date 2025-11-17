@@ -352,7 +352,7 @@ export default function PaymentManagementMobile() {
 
       if (data.success) {
         telegramUtils.triggerHaptic('notification', 'success')
-        telegramUtils.showAlert(data.message || 'Статус платежа обновлен')
+        alert(data.message || 'Статус платежа обновлен')
         setShowModal(false)
         setSelectedPayment(null)
         loadPayments(pagination.page)
@@ -386,7 +386,7 @@ export default function PaymentManagementMobile() {
 
       if (data.success) {
         telegramUtils.triggerHaptic('notification', 'success')
-        telegramUtils.showAlert(
+        alert(
           `Проверка завершена!\n\n📊 Проверено: ${data.data?.checked || 0}\n✅ Обновлено: ${data.data?.updated || 0}\n\n${data.message || ''}`
         )
         loadPayments(pagination.page)
