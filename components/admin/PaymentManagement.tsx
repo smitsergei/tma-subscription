@@ -517,6 +517,7 @@ export default function PaymentManagement() {
   }
 
   console.log('🔍 PaymentManagement: Rendering main component, loading:', loading, 'payments count:', payments?.length)
+  console.log('🔍 PaymentManagement: Stats:', stats, 'Pending count:', stats?.pending)
 
   return (
     <div className="p-6">
@@ -548,28 +549,35 @@ export default function PaymentManagement() {
       )}
 
       {/* Кнопка массовой проверки статусов */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-blue-900">🔍 Проверка статусов NOWPayments</h3>
-            <p className="text-sm text-blue-700">Массовая проверка всех ожидающих платежей через NOWPayments API</p>
+      {(stats && stats.pending > 0) && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between flex-col sm:flex-row gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-blue-900">🔍 Проверка статусов NOWPayments</h3>
+              <p className="text-sm text-blue-700">Массовая проверка всех ожидающих платежей через NOWPayments API</p>
+            </div>
+            <button
+              onClick={handleCheckAllPendingPayments}
+              disabled={actionLoading}
+              className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
+            >
+              {actionLoading ? '⏳ Проверка...' : `🔄 Проверить все (${stats.pending})`}
+            </button>
           </div>
-          <button
-            onClick={handleCheckAllPendingPayments}
-            disabled={actionLoading || !stats?.pending}
-            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {actionLoading ? '⏳ Проверка...' : `🔄 Проверить все (${stats?.pending || 0})`}
-          </button>
         </div>
-        {stats?.pending === 0 && (
-          <p className="text-xs text-blue-600 mt-2">Нет ожидающих платежей для проверки</p>
-        )}
-        {/* Отладочная информация */}
-        <div className="mt-2 text-xs text-gray-500">
-          Debug: stats={JSON.stringify(stats)}, actionLoading={actionLoading}, pending={stats?.pending}
+      )}
+
+      {/* Информация о наличии ожидающих платежей */}
+      {stats && stats.pending === 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-green-900">✅ Нет ожидающих платежей</h3>
+              <p className="text-sm text-green-700">Все платежи обработаны</p>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Фильтры */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
@@ -854,8 +862,8 @@ export default function PaymentManagement() {
 
       {/* Модальное окно управления платежом */}
       {showModal && selectedPayment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Управление платежом</h3>
 
             <div className="space-y-3 mb-6">
