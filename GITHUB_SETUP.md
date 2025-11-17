@@ -18,18 +18,18 @@
    https://your-app.vercel.app
    ```
 
-2. **`GITHUB_ACTIONS_SECRET`** - Секретный ключ для защиты API эндпоинта
+2. **`GH_CRON_SECRET`** - Секретный ключ для защиты API эндпоинта
    ```
-   Сгенерируйте случайную строку, например: github-abc123def456
+   Сгенерируйте случайную строку, например: gh-cron-abc123def456
    ```
 
 ### Установка в Vercel:
 
 Добавьте в Vercel Environment Variables:
 
-1. **`GITHUB_ACTIONS_SECRET`** - такой же как в GitHub Secrets
+1. **`GH_CRON_SECRET`** - такой же как в GitHub Secrets
    ```
-   github-abc123def456
+   gh-cron-abc123def456
    ```
 
 2. **`CRON_SECRET`** - секрет для существующих cron эндпоинтов
@@ -40,7 +40,7 @@
 ## Как это работает
 
 1. GitHub Actions каждый час вызывает `/api/cron/github-check`
-2. Эндпоинт проверяет `GITHUB_ACTIONS_SECRET` в заголовке Authorization
+2. Эндпоинт проверяет `GH_CRON_SECRET` в заголовке Authorization
 3. Если авторизация прошла, запускаются все проверки:
    - `/api/cron/check-subscriptions` - проверка истекших подписок
    - `/api/cron/check-demo-access` - проверка демо-доступа

@@ -5,10 +5,10 @@ export const dynamic = 'force-dynamic'
 // Проверка авторизации GitHub Actions
 function verifyGitHubAuth(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization')
-  const githubSecret = process.env.GITHUB_ACTIONS_SECRET
+  const githubSecret = process.env.GH_CRON_SECRET
 
   if (!githubSecret) {
-    console.warn('GITHUB_ACTIONS_SECRET not set, skipping auth verification')
+    console.warn('GH_CRON_SECRET not set, skipping auth verification')
     return false
   }
 

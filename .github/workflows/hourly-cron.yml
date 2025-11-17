@@ -17,7 +17,7 @@ jobs:
 
           # URL вашего приложения в Vercel
           APP_URL="${{ secrets.APP_URL }}"
-          GITHUB_SECRET="${{ secrets.GITHUB_ACTIONS_SECRET }}"
+          GITHUB_SECRET="${{ secrets.GH_CRON_SECRET }}"
 
           if [ -z "$APP_URL" ] || [ -z "$GITHUB_SECRET" ]; then
             echo "Error: Missing required secrets"
