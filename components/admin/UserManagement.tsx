@@ -222,6 +222,7 @@ export default function UserManagement() {
   const [status, setStatus] = useState('')
   const [userType, setUserType] = useState('')
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(50)
   const [totalPages, setTotalPages] = useState(1)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newUser, setNewUser] = useState({
@@ -234,7 +235,7 @@ export default function UserManagement() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '20',
+        limit: limit.toString(),
         ...(search && { search }),
         ...(status && { status }),
         ...(userType && { userType })
@@ -255,14 +256,14 @@ export default function UserManagement() {
 
   useEffect(() => {
     fetchUsers()
-  }, [page, search, status, userType])
+  }, [page, limit, search, status, userType])
 
   // Reset to first page when search, status or userType changes
   useEffect(() => {
     if (page > 1) {
       setPage(1)
     }
-  }, [search, status, userType])
+  }, [search, status, userType, limit])
 
   const createUser = async () => {
     try {
@@ -418,6 +419,16 @@ export default function UserManagement() {
           <option value="">Все статусы</option>
           <option value="active">Активные подписки</option>
           <option value="inactive">Без подписок</option>
+        </select>
+        <select
+          value={limit.toString()}
+          onChange={(e) => setLimit(parseInt(e.target.value))}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="20">20 на странице</option>
+          <option value="50">50 на странице</option>
+          <option value="100">100 на странице</option>
+          <option value="200">200 на странице</option>
         </select>
       </div>
 

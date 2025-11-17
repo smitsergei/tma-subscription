@@ -82,9 +82,24 @@ export async function GET(request: NextRequest) {
       where.admin = null
     }
 
+    // Build subscription status filter for database-level filtering
+    const subscriptionFilter: any = {}
+    if (status === 'active') {
+      subscriptionFilter.some = { status: 'active' }
+    } else if (status === 'inactive') {
+      // Для "без подписок" будем фильтровать на уровне приложения после получения
+      // так как Prisma не поддерживает "NOT EXISTS" напрямую
+    }
+
+    // Combine where clause with subscription filter
+    const enhancedWhere = {
+      ...where,
+      ...(status === 'active' && { subscriptions: subscriptionFilter })
+    }
+
     // Get users with their subscriptions and admin status for proper filtering
-    const users = await prisma.user.findMany({
-      where,
+    let users = await prisma.user.findMany({
+      where: enhancedWhere,
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' },
@@ -120,14 +135,71 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Filter by subscription status if provided (before counting for pagination)
-    let filteredUsers = users
-    if (status) {
-      filteredUsers = users.filter(user => {
-        const activeSubscription = user.subscriptions.find(sub => sub.status === 'active')
-        return status === 'active' ? activeSubscription : !activeSubscription
+    // For inactive status, we need to get users without active subscriptions
+    if (status === 'inactive') {
+      // Сначала получаем ID пользователей с активными подписками
+      const usersWithActiveSubs = await prisma.user.findMany({
+        where: {
+          ...where,
+          subscriptions: {
+            some: {
+              status: 'active'
+            }
+          }
+        },
+        select: {
+          telegramId: true
+        }
+      })
+
+      const activeUserIds = usersWithActiveSubs.map(u => u.telegramId)
+
+      // Получаем пользователей без активных подписок
+      users = await prisma.user.findMany({
+        where: {
+          ...where,
+          telegramId: {
+            notIn: activeUserIds
+          }
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          admin: true,
+          subscriptions: {
+            select: {
+              subscriptionId: true,
+              userId: true,
+              productId: true,
+              status: true,
+              expiresAt: true,
+              createdAt: true,
+              product: {
+                select: {
+                  productId: true,
+                  name: true,
+                  price: true,
+                  periodDays: true,
+                  channel: {
+                    select: {
+                      channelId: true,
+                      name: true,
+                      username: true
+                    }
+                  }
+                }
+              },
+              payment: true
+            },
+            orderBy: { createdAt: 'desc' }
+          }
+        }
       })
     }
+
+    // No additional filtering needed since we filtered at database level
+    let filteredUsers = users
 
     // Transform data for response (BigInt serialization)
     const usersWithSubscriptions = await Promise.all(
@@ -242,7 +314,7 @@ export async function GET(request: NextRequest) {
         where: {
           ...where,
           telegramId: {
-            notIn: activeUserIds
+            notIn: activeUserIds.length > 0 ? activeUserIds : [BigInt(0)] // Избегаем пустого массива
           }
         }
       })
