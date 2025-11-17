@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 interface NOWPaymentsIPN {
   payment_id: string
-  payment_status: 'waiting' | 'confirming' | 'confirmed' | 'sending' | 'finished' | 'failed' | 'partially_paid' | 'refunded'
+  payment_status: 'waiting' | 'confirming' | 'confirmed' | 'sending' | 'finished' | 'failed' | 'partially_paid' | 'refunded' | 'expired'
   pay_address: string
   price_amount: number
   price_currency: string
