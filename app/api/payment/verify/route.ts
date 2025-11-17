@@ -115,6 +115,14 @@ export async function POST(request: NextRequest) {
     // Обработка подтвержденного платежа
     const subscription = await processConfirmedPayment(payment, txHash)
 
+    if (!subscription) {
+      // Платеж уже был обработан
+      return NextResponse.json({
+        success: true,
+        message: 'Платеж уже был обработан ранее.'
+      })
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -273,6 +281,12 @@ async function verifyTonTransaction(txHash: string, payment: any): Promise<boole
 
 async function processConfirmedPayment(payment: any, txHash: string): Promise<any> {
   console.log('✅ VERIFY: Processing confirmed payment:', payment.paymentId)
+
+  // Проверяем, что платеж еще не был обработан (защита от дублирования)
+  if (payment.status === 'success') {
+    console.log(`⚠️ VERIFY: Payment ${payment.paymentId} already processed, skipping...`)
+    return null
+  }
 
   // Создание подписки
   const startsAt = new Date()

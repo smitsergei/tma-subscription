@@ -140,6 +140,12 @@ export async function POST(request: NextRequest) {
     if (body.payment_status === 'finished' || body.payment_status === 'confirmed') {
       console.log('🎉 Payment successful, processing subscription...')
 
+      // Проверяем, что платеж еще не был обработан (защита от дублирования)
+      if (payment.status === 'success') {
+        console.log(`⚠️ Payment ${localPaymentId} already processed, skipping...`)
+        return NextResponse.json({ success: true, message: 'Payment already processed' })
+      }
+
       if (payment.product) {
         // Расчет даты окончания подписки
         const startsAt = new Date()
