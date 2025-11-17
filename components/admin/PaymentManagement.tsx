@@ -565,6 +565,10 @@ export default function PaymentManagement() {
         {stats?.pending === 0 && (
           <p className="text-xs text-blue-600 mt-2">Нет ожидающих платежей для проверки</p>
         )}
+        {/* Отладочная информация */}
+        <div className="mt-2 text-xs text-gray-500">
+          Debug: stats={JSON.stringify(stats)}, actionLoading={actionLoading}, pending={stats?.pending}
+        </div>
       </div>
 
       {/* Фильтры */}
