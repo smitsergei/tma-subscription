@@ -351,18 +351,18 @@ async function removeUserFromChannel(userId: string, channelId: string, botToken
 async function sendDemoExpirationReminders(): Promise<void> {
   try {
     const now = new Date();
-
-    // Находим демо-доступы, которые истекают через 1 день
-    const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const dayAfterTomorrow = new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000);
 
     const oneDayExpiring = await prisma.demoAccess.findMany({
       where: {
         isActive: true,
         expiresAt: {
-          gte: oneDayFromNow,
-          lt: twoDaysFromNow // Истекают в течение следующих 24 часов
-        }
+          gte: tomorrow,
+          lt: dayAfterTomorrow // Истекают ровно завтра
+        },
+        reminderSent: false // Только тем, кто еще не получал напоминание
       },
       include: {
         user: {
@@ -451,6 +451,12 @@ async function sendDemoExpirationReminders(): Promise<void> {
         );
 
         console.log(`⏰ Sent 1-day demo reminder to user ${demo.user.telegramId}`);
+
+        // Отмечаем, что напоминание отправлено
+        await prisma.demoAccess.update({
+          where: { id: demo.id },
+          data: { reminderSent: true }
+        });
 
         // Небольшая задержка между отправками
         await new Promise(resolve => setTimeout(resolve, 100));
