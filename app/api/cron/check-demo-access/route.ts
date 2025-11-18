@@ -443,12 +443,6 @@ async function sendDemoExpirationReminders(): Promise<void> {
                         url: `${process.env.APP_URL?.replace(/\n/g, '')}/app`
                       }
                     }
-                  ],
-                  [
-                    {
-                      text: '📢 Перейти в канал',
-                      url: `https://t.me/${demo.product.channel.username?.replace('@', '')}`
-                    }
                   ]
                 ]
               }
