@@ -29,6 +29,9 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     console.log(`📅 Current time: ${now.toISOString()}`);
 
+    // 0. Сначала отправляем уведомления о приближающемся окончании демо-доступа
+    await sendDemoExpirationReminders();
+
     // 1. Проверяем истекшие демо-доступы для удаления пользователей
     const expiredDemoAccesses = await prisma.demoAccess.findMany({
       where: {
@@ -341,6 +344,130 @@ async function removeUserFromChannel(userId: string, channelId: string, botToken
   } catch (error) {
     console.error(`Error removing user ${userId} from channel ${channelId}:`, error);
     throw error;
+  }
+}
+
+// Функция для отправки уведомлений о приближающемся окончании демо-доступа
+async function sendDemoExpirationReminders(): Promise<void> {
+  try {
+    const now = new Date();
+
+    // Находим демо-доступы, которые истекают через 1 день
+    const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+    const oneDayExpiring = await prisma.demoAccess.findMany({
+      where: {
+        isActive: true,
+        expiresAt: {
+          gte: oneDayFromNow,
+          lt: twoDaysFromNow // Истекают в течение следующих 24 часов
+        }
+      },
+      include: {
+        user: {
+          select: {
+            telegramId: true,
+            firstName: true,
+            username: true
+          }
+        },
+        product: {
+          select: {
+            name: true,
+            channel: {
+              select: {
+                channelId: true,
+                name: true,
+                username: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (oneDayExpiring.length === 0) {
+      console.log('📅 No demo access expiring in 1 day');
+      return;
+    }
+
+    console.log(`⏰ Found ${oneDayExpiring.length} demo accesses expiring in 1 day`);
+
+    const botToken = process.env.BOT_TOKEN;
+    if (!botToken) {
+      console.error('BOT_TOKEN not configured for sending demo reminders');
+      return;
+    }
+
+    for (const demo of oneDayExpiring) {
+      try {
+        const expiresDate = new Date(demo.expiresAt).toLocaleDateString('ru-RU');
+        const channelUsername = demo.product.channel.username
+          ? `@${demo.product.channel.username}`
+          : demo.product.channel.name;
+
+        const message = `
+⚠️ *Ваш демо-доступ истекает через 1 день!*
+
+📦 *Продукт:* ${demo.product.name}
+📢 *Канал:* ${demo.product.channel.name}
+📅 *Дата окончания:* ${expiresDate}
+
+❗ *Последний день для оформления подписки!*
+
+Чтобы сохранить доступ к закрытому контенту, подпишитесь на канал:
+
+1. Нажмите кнопку "Подписаться" ниже
+2. Выберите подходящий тариф
+3. Оплатите подписку
+
+Продлите доступ сейчас, чтобы не потерять возможность изучать наш контент! 💙
+        `.trim();
+
+        await fetch(
+          `https://api.telegram.org/bot${botToken}/sendMessage`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: demo.user.telegramId.toString(),
+              text: message,
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: '🛍️ Подписаться',
+                      web_app: {
+                        url: `${process.env.APP_URL?.replace(/\n/g, '')}/app`
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      text: '📢 Перейти в канал',
+                      url: `https://t.me/${demo.product.channel.username?.replace('@', '')}`
+                    }
+                  ]
+                ]
+              }
+            })
+          }
+        );
+
+        console.log(`⏰ Sent 1-day demo reminder to user ${demo.user.telegramId}`);
+
+        // Небольшая задержка между отправками
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+      } catch (error) {
+        console.error(`Error sending 1-day demo reminder to user ${demo.user.telegramId}:`, error);
+      }
+    }
+
+  } catch (error) {
+    console.error('Error sending demo expiration reminders:', error);
   }
 }
 
