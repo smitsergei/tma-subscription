@@ -6,6 +6,7 @@ import { useNOWPayments } from '@/hooks/useNOWPayments'
 import PaymentTab from '@/components/PaymentTab'
 import CurrencyNetworkModal from '@/components/CurrencyNetworkModal'
 import SupportPage from '@/components/SupportPage'
+import { UserSubscriptions } from '@/components/UserSubscriptions'
 import { formatTextWithLineBreaks } from '@/lib/utils'
 
 // Функция для извлечения данных из URL
@@ -835,115 +836,9 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
           <div className="space-y-6 fade-in">
             <div className="text-center space-y-2">
               <h2 className="tg-heading-primary">📋 Мои подписки</h2>
-              <p className="tg-text-secondary">Управляйте вашими активными подписками</p>
+              <p className="tg-text-secondary">Управляйте вашими активными подписками и демо-доступами</p>
             </div>
-
-            {subscriptionsLoading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, index) => (
-                  <div key={index} className="skeleton-card"></div>
-                ))}
-              </div>
-            ) : userSubscriptions.length === 0 ? (
-              <div className="text-center py-12 space-y-6">
-                <div className="w-24 h-24 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto">
-                  <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-xl font-bold tg-text-primary">У вас пока нет подписок</h3>
-                  <p className="text-gray-600">Перейдите в раздел "Подписки", чтобы оформить доступ к эксклюзивному контенту</p>
-                </div>
-                <button
-                  onClick={() => setActiveTab('products')}
-                  className="btn btn-primary"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
-                  Выбрать подписку
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {userSubscriptions.map((subscription, index) => (
-                  <div
-                    key={subscription.subscriptionId}
-                    className="subscription-card hover-lift slide-up"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 space-y-3">
-                        <div>
-                          <h3 className="text-lg font-bold tg-text-primary">
-                            {subscription.product?.name || 'Подписка'}
-                          </h3>
-                          {subscription.product?.channel && (
-                            <div className="flex items-center mt-2 text-sm text-gray-600">
-                              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
-                                <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
-                              </svg>
-                              {subscription.product.channel.name}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center text-gray-600">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span>Истекает: {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}</span>
-                          </div>
-                          <div className="flex items-center text-gray-600">
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Осталось: {subscription.daysRemaining || Math.ceil((new Date(subscription.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} дней</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="ml-4">
-                        <span className={`status-badge ${
-                          subscription.status === 'active' ? 'active' : 'expired'
-                        }`}>
-                          {subscription.status === 'active' ? (
-                            <span className="flex items-center space-x-1">
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                              <span>Активна</span>
-                            </span>
-                          ) : (
-                            <span className="flex items-center space-x-1">
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                              </svg>
-                              <span>Истекла</span>
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-
-                    {subscription.status === 'active' && (
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <p className="text-sm text-gray-600">Наслаждайтесь доступом к эксклюзивному контенту!</p>
-                        <button className="btn btn-primary btn-sm">
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          Продлить
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <UserSubscriptions telegramUser={user} />
           </div>
         )}
 
