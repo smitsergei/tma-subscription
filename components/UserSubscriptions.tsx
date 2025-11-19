@@ -244,7 +244,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                       {subscription.product?.name || 'Подписка'}
                     </h3>
                     {subscription.channel && (
-                      <p className="text-sm tg-text-primary mb-2">
+                      <p className="text-sm tg-text-muted mb-2">
                         📢 {subscription.channel.name}
                       </p>
                     )}
