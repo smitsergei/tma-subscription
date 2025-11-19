@@ -153,7 +153,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
       {/* Демо-доступы */}
       {demoAccesses.length > 0 && (
         <div className="space-y-4">
-          <h3 className="font-semibold tg-text-primary text-lg mb-3">🎯 Демо-доступы</h3>
+          <h3 className="font-semibold tg-heading-primary text-lg mb-3">🎯 Демо-доступы</h3>
           {demoAccesses.map((demo) => {
             const isActive = demo.isActive && new Date(demo.expiresAt) > new Date()
             const isExpiringSoon = isActive &&
@@ -167,7 +167,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold tg-text-primary">
+                      <h3 className="font-semibold tg-heading-primary">
                         {demo.product?.name || 'Демо-доступ'}
                       </h3>
                       <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
@@ -188,16 +188,16 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                 </div>
 
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between tg-text-secondary">
                     <span>Начало:</span>
                     <span>{formatDate(demo.startedAt)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between tg-text-secondary">
                     <span>Окончание:</span>
                     <span>{formatDate(demo.expiresAt)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
-                    <span>Осталось:</span>
+                    <span className="tg-text-primary font-medium">Осталось:</span>
                     <span className={isActive ? 'text-green-600' : 'text-red-600'}>
                       {formatTimeLeft(demo.expiresAt)}
                     </span>
@@ -227,7 +227,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
       {/* Платные подписки */}
       {subscriptions.length > 0 && (
         <div className="space-y-4">
-          <h3 className="font-semibold tg-text-primary text-lg mb-3">💳 Подписки</h3>
+          <h3 className="font-semibold tg-heading-primary text-lg mb-3">💳 Подписки</h3>
           {subscriptions.map((subscription) => {
             const isActive = isSubscriptionActive(subscription.expiresAt)
             const isExpiringSoon = isActive &&
@@ -240,11 +240,11 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="font-semibold tg-text-primary mb-1">
+                    <h3 className="font-semibold tg-heading-primary mb-1">
                       {subscription.product?.name || 'Подписка'}
                     </h3>
                     {subscription.channel && (
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-sm tg-text-secondary mb-2">
                         📢 {subscription.channel.name}
                       </p>
                     )}
@@ -263,16 +263,16 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                 </div>
 
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between tg-text-secondary">
                     <span>Начало:</span>
                     <span>{formatDate(subscription.startsAt)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between tg-text-secondary">
                     <span>Окончание:</span>
                     <span>{formatDate(subscription.expiresAt)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
-                    <span>Осталось:</span>
+                    <span className="tg-text-primary font-medium">Осталось:</span>
                     <span className={isActive ? 'text-green-600' : 'text-red-600'}>
                       {formatTimeLeft(subscription.expiresAt)}
                     </span>

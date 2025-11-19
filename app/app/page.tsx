@@ -421,8 +421,8 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
             <div className="absolute inset-0 loading-spinner lg text-purple-600 mx-auto opacity-50 scale-75"></div>
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold tg-text-primary">Загрузка приложения...</h3>
-            <p className="text-sm text-gray-500">Подготавливаем всё для вас</p>
+            <h3 className="text-lg font-semibold tg-heading-primary">Загрузка приложения...</h3>
+            <p className="text-sm tg-text-muted">Подготавливаем всё для вас</p>
           </div>
         </div>
       </div>
@@ -441,8 +441,8 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
               </svg>
             </div>
             <div className="space-y-3">
-              <h3 className="text-xl font-semibold tg-text-primary">Ошибка доступа</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
+              <h3 className="text-xl font-semibold tg-heading-primary">Ошибка доступа</h3>
+              <p className="tg-text-secondary text-sm leading-relaxed">
                 Не удалось получить данные пользователя Telegram. Пожалуйста, откройте приложение через бота в мобильном Telegram.
               </p>
             </div>
@@ -479,7 +479,7 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
             {/* Индикатор статуса */}
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse-soft"></div>
-              <span className="text-xs text-gray-500 hidden sm:inline">Online</span>
+              <span className="text-xs tg-text-muted hidden sm:inline">Online</span>
             </div>
           </div>
 
@@ -613,8 +613,8 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold tg-text-primary mb-2">😕 Нет доступных подписок</h3>
-                  <p className="text-gray-600 text-sm">Попробуйте обновить страницу или свяжитесь с администратором</p>
+                  <h3 className="text-lg font-semibold tg-heading-primary mb-2">😕 Нет доступных подписок</h3>
+                  <p className="tg-text-secondary text-sm">Попробуйте обновить страницу или свяжитесь с администратором</p>
                 </div>
                 <button
                   onClick={() => window.location.reload()}
@@ -634,7 +634,7 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
-                          <h3 className="text-lg font-bold tg-text-primary mb-2">{product.name}</h3>
+                          <h3 className="text-lg font-bold tg-heading-primary mb-2">{product.name}</h3>
                           <p className="tg-text-secondary text-sm leading-relaxed whitespace-pre-wrap">
                         {formatTextWithLineBreaks(product.description).map((line, index) => (
                           <span key={index}>
@@ -670,7 +670,7 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                                 <span className="text-2xl font-bold text-transparent bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text">
                                   ${product.discountPrice.toFixed(2)}
                                 </span>
-                                <span className="text-sm text-gray-500 line-through">
+                                <span className="text-sm tg-text-secondary line-through">
                                   ${product.price.toFixed(2)}
                                 </span>
                               </>
@@ -679,7 +679,7 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                                 ${product.price.toFixed(2)}
                               </span>
                             )}
-                            <span className="text-xs text-gray-500">/{product.periodDays}дней</span>
+                            <span className="text-xs tg-text-secondary">/{product.periodDays}дней</span>
                           </div>
                         </div>
 
@@ -781,8 +781,8 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               <div className="flex-1">
-                                <p className="text-sm text-gray-700 font-medium">Демо-доступ использован</p>
-                                <p className="text-xs text-gray-600 mt-1">
+                                <p className="text-sm tg-text-primary font-medium">Демо-доступ использован</p>
+                                <p className="text-xs tg-text-secondary mt-1">
                                   Вы уже использовали демо-период для этого продукта. Для получения доступа оформите полную подписку.
                                 </p>
                               </div>
@@ -812,18 +812,18 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                 </div>
 
                 <div className="text-center py-8 space-y-2">
-                  <div className="inline-flex items-center space-x-2 text-sm text-gray-600">
+                  <div className="inline-flex items-center space-x-2 text-sm tg-text-secondary">
                     <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                     <span>Безопасная оплата через NOWPayments</span>
                   </div>
-                  <div className="text-xs text-gray-500 space-y-1">
+                  <div className="text-xs tg-text-secondary space-y-1">
                     <div>Поддерживаем Bitcoin, Ethereum, USDT, USDC и другие криптовалюты</div>
                     <div>Мгновенная активация подписки после оплаты</div>
                     <div className="pt-2 border-t border-gray-200">
-                      <span className="text-gray-600">Платформа разработана и принадлежит </span>
-                      <span className="font-semibold text-gray-700">Smit Finance</span>
+                      <span className="tg-text-primary">Платформа разработана и принадлежит </span>
+                      <span className="font-semibold tg-text-primary">Smit Finance</span>
                     </div>
                   </div>
                 </div>
