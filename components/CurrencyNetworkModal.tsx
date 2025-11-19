@@ -195,7 +195,7 @@ export default function CurrencyNetworkModal({
         {/* Основной контент */}
         <div className="px-6 py-4 space-y-6">
           {/* Информация о продукте */}
-          <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-5 border border-white/50 shadow-sm">
+          <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-800 dark:via-gray-750 dark:to-gray-800 rounded-2xl p-5 border border-white/50 dark:border-gray-600 shadow-sm">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-2">Продукт</div>
@@ -205,7 +205,7 @@ export default function CurrencyNetworkModal({
                   <span className="text-xs text-gray-600 dark:text-gray-400">Доступно для покупки</span>
                 </div>
               </div>
-              <div className="w-14 h-14 bg-white dark:bg-gray-700 rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
+              <div className="w-14 h-14 bg-white dark:bg-gray-700 rounded-2xl flex items-center justify-center shadow-lg border border-white/20 dark:border-gray-600">
                 <svg className="w-7 h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -237,7 +237,7 @@ export default function CurrencyNetworkModal({
                   </div>
                 )}
               </div>
-              <div className="text-sm font-semibold text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 px-3 py-1 rounded-lg">USD</div>
+              <div className="text-sm font-semibold text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-600">USD</div>
             </div>
           </div>
 
