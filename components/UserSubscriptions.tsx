@@ -153,7 +153,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
       {/* Демо-доступы */}
       {demoAccesses.length > 0 && (
         <div className="space-y-4">
-          <h3 className="font-semibold text-gray-900 text-lg mb-3">🎯 Демо-доступы</h3>
+          <h3 className="font-semibold tg-text-primary text-lg mb-3">🎯 Демо-доступы</h3>
           {demoAccesses.map((demo) => {
             const isActive = demo.isActive && new Date(demo.expiresAt) > new Date()
             const isExpiringSoon = isActive &&
@@ -167,7 +167,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-900">
+                      <h3 className="font-semibold tg-text-primary">
                         {demo.product?.name || 'Демо-доступ'}
                       </h3>
                       <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
@@ -227,7 +227,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
       {/* Платные подписки */}
       {subscriptions.length > 0 && (
         <div className="space-y-4">
-          <h3 className="font-semibold text-gray-900 text-lg mb-3">💳 Подписки</h3>
+          <h3 className="font-semibold tg-text-primary text-lg mb-3">💳 Подписки</h3>
           {subscriptions.map((subscription) => {
             const isActive = isSubscriptionActive(subscription.expiresAt)
             const isExpiringSoon = isActive &&
@@ -240,7 +240,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold tg-text-primary mb-1">
                       {subscription.product?.name || 'Подписка'}
                     </h3>
                     {subscription.channel && (
