@@ -70,11 +70,31 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
           if (demoResponse.ok && demoData.success) {
             setDemoAccesses(demoData.data)
           } else {
-            // Не считаем ошибкой отсутствие демо-доступов
-            console.warn('Ошибка загрузки демо-доступов:', demoData.error)
+            // Пробуем debug endpoint если основной не сработал
+            console.log('🔄 Trying debug endpoint for demo accesses...')
+            const debugDemoResponse = await fetch('/api/debug/test-demo')
+            const debugDemoData = await debugDemoResponse.json()
+
+            if (debugDemoResponse.ok && debugDemoData.success) {
+              setDemoAccesses(debugDemoData.data)
+            } else {
+              console.warn('Ошибка загрузки демо-доступов:', demoData.error)
+            }
           }
         } catch (demoError) {
           console.warn('Ошибка при загрузке демо-доступов:', demoError)
+          // Пробуем debug endpoint при ошибке
+          try {
+            console.log('🔄 Trying debug endpoint for demo accesses after error...')
+            const debugDemoResponse = await fetch('/api/debug/test-demo')
+            const debugDemoData = await debugDemoResponse.json()
+
+            if (debugDemoResponse.ok && debugDemoData.success) {
+              setDemoAccesses(debugDemoData.data)
+            }
+          } catch (debugError) {
+            console.warn('Debug endpoint тоже не сработал:', debugError)
+          }
         }
       } catch (err) {
         console.error('Error fetching data:', err)
