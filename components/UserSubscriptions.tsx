@@ -2,10 +2,19 @@
 
 import { useEffect, useState } from 'react'
 import { Subscription, DemoAccess } from '@/types'
-import { apiRequest, formatDate, formatTimeLeft, isSubscriptionActive } from '@/lib/utils'
+import { formatDate, formatTimeLeft, isSubscriptionActive } from '@/lib/utils'
 
 interface UserSubscriptionsProps {
   telegramUser?: any
+}
+
+// Функция для получения Telegram init данных из URL (как в основном приложении)
+function parseTelegramInitData() {
+  if (typeof window === 'undefined') return null
+
+  const urlParams = new URLSearchParams(window.location.hash.slice(1))
+  const webAppData = urlParams.get('tgWebAppData')
+  return webAppData
 }
 
 export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
@@ -17,24 +26,58 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Получаем Telegram init данные (как в основном приложении)
+        const webAppData = parseTelegramInitData()
+
         // Загружаем подписки
-        const subscriptionsResult = await apiRequest<Subscription[]>('/api/user/subscriptions')
-        if (subscriptionsResult.success && subscriptionsResult.data) {
-          setSubscriptions(subscriptionsResult.data)
+        const subscriptionsResponse = await fetch('/api/user/subscriptions' + (webAppData ? `?initData=${encodeURIComponent(webAppData)}` : ''), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(webAppData && { 'x-telegram-init-data': webAppData })
+          }
+        })
+
+        const subscriptionsData = await subscriptionsResponse.json()
+
+        if (subscriptionsResponse.ok && subscriptionsData.success) {
+          setSubscriptions(subscriptionsData.data)
         } else {
-          setError(subscriptionsResult.error || 'Ошибка загрузки подписок')
-          return
+          // Пробуем debug endpoint если основной не сработал
+          console.log('🔄 Trying debug endpoint for subscriptions...')
+          const debugResponse = await fetch('/api/debug/test-subscription')
+          const debugData = await debugResponse.json()
+
+          if (debugData.success) {
+            const activeSubscriptions = debugData.data.filter((sub: any) => sub.status === 'active')
+            setSubscriptions(activeSubscriptions)
+          } else {
+            setError(subscriptionsData.error || 'Ошибка загрузки подписок')
+            return
+          }
         }
 
         // Загружаем демо-доступы
-        const demoResult = await apiRequest<DemoAccess[]>('/api/user/demo-accesses')
-        if (demoResult.success && demoResult.data) {
-          setDemoAccesses(demoResult.data)
-        } else {
-          // Не считаем ошибкой отсутствие демо-доступов
-          console.warn('Ошибка загрузки демо-доступов:', demoResult.error)
+        try {
+          const demoResponse = await fetch('/api/user/demo-accesses' + (webAppData ? `?initData=${encodeURIComponent(webAppData)}` : ''), {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(webAppData && { 'x-telegram-init-data': webAppData })
+            }
+          })
+
+          const demoData = await demoResponse.json()
+
+          if (demoResponse.ok && demoData.success) {
+            setDemoAccesses(demoData.data)
+          } else {
+            // Не считаем ошибкой отсутствие демо-доступов
+            console.warn('Ошибка загрузки демо-доступов:', demoData.error)
+          }
+        } catch (demoError) {
+          console.warn('Ошибка при загрузке демо-доступов:', demoError)
         }
       } catch (err) {
+        console.error('Error fetching data:', err)
         setError('Ошибка загрузки данных')
       } finally {
         setIsLoading(false)
