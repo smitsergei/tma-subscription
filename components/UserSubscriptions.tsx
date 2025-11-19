@@ -170,7 +170,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                       <h3 className="font-semibold tg-heading-primary">
                         {demo.product?.name || 'Демо-доступ'}
                       </h3>
-                      <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                      <span className="text-xs bg-purple-100 text-purple-900 px-2 py-1 rounded-full">
                         ДЕМО
                       </span>
                     </div>
@@ -197,7 +197,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                     <span>{formatDate(demo.expiresAt)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
-                    <span className="text-gray-800 dark:text-gray-200">Осталось:</span>
+                    <span className="tg-text-primary">Осталось:</span>
                     <span className={isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                       {formatTimeLeft(demo.expiresAt)}
                     </span>
@@ -244,7 +244,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                       {subscription.product?.name || 'Подписка'}
                     </h3>
                     {subscription.channel && (
-                      <p className="text-sm tg-text-muted mb-2">
+                      <p className="text-sm tg-text-primary mb-2">
                         📢 {subscription.channel.name}
                       </p>
                     )}
@@ -272,7 +272,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                     <span>{formatDate(subscription.expiresAt)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
-                    <span className="text-gray-800 dark:text-gray-200">Осталось:</span>
+                    <span className="tg-text-primary">Осталось:</span>
                     <span className={isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                       {formatTimeLeft(subscription.expiresAt)}
                     </span>
