@@ -453,7 +453,7 @@ export async function syncChannelAccess(
   productName: string,
   channelName: string,
   expiresAt?: Date
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; inviteLink?: string }> {
   const botToken = process.env.BOT_TOKEN
   if (!botToken) {
     console.error('🤖 BOT SYNC: Bot token not configured')
@@ -476,7 +476,11 @@ export async function syncChannelAccess(
         await sendSubscriptionNotification(userId, productName, channelName, 'created', expiresAt)
       }
 
-      return result
+      return {
+        success: result.success,
+        error: result.error,
+        inviteLink: result.inviteLink
+      }
     } else {
       // Удаляем пользователя из канала (expired, cancelled)
       const result = await removeUserFromChannel(userId, channelId, botToken)

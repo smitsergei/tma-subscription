@@ -276,7 +276,7 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                 {isActive && subscription.channel && (
                   <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
                     <a
-                      href={`https://t.me/${subscription.channel.username?.replace('@', '')}`}
+                      href={subscription.metadata?.inviteLink || `https://t.me/${subscription.channel.username?.replace('@', '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"

@@ -85,6 +85,11 @@ export interface Subscription {
   expiresAt: Date
   createdAt: Date
   updatedAt: Date
+  metadata?: {
+    inviteLink?: string
+    createdAt?: string
+    [key: string]: any
+  }
   user?: User
   product?: Product
   channel?: Channel

@@ -101,7 +101,8 @@ export async function GET(request: NextRequest) {
           channelId: subscription.channel.channelId.toString(),
           name: subscription.channel.name,
           username: subscription.channel.username
-        } : null
+        } : null,
+        metadata: subscription.metadata
       }))
     })
   } catch (error) {

@@ -206,6 +206,20 @@ export async function POST(request: NextRequest) {
             expiresAt
           )
 
+          // Сохраняем inviteLink в metadata подписки, если ссылка была создана
+          if (syncResult.success && syncResult.inviteLink) {
+            await prisma.subscription.update({
+              where: { subscriptionId: subscription.subscriptionId },
+              data: {
+                metadata: {
+                  inviteLink: syncResult.inviteLink,
+                  createdAt: new Date().toISOString()
+                }
+              }
+            })
+            console.log('💾 Invite link saved to subscription metadata:', syncResult.inviteLink)
+          }
+
           if (syncResult.success) {
             console.log('✅ Channel access synchronized successfully')
           } else {
