@@ -236,10 +236,17 @@ body {
   overflow: hidden;
 }
 
+/* Переопределение для активных и истекших карточек */
+.subscription-card.active,
+.subscription-card.expired {
+  background: unset !important;
+  --tg-theme-bg-color: unset !important;
+}
+
 /* Темные фоны для карточек подписок */
 .dark .subscription-card {
-  background: #374151;
-  border-color: #4b5563;
+  background: #374151 !important;
+  border-color: #4b5563 !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -266,6 +273,7 @@ body {
 }
 
 /* Темные фоны для активных подписок */
+html.dark .subscription-card.active,
 .dark .subscription-card.active {
   @apply border-green-700;
   background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%) !important;
@@ -291,6 +299,7 @@ body {
 }
 
 /* Темные фоны для истекших подписок */
+html.dark .subscription-card.expired,
 .dark .subscription-card.expired {
   @apply border-red-800;
   background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #b91c1c 100%) !important;
