@@ -165,7 +165,7 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold tg-heading-primary">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
                         {demo.product?.name || 'Демо-доступ'}
                       </h3>
                       <span className="text-xs bg-purple-100 text-purple-900 px-2 py-1 rounded-full">
@@ -195,8 +195,8 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                     <span>{formatDate(demo.expiresAt)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
-                    <span className="tg-text-primary">Осталось:</span>
-                    <span className={isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                    <span className="text-gray-900 dark:text-white">Осталось:</span>
+                    <span className={isActive ? 'text-green-700 dark:text-green-400 font-bold' : 'text-red-700 dark:text-red-400 font-bold'}>
                       {formatTimeLeft(demo.expiresAt)}
                     </span>
                   </div>
@@ -206,9 +206,9 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                   <div className="mt-4 pt-3 border-t border-gray-200">
                     <button
                       onClick={() => onPurchase(demo.product)}
-                      className="tg-button text-sm px-4 py-2"
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 hover:shadow-lg active:scale-95 text-sm"
                     >
-                      Приобрести подписку
+                      🛒 Приобрести подписку
                     </button>
                   </div>
                 )}
@@ -234,11 +234,11 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="font-semibold tg-heading-primary mb-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
                       {subscription.product?.name || 'Подписка'}
                     </h3>
                     {subscription.channel && (
-                      <p className="text-sm tg-text-primary mb-2">
+                      <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">
                         📢 {subscription.channel.name}
                       </p>
                     )}
@@ -266,8 +266,8 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                     <span>{formatDate(subscription.expiresAt)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
-                    <span className="tg-text-primary">Осталось:</span>
-                    <span className={isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                    <span className="text-gray-900 dark:text-white">Осталось:</span>
+                    <span className={isActive ? 'text-green-700 dark:text-green-400 font-bold' : 'text-red-700 dark:text-red-400 font-bold'}>
                       {formatTimeLeft(subscription.expiresAt)}
                     </span>
                   </div>
