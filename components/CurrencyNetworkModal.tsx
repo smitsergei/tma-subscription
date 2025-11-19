@@ -443,7 +443,6 @@ export default function CurrencyNetworkModal({
               </button>
             </div>
           </div>
-        </div>
       </div>
     </div>
   )
