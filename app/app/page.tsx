@@ -838,7 +838,7 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
               <h2 className="tg-heading-primary">📋 Мои подписки</h2>
               <p className="tg-text-secondary">Управляйте вашими активными подписками и демо-доступами</p>
             </div>
-            <UserSubscriptions telegramUser={user} />
+            <UserSubscriptions telegramUser={user} onSwitchToProducts={() => setActiveTab('products')} onPurchase={handlePurchase} />
           </div>
         )}
 

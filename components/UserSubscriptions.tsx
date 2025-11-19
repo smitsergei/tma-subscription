@@ -6,6 +6,8 @@ import { formatDate, formatTimeLeft, isSubscriptionActive } from '@/lib/utils'
 
 interface UserSubscriptionsProps {
   telegramUser?: any
+  onSwitchToProducts?: () => void
+  onPurchase?: (product: any) => void
 }
 
 // Функция для получения Telegram init данных из URL (как в основном приложении)
@@ -17,7 +19,7 @@ function parseTelegramInitData() {
   return webAppData
 }
 
-export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
+export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase }: UserSubscriptionsProps) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [demoAccesses, setDemoAccesses] = useState<DemoAccess[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -135,11 +137,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
         <div className="text-gray-500 mb-4 text-4xl">📋</div>
         <p className="text-gray-600 mb-4">У вас пока нет активных подписок и демо-доступов</p>
         <button
-          onClick={() => {
-            // Переключение на вкладку с продуктами
-            const productsTab = document.querySelector('[data-tab="products"]') as HTMLButtonElement
-            productsTab?.click()
-          }}
+          onClick={onSwitchToProducts}
           className="text-blue-600 underline"
         >
           Посмотреть доступные подписки
@@ -204,14 +202,10 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                   </div>
                 </div>
 
-                {!isActive && demo.product && (
+                {!isActive && demo.product && onPurchase && (
                   <div className="mt-4 pt-3 border-t border-gray-200">
                     <button
-                      onClick={() => {
-                        // Переключение на вкладку с продуктами для покупки
-                        const productsTab = document.querySelector('[data-tab="products"]') as HTMLButtonElement
-                        productsTab?.click()
-                      }}
+                      onClick={() => onPurchase(demo.product)}
                       className="tg-button text-sm px-4 py-2"
                     >
                       Приобрести подписку
