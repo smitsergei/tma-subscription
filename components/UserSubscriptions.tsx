@@ -197,8 +197,8 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                     <span>{formatDate(demo.expiresAt)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
-                    <span className="tg-text-primary font-medium">Осталось:</span>
-                    <span className={isActive ? 'text-green-600' : 'text-red-600'}>
+                    <span className="text-gray-800 dark:text-gray-200">Осталось:</span>
+                    <span className={isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                       {formatTimeLeft(demo.expiresAt)}
                     </span>
                   </div>
@@ -244,7 +244,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                       {subscription.product?.name || 'Подписка'}
                     </h3>
                     {subscription.channel && (
-                      <p className="text-sm tg-text-secondary mb-2">
+                      <p className="text-sm tg-text-primary mb-2">
                         📢 {subscription.channel.name}
                       </p>
                     )}
@@ -272,8 +272,8 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                     <span>{formatDate(subscription.expiresAt)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
-                    <span className="tg-text-primary font-medium">Осталось:</span>
-                    <span className={isActive ? 'text-green-600' : 'text-red-600'}>
+                    <span className="text-gray-800 dark:text-gray-200">Осталось:</span>
+                    <span className={isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                       {formatTimeLeft(subscription.expiresAt)}
                     </span>
                   </div>
