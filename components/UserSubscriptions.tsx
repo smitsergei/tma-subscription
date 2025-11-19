@@ -28,6 +28,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
       try {
         // Получаем Telegram init данные (как в основном приложении)
         const webAppData = parseTelegramInitData()
+        console.log('🔍 UserSubscriptions: webAppData', webAppData)
 
         // Загружаем подписки
         const subscriptionsResponse = await fetch('/api/user/subscriptions' + (webAppData ? `?initData=${encodeURIComponent(webAppData)}` : ''), {
@@ -40,6 +41,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
         const subscriptionsData = await subscriptionsResponse.json()
 
         if (subscriptionsResponse.ok && subscriptionsData.success) {
+          console.log('✅ UserSubscriptions: loaded subscriptions', subscriptionsData.data)
           setSubscriptions(subscriptionsData.data)
         } else {
           // Пробуем debug endpoint если основной не сработал
@@ -68,6 +70,7 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
           const demoData = await demoResponse.json()
 
           if (demoResponse.ok && demoData.success) {
+            console.log('✅ UserSubscriptions: loaded demo accesses', demoData.data)
             setDemoAccesses(demoData.data)
           } else {
             // Пробуем debug endpoint если основной не сработал
@@ -197,8 +200,8 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                     <span>{formatDate(demo.expiresAt)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
-                    <span className="text-gray-800 dark:text-gray-200">Осталось:</span>
-                    <span className={isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                    <span className="tg-text-primary font-semibold">Осталось:</span>
+                    <span className={isActive ? 'text-green-600' : 'text-red-600'}>
                       {formatTimeLeft(demo.expiresAt)}
                     </span>
                   </div>
@@ -272,8 +275,8 @@ export function UserSubscriptions({ telegramUser }: UserSubscriptionsProps) {
                     <span>{formatDate(subscription.expiresAt)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
-                    <span className="text-gray-800 dark:text-gray-200">Осталось:</span>
-                    <span className={isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                    <span className="tg-text-primary font-semibold">Осталось:</span>
+                    <span className={isActive ? 'text-green-600' : 'text-red-600'}>
                       {formatTimeLeft(subscription.expiresAt)}
                     </span>
                   </div>
