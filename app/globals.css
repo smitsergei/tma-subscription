@@ -227,10 +227,20 @@ body {
 
 /* Компонент карточек подписок */
 .subscription-card {
-  @apply tg-card mb-6 transition-all duration-300 hover:shadow-medium;
+  @apply mb-6 transition-all duration-300 hover:shadow-medium;
+  background: var(--tg-theme-bg-color, #ffffff);
+  border: 1px solid var(--tg-theme-section-separator-color, #e5e7eb);
   border-radius: 20px;
+  padding: 20px;
   position: relative;
   overflow: hidden;
+}
+
+/* Темные фоны для карточек подписок */
+.dark .subscription-card {
+  background: #374151;
+  border-color: #4b5563;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .subscription-card::before {
@@ -250,14 +260,15 @@ body {
 }
 
 .subscription-card.active {
-  @apply border-green-200 bg-gradient-to-br from-green-50 to-white;
+  @apply border-green-200;
+  background: linear-gradient(to bottom right, #dcfce7, #ffffff);
   box-shadow: 0 4px 20px rgba(34, 197, 94, 0.15);
 }
 
 /* Темные фоны для активных подписок */
 .dark .subscription-card.active {
   @apply border-green-700;
-  background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
+  background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%) !important;
   box-shadow:
     0 4px 20px rgba(34, 197, 94, 0.25),
     0 0 0 1px rgba(34, 197, 94, 0.1) inset;
@@ -274,14 +285,15 @@ body {
 }
 
 .subscription-card.expired {
-  @apply border-red-200 bg-gradient-to-br from-red-50 to-white;
+  @apply border-red-200;
+  background: linear-gradient(to bottom right, #fef2f2, #ffffff);
   opacity: 0.7;
 }
 
 /* Темные фоны для истекших подписок */
 .dark .subscription-card.expired {
   @apply border-red-800;
-  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #b91c1c 100%);
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #b91c1c 100%) !important;
   opacity: 0.85;
   box-shadow:
     0 4px 20px rgba(239, 68, 68, 0.2),

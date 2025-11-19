@@ -168,7 +168,7 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                       <h3 className="font-semibold text-gray-900 dark:text-white">
                         {demo.product?.name || 'Демо-доступ'}
                       </h3>
-                      <span className="text-xs bg-purple-100 text-purple-900 px-2 py-1 rounded-full">
+                      <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-900 dark:text-purple-200 px-2 py-1 rounded-full border border-purple-200 dark:border-purple-700">
                         ДЕМО
                       </span>
                     </div>
@@ -177,7 +177,7 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                         {isActive ? 'Активен' : 'Истёк'}
                       </span>
                       {isExpiringSoon && (
-                        <span className="text-xs text-orange-600 font-medium">
+                        <span className="text-xs bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-full font-medium border border-orange-200 dark:border-orange-700">
                           ⚠️ Скоро истекает
                         </span>
                       )}
@@ -203,7 +203,7 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                 </div>
 
                 {!isActive && demo.product && onPurchase && (
-                  <div className="mt-4 pt-3 border-t border-gray-200">
+                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
                     <button
                       onClick={() => onPurchase(demo.product)}
                       className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 hover:shadow-lg active:scale-95 text-sm"
@@ -248,7 +248,7 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                          subscription.status === 'expired' ? 'Истекла' : 'Отменена'}
                       </span>
                       {isExpiringSoon && (
-                        <span className="text-xs text-orange-600 font-medium">
+                        <span className="text-xs bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-full font-medium border border-orange-200 dark:border-orange-700">
                           ⚠️ Скоро истекает
                         </span>
                       )}
@@ -274,7 +274,7 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                 </div>
 
                 {isActive && subscription.channel && (
-                  <div className="mt-4 pt-3 border-t border-gray-200">
+                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
                     <a
                       href={`https://t.me/${subscription.channel.username?.replace('@', '')}`}
                       target="_blank"
@@ -287,7 +287,7 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                 )}
 
                 {!isActive && subscription.product && (
-                  <div className="mt-4 pt-3 border-t border-gray-200">
+                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
                     <button
                       onClick={() => {
                         // Здесь можно добавить логику продления подписки
