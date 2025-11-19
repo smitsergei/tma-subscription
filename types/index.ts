@@ -59,6 +59,20 @@ export interface Payment {
   product?: Product
 }
 
+// Demo access types
+export interface DemoAccess {
+  id: string
+  userId: string
+  productId: string
+  startedAt: Date
+  expiresAt: Date
+  isActive: boolean
+  reminderSent: boolean
+  daysRemaining?: number
+  product?: Product
+  user?: User
+}
+
 // Subscription types
 export interface Subscription {
   subscriptionId: string
