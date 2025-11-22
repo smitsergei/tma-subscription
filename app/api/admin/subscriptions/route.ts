@@ -69,8 +69,9 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const status = searchParams.get('status')
     const userId = searchParams.get('userId')
+    const productId = searchParams.get('productId')
 
-    console.log('🔍 SUBSCRIPTIONS API: Params:', { page, limit, status, userId })
+    console.log('🔍 SUBSCRIPTIONS API: Params:', { page, limit, status, userId, productId })
 
     const skip = (page - 1) * limit
 
@@ -83,6 +84,10 @@ export async function GET(request: NextRequest) {
 
     if (userId) {
       where.userId = BigInt(userId)
+    }
+
+    if (productId) {
+      where.productId = productId
     }
 
     console.log('🔍 SUBSCRIPTIONS API: Where clause:', where)

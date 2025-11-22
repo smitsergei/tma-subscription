@@ -234,6 +234,7 @@ export default function SubscriptionManagement() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState('')
+  const [productId, setProductId] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -277,7 +278,8 @@ export default function SubscriptionManagement() {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '20',
-        ...(status && { status })
+        ...(status && { status }),
+        ...(productId && { productId })
       })
 
       const response = await fetch(`/api/admin/subscriptions?${params}`, createAuthenticatedRequest())
@@ -330,7 +332,7 @@ export default function SubscriptionManagement() {
   useEffect(() => {
     fetchSubscriptions()
     fetchUsersAndProducts()
-  }, [page, status])
+  }, [page, status, productId])
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -722,6 +724,18 @@ export default function SubscriptionManagement() {
           <option value="active">Активные</option>
           <option value="expired">Истекшие</option>
           <option value="cancelled">Отмененные</option>
+        </select>
+        <select
+          value={productId}
+          onChange={(e) => setProductId(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="">Все продукты</option>
+          {products.map((product) => (
+            <option key={product.id} value={product.id}>
+              {product.name} - ${product.price}
+            </option>
+          ))}
         </select>
       </div>
 
