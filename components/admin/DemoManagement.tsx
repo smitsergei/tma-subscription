@@ -256,6 +256,11 @@ export default function DemoManagement() {
   const [selectedDemo, setSelectedDemo] = useState<DemoAccess | null>(null)
   const [extendDate, setExtendDate] = useState('')
 
+  // Состояния для фильтрации
+  const [filterUser, setFilterUser] = useState('')
+  const [filterProduct, setFilterProduct] = useState('all')
+  const [filterStatus, setFilterStatus] = useState('all')
+
   const fetchDemoAccesses = async () => {
     try {
       console.log('🔍 Fetching demo accesses...')
@@ -500,8 +505,24 @@ export default function DemoManagement() {
     return Math.max(1, diffDays)
   }
 
-  const activeDemosCount = demoAccesses.filter(d => isDemoActive(d)).length
-  const expiringTodayCount = demoAccesses.filter(d => isDemoActive(d) && getDaysRemaining(d) === 1).length
+  // Filtering logic
+  const filteredDemoAccesses = demoAccesses.filter(access => {
+    // User filter
+    const userMatch = filterUser === '' || 
+      (access.user.firstName && access.user.firstName.toLowerCase().includes(filterUser.toLowerCase())) ||
+      (access.user.username && access.user.username.toLowerCase().includes(filterUser.toLowerCase()))
+
+    // Product filter
+    const productMatch = filterProduct === 'all' || access.product.id === filterProduct
+
+    // Status filter
+    const isActive = isDemoActive(access)
+    const statusMatch = filterStatus === 'all' || 
+      (filterStatus === 'active' && isActive) ||
+      (filterStatus === 'expired' && !isActive)
+
+    return userMatch && productMatch && statusMatch
+  })
 
   if (loading) {
     return (
@@ -531,51 +552,57 @@ export default function DemoManagement() {
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center">
-            <div className="flex-shrink-0 bg-blue-100 rounded-lg p-3">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <div className="text-sm font-medium text-gray-500">Всего демо-доступов</div>
-              <div className="text-2xl font-semibold text-gray-900">{demoAccesses.length}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center">
-            <div className="flex-shrink-0 bg-green-100 rounded-lg p-3">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <div className="text-sm font-medium text-gray-500">Активные демо</div>
-              <div className="text-2xl font-semibold text-gray-900">{activeDemosCount}</div>
+      {/* Filters */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* User Filter */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Пользователь</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={filterUser}
+                onChange={(e) => setFilterUser(e.target.value)}
+                placeholder="Имя или @username"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              />
             </div>
           </div>
-        </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-center">
-            <div className={`flex-shrink-0 rounded-lg p-3 ${
-              expiringTodayCount > 0 ? 'bg-red-100' : 'bg-orange-100'
-            }`}>
-              <svg className={`w-6 h-6 ${
-                expiringTodayCount > 0 ? 'text-red-600' : 'text-orange-600'
-              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <div className="text-sm font-medium text-gray-500">Истекают сегодня</div>
-              <div className="text-2xl font-semibold text-gray-900">{expiringTodayCount}</div>
-            </div>
+          {/* Product Filter */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Продукт</label>
+            <select
+              value={filterProduct}
+              onChange={(e) => setFilterProduct(e.target.value)}
+              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+            >
+              <option value="all">Все продукты</option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Статус</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+            >
+              <option value="all">Все статусы</option>
+              <option value="active">Активные</option>
+              <option value="expired">Завершенные</option>
+            </select>
           </div>
         </div>
       </div>
@@ -607,7 +634,7 @@ export default function DemoManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {demoAccesses.map((demoAccess) => (
+              {filteredDemoAccesses.map((demoAccess) => (
                 <tr key={demoAccess.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div>
@@ -682,7 +709,7 @@ export default function DemoManagement() {
 
       {/* Mobile Cards */}
       <div className="lg:hidden space-y-4">
-        {demoAccesses.map((demoAccess) => (
+        {filteredDemoAccesses.map((demoAccess) => (
           <DemoAccessCard
             key={demoAccess.id}
             demoAccess={demoAccess}
@@ -694,13 +721,13 @@ export default function DemoManagement() {
       </div>
 
       {/* Empty State */}
-      {demoAccesses.length === 0 && (
+      {filteredDemoAccesses.length === 0 && (
         <div className="text-center py-12">
           <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Нет демо-доступов</h3>
-          <p className="mt-1 text-sm text-gray-500">Начните с выдачи первого демо-доступа</p>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Ничего не найдено</h3>
+          <p className="mt-1 text-sm text-gray-500">Попробуйте изменить параметры фильтрации или выдайте новый доступ</p>
           <div className="mt-6">
             <button
               onClick={() => setShowGrantModal(true)}
