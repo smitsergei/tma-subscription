@@ -315,9 +315,7 @@ async function addUserToChannel(userTelegramId: bigint, channelId: bigint, produ
                   {
                     text: '📱 Открыть Mini App',
                     web_app: {
-                      url: `${process.env.APP_URL?.trim().replace(/[
-	]/g, '')}/app`
-                    }
+                                            url: `${process.env.APP_URL?.trim().replace(/[\n\r\t]/g, '')}/app`                    }
                   }
                 ]
               ]
@@ -352,9 +350,7 @@ async function addUserToChannel(userTelegramId: bigint, channelId: bigint, produ
                   {
                     text: '📱 Открыть Mini App',
                     web_app: {
-                      url: `${process.env.APP_URL?.trim().replace(/[
-	]/g, '')}/app`
-                    }
+                                            url: `${process.env.APP_URL?.trim().replace(/[\n\r\t]/g, '')}/app`                    }
                   }
                 ]
               ]
