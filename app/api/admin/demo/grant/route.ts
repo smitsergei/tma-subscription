@@ -111,7 +111,10 @@ export async function POST(request: NextRequest) {
 
     // Проверяем, что продукт существует и поддерживает демо
     const product = await prisma.product.findUnique({
-      where: { productId }
+      where: { productId },
+      include: {
+        channel: true
+      }
     })
 
     if (!product) {
@@ -176,6 +179,19 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Demo access granted successfully:', demoAccess.id)
 
+    // Добавляем пользователя в канал через Telegram Bot API
+    if (product.channel) {
+      try {
+        await addUserToChannel(userIdBigInt, product.channel.channelId, product.name);
+        console.log('✅ User added to channel successfully');
+      } catch (error) {
+        console.error('❌ Error adding user to channel:', error);
+        // Не прерываем процесс, если не удалось добавить в канал
+      }
+    } else {
+      console.warn('⚠️ Product has no channel assigned, skipping channel add');
+    }
+
     // Конвертируем BigInt в string
     const serializedDemoAccess = {
       id: demoAccess.id,
@@ -199,5 +215,162 @@ export async function POST(request: NextRequest) {
       },
       500
     )
+  }
+}
+
+// Функция для добавления пользователя в канал
+async function addUserToChannel(userTelegramId: bigint, channelId: bigint, productName: string) {
+  try {
+    const botToken = process.env.BOT_TOKEN;
+    if (!botToken) {
+      throw new Error('Bot token not configured');
+    }
+
+    // Сначала пробуем найти существующую демо-ссылку
+    let inviteLink = null;
+
+    try {
+      const existingInvitesResponse = await fetch(
+        `https://api.telegram.org/bot${botToken}/getChatInviteLinks`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: channelId.toString()
+          })
+        }
+      );
+
+      const existingInvitesData = await existingInvitesResponse.json();
+
+      if (existingInvitesData.ok && existingInvitesData.result) {
+        const existingInvite = existingInvitesData.result.find((invite: any) =>
+          invite.name === 'Demo Access Invite' &&
+          invite.member_limit === 1 &&
+          !invite.is_revoked
+        );
+
+        if (existingInvite) {
+          inviteLink = existingInvite.invite_link;
+          console.log('🔍 Found existing demo invite link:', inviteLink);
+        }
+      }
+    } catch (error) {
+      console.log('🔍 Could not check existing demo invites, creating new one:', error);
+    }
+
+    // Если нет существующей ссылки, создаем новую
+    if (!inviteLink) {
+      console.log('🔍 Creating new demo invite link...');
+      const inviteResponse = await fetch(
+        `https://api.telegram.org/bot${botToken}/createChatInviteLink`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: channelId.toString(),
+            name: 'Demo Access Invite',
+            member_limit: 1
+            // Убрали expire_date, чтобы ссылка была постоянной
+          })
+        }
+      );
+
+      const inviteResult = await inviteResponse.json();
+      console.log('🔍 Create demo invite link response:', inviteResult);
+
+      if (inviteResult.ok) {
+        inviteLink = inviteResult.result.invite_link;
+        console.log('🔍 Created new demo invite link:', inviteLink);
+      } else {
+        throw new Error(`Failed to create demo invite link: ${inviteResult.description}`);
+      }
+    }
+
+    if (inviteLink) {
+      // Отправляем пользователю сообщение со ссылкой-приглашением
+      const messageResponse = await fetch(
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: userTelegramId.toString(),
+            text: `🎉 *Вам выдан демо-доступ!*\n\n📦 *Продукт:* ${productName}\n📅 *Ваш демо-период начался!*\n\n🔗 *Ссылка для входа в канал:*\n${inviteLink}\n\nНажмите на ссылку выше, чтобы присоединиться к каналу.\n\n✅ *Внимание:* Ссылка постоянная и действительна всегда!`,
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true,
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🚀 Открыть канал',
+                    url: inviteLink
+                  }
+                ],
+                [
+                  {
+                    text: '📱 Открыть Mini App',
+                    web_app: {
+                      url: `${process.env.APP_URL?.trim().replace(/[
+	]/g, '')}/app`
+                    }
+                  }
+                ]
+              ]
+            }
+          })
+        }
+      );
+
+      const messageResult = await messageResponse.json();
+      if (messageResult.ok) {
+        console.log(`✅ Sent demo access message to user ${userTelegramId}`);
+      } else {
+        console.error(`❌ Error sending message: ${messageResult.description}`);
+      }
+
+    } else {
+      console.error(`❌ No invite link available for demo access`);
+
+      // Если не удалось создать ссылку, отправляем базовое сообщение
+      const fallbackResponse = await fetch(
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: userTelegramId.toString(),
+            text: `🎉 *Вам выдан демо-доступ!*\n\n📦 *Продукт:* ${productName}\n📅 *Ваш демо-период начался!*\n\nℹ️ Для доступа к каналу, пожалуйста, свяжитесь с администратором.`,
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '📱 Открыть Mini App',
+                    web_app: {
+                      url: `${process.env.APP_URL?.trim().replace(/[
+	]/g, '')}/app`
+                    }
+                  }
+                ]
+              ]
+            }
+          })
+        }
+      );
+
+      const fallbackResult = await fallbackResponse.json();
+      if (fallbackResult.ok) {
+        console.log(`✅ Sent fallback message to user ${userTelegramId}`);
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Error adding user to channel:', error);
+    throw error;
   }
 }
