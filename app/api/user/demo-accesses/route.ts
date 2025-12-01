@@ -86,7 +86,11 @@ export async function GET(request: NextRequest) {
         reminderSent: demo.reminderSent,
         daysRemaining: Math.ceil((demo.expiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
         product: demo.product,
-        user: demo.user
+        user: demo.user ? {
+          telegramId: demo.user.telegramId.toString(),
+          firstName: demo.user.firstName,
+          username: demo.user.username
+        } : null
       }))
     })
   } catch (error) {
