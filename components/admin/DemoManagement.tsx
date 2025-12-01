@@ -16,7 +16,7 @@ interface DemoAccess {
     username?: string
   }
   product: {
-    id: string
+    productId: string
     name: string
     price: number
     demoDays: number
@@ -513,7 +513,7 @@ export default function DemoManagement() {
       (access.user.username && access.user.username.toLowerCase().includes(filterUser.toLowerCase()))
 
     // Product filter
-    const productMatch = filterProduct === 'all' || access.product.id === filterProduct
+    const productMatch = filterProduct === 'all' || access.productId === filterProduct
 
     // Status filter
     const isActive = isDemoActive(access)
