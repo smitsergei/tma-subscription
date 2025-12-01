@@ -44,17 +44,10 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
         if (subscriptionsResponse.ok && subscriptionsData.success) {
           setSubscriptions(subscriptionsData.data)
         } else {
-          // Пробуем debug endpoint если основной не сработал
-          console.log('🔄 Trying debug endpoint for subscriptions...')
-          const debugResponse = await fetch('/api/debug/test-subscription')
-          const debugData = await debugResponse.json()
-
-          if (debugData.success) {
-            const activeSubscriptions = debugData.data.filter((sub: any) => sub.status === 'active')
-            setSubscriptions(activeSubscriptions)
-          } else {
-            setError(subscriptionsData.error || 'Ошибка загрузки подписок')
-            return
+          setError(subscriptionsData.error || 'Ошибка загрузки подписок')
+          // Если ошибка авторизации, не прерываем загрузку демо-доступов, но и не показываем ошибку пока
+          if (subscriptionsResponse.status === 401) {
+            console.warn('Unauthorized access to subscriptions')
           }
         }
 
@@ -72,31 +65,10 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
           if (demoResponse.ok && demoData.success) {
             setDemoAccesses(demoData.data)
           } else {
-            // Пробуем debug endpoint если основной не сработал
-            console.log('🔄 Trying debug endpoint for demo accesses...')
-            const debugDemoResponse = await fetch('/api/debug/test-demo')
-            const debugDemoData = await debugDemoResponse.json()
-
-            if (debugDemoResponse.ok && debugDemoData.success) {
-              setDemoAccesses(debugDemoData.data)
-            } else {
-              console.warn('Ошибка загрузки демо-доступов:', demoData.error)
-            }
+            console.warn('Ошибка загрузки демо-доступов:', demoData.error)
           }
         } catch (demoError) {
           console.warn('Ошибка при загрузке демо-доступов:', demoError)
-          // Пробуем debug endpoint при ошибке
-          try {
-            console.log('🔄 Trying debug endpoint for demo accesses after error...')
-            const debugDemoResponse = await fetch('/api/debug/test-demo')
-            const debugDemoData = await debugDemoResponse.json()
-
-            if (debugDemoResponse.ok && debugDemoData.success) {
-              setDemoAccesses(debugDemoData.data)
-            }
-          } catch (debugError) {
-            console.warn('Debug endpoint тоже не сработал:', debugError)
-          }
         }
       } catch (err) {
         console.error('Error fetching data:', err)
