@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { telegramUtils } from '@/components/ui/TelegramMiniAppWrapper'
 import { useNOWPayments } from '@/hooks/useNOWPayments'
 import PaymentTab from '@/components/PaymentTab'
 import CurrencyNetworkModal from '@/components/CurrencyNetworkModal'
@@ -191,13 +192,14 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
   // Функция для обработки запроса демо-доступа
   const handleDemoRequest = async (product: any) => {
     try {
+      telegramUtils.triggerHaptic('impact', 'medium')
       setDemoLoading(product.productId)
       console.log('🚀 Starting demo request for product:', product.productId)
 
       // Получаем Telegram init данные
       const webAppData = parseTelegramInitData()
       if (!webAppData) {
-        alert('❌ Ошибка: не удалось получить данные Telegram')
+        telegramUtils.showToast('❌ Ошибка: не удалось получить данные Telegram')
         return
       }
 
@@ -219,14 +221,8 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
 
       if (response.ok && result.success) {
         // Демо-доступ успешно создан
-        alert(`✅ Демо-доступ успешно оформлен!
-
-📦 ${product.name}
-⏰ Длительность: ${product.demoDays} дней
-📅 Действует до: ${new Date(result.demoAccess.expiresAt).toLocaleDateString('ru-RU')}
-
-🔔 Вам отправлено сообщение в Telegram с ссылкой для вступления в канал.
-Проверьте сообщения от бота и нажмите "🚀 Открыть канал".`)
+        telegramUtils.triggerHaptic('notification', 'success')
+        telegramUtils.showToast(`✅ Демо-доступ успешно оформлен!`, 4000)
 
         // Обновляем список подписок после небольшой задержки
         setTimeout(() => {
@@ -237,34 +233,24 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
 
       } else {
         // Обработка ошибок
+        telegramUtils.triggerHaptic('notification', 'error')
         if (response.status === 400 && result.demoAccess) {
           if (result.demoAccess.wasUsed) {
             // Демо уже был использован ранее
-            alert(`📋 Вы уже использовали демо-доступ для этого продукта!
-
-📦 ${product.name}
-📅 Демо-период был: ${new Date(result.demoAccess.startedAt).toLocaleDateString('ru-RU')} - ${new Date(result.demoAccess.expiresAt).toLocaleDateString('ru-RU')}
-
-🛒 Для получения доступа к контенту оформите полную подписку.
-Кнопка "Демо" больше недоступна для этого продукта.`)
+            telegramUtils.showToast('📋 Демо-доступ уже был использован', 4000)
           } else {
             // Есть активный демо-доступ
-            alert(`📋 У вас есть активный демо-доступ!
-
-📦 ${product.name}
-⏰ Осталось дней: ${result.demoAccess.daysRemaining || Math.ceil((new Date(result.demoAccess.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
-📅 Истекает: ${new Date(result.demoAccess.expiresAt).toLocaleDateString('ru-RU')}
-
-Используйте текущий демо-доступ или оформите полную подписку.`)
+            telegramUtils.showToast('📋 У вас уже есть активный демо-доступ!', 4000)
           }
         } else {
-          alert(`❌ Ошибка при оформлении демо-доступа: ${result.error || 'Неизвестная ошибка'}`)
+          telegramUtils.showToast(`❌ Ошибка: ${result.error || 'Неизвестная ошибка'}`)
         }
       }
 
     } catch (error) {
       console.error('❌ Demo request error:', error)
-      alert(`❌ Ошибка при оформлении демо-доступа: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      telegramUtils.triggerHaptic('notification', 'error')
+      telegramUtils.showToast(`❌ Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     } finally {
       setDemoLoading(null)
     }
@@ -338,13 +324,8 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
       setSelectedProduct(null)
 
       // Показываем информацию об успешном создании платежа
-      alert(`✅ Платеж создан!
-
-📦 ${selectedProduct.name}
-💰 Сумма: ${finalPrice} USD
-💳 Вы будете перенаправлены на страницу оплаты NOWPayments
-
-Следуйте инструкциям на странице оплаты для завершения транзакции.`)
+      telegramUtils.triggerHaptic('notification', 'success')
+      telegramUtils.showToast('✅ Платеж создан! Перенаправляем...', 3000)
 
       // Обновляем список подписок после небольшой задержки
       setTimeout(() => {
@@ -355,7 +336,8 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
 
     } catch (error) {
       console.error('❌ Purchase error:', error)
-      alert(`❌ Ошибка при оформлении подписки: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      telegramUtils.triggerHaptic('notification', 'error')
+      telegramUtils.showToast(`❌ Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     } finally {
       setPurchaseLoading(null)
     }
@@ -487,7 +469,10 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
           <nav className="mt-4">
             <div className="tabs-container">
               <button
-                onClick={() => setActiveTab('products')}
+                onClick={() => {
+                  telegramUtils.triggerHaptic('selection')
+                  setActiveTab('products')
+                }}
                 className={`tab-button ${activeTab === 'products' ? 'active' : ''}`}
               >
                 <span className="flex items-center justify-center space-x-1 sm:space-x-2">
@@ -500,7 +485,10 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                 </span>
               </button>
               <button
-                onClick={() => setActiveTab('subscriptions')}
+                onClick={() => {
+                  telegramUtils.triggerHaptic('selection')
+                  setActiveTab('subscriptions')
+                }}
                 className={`tab-button ${activeTab === 'subscriptions' ? 'active' : ''}`}
               >
                 <span className="flex items-center justify-center space-x-1 sm:space-x-2">
@@ -513,7 +501,10 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                 </span>
               </button>
               <button
-                onClick={() => setActiveTab('payments')}
+                onClick={() => {
+                  telegramUtils.triggerHaptic('selection')
+                  setActiveTab('payments')
+                }}
                 className={`tab-button ${activeTab === 'payments' ? 'active' : ''}`}
               >
                 <span className="flex items-center justify-center space-x-1 sm:space-x-2">
@@ -526,7 +517,10 @@ const [isFirstVisit, setIsFirstVisit] = useState(true)
                 </span>
               </button>
               <button
-                onClick={() => setActiveTab('support')}
+                onClick={() => {
+                  telegramUtils.triggerHaptic('selection')
+                  setActiveTab('support')
+                }}
                 className={`tab-button ${activeTab === 'support' ? 'active' : ''}`}
               >
                 <span className="flex items-center justify-center space-x-1 sm:space-x-2">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { telegramUtils } from '@/components/ui/TelegramMiniAppWrapper'
 import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 import { formatTextWithLineBreaks } from '@/lib/utils'
 
@@ -371,6 +372,8 @@ export default function ProductManagement() {
       if (response.ok) {
         const result = await response.json()
         console.log('✅ Product created successfully:', result)
+        telegramUtils.triggerHaptic('notification', 'success')
+        telegramUtils.showToast('Продукт успешно создан')
         setShowCreateModal(false)
         setNewProduct({
           name: '',
@@ -389,11 +392,13 @@ export default function ProductManagement() {
       } else {
         const error = await response.json()
         console.error('❌ Product creation failed:', error)
-        alert(`Ошибка: ${error.error || 'Failed to create product'}\nДетали: ${error.details || ''}`)
+        telegramUtils.triggerHaptic('notification', 'error')
+        telegramUtils.showToast(`Ошибка: ${error.error || 'Failed to create product'}`)
       }
     } catch (error) {
       console.error('❌ Error creating product:', error)
-      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to create product'}`)
+      telegramUtils.triggerHaptic('notification', 'error')
+      telegramUtils.showToast(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to create product'}`)
     }
   }
 
@@ -426,6 +431,8 @@ export default function ProductManagement() {
       if (response.ok) {
         const result = await response.json()
         console.log('✅ Product updated successfully:', result)
+        telegramUtils.triggerHaptic('notification', 'success')
+        telegramUtils.showToast('Продукт обновлен')
         setShowEditModal(false)
         setSelectedProduct(null)
         setEditProduct({
@@ -445,11 +452,13 @@ export default function ProductManagement() {
       } else {
         const error = await response.json()
         console.error('❌ Product update failed:', error)
-        alert(`Ошибка: ${error.error || 'Failed to update product'}\nДетали: ${error.details || ''}`)
+        telegramUtils.triggerHaptic('notification', 'error')
+        telegramUtils.showToast(`Ошибка: ${error.error || 'Failed to update product'}`)
       }
     } catch (error) {
       console.error('❌ Error updating product:', error)
-      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to update product'}`)
+      telegramUtils.triggerHaptic('notification', 'error')
+      telegramUtils.showToast(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to update product'}`)
     }
   }
 
@@ -465,15 +474,19 @@ export default function ProductManagement() {
 
       if (response.ok) {
         console.log('✅ Product deleted successfully')
+        telegramUtils.triggerHaptic('notification', 'success')
+        telegramUtils.showToast('Продукт удален')
         fetchProducts()
       } else {
         const error = await response.json()
         console.error('❌ Product deletion failed:', error)
-        alert(`Ошибка: ${error.error || 'Failed to delete product'}\nДетали: ${error.details || ''}`)
+        telegramUtils.triggerHaptic('notification', 'error')
+        telegramUtils.showToast(`Ошибка: ${error.error || 'Failed to delete product'}`)
       }
     } catch (error) {
       console.error('❌ Error deleting product:', error)
-      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to delete product'}`)
+      telegramUtils.triggerHaptic('notification', 'error')
+      telegramUtils.showToast(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to delete product'}`)
     }
   }
 
@@ -488,15 +501,18 @@ export default function ProductManagement() {
 
       if (response.ok) {
         console.log('✅ Product status updated successfully')
+        telegramUtils.triggerHaptic('selection')
         fetchProducts()
       } else {
         const error = await response.json()
         console.error('❌ Product status update failed:', error)
-        alert(`Ошибка: ${error.error || 'Failed to update product status'}\nДетали: ${error.details || ''}`)
+        telegramUtils.triggerHaptic('notification', 'error')
+        telegramUtils.showToast(`Ошибка: ${error.error || 'Failed to update product status'}`)
       }
     } catch (error) {
       console.error('❌ Error updating product status:', error)
-      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to update product status'}`)
+      telegramUtils.triggerHaptic('notification', 'error')
+      telegramUtils.showToast(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to update product status'}`)
     }
   }
 

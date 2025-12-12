@@ -161,7 +161,14 @@ export default function CurrencyNetworkModal({
   if (!isOpen) return null
 
   return (
-    <div className="modal-overlay" onClick={onClose} onKeyDown={handleKeyDown}>
+    <div
+      className="modal-overlay"
+      onClick={onClose}
+      onKeyDown={handleKeyDown}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
       <div
         className="modal-content w-full"
         onClick={(e) => e.stopPropagation()}
@@ -176,13 +183,14 @@ export default function CurrencyNetworkModal({
                 </svg>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Выбор оплаты</h2>
+                <h2 id="modal-title" className="text-xl font-bold text-gray-900 dark:text-white">Выбор оплаты</h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Валюта и сеть транзакции</p>
               </div>
             </div>
             <button
               onClick={onClose}
               disabled={loading}
+              aria-label="Закрыть"
               className="touch-target w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-all duration-200 disabled:opacity-50"
             >
               <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -300,6 +308,7 @@ export default function CurrencyNetworkModal({
                     </div>
                     <button
                       onClick={removePromoCode}
+                      aria-label="Удалить промокод"
                       className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 touch-target p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -328,6 +337,7 @@ export default function CurrencyNetworkModal({
                       {promoCode && (
                         <button
                           onClick={() => setPromoCode('')}
+                          aria-label="Очистить"
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

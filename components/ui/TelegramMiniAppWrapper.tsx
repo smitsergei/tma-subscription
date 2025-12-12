@@ -229,5 +229,20 @@ export const telegramUtils = {
       document.body.removeChild(textArea)
       telegramUtils.showToast('Скопировано в буфер обмена')
     }
+  },
+
+  confirm: (message: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.showConfirm) {
+        (window as any).Telegram.WebApp.showConfirm(message, (confirmed: boolean) => {
+          if (confirmed) telegramUtils.triggerHaptic('selection')
+          resolve(confirmed)
+        })
+      } else {
+        const result = window.confirm(message)
+        if (result) telegramUtils.triggerHaptic('selection')
+        resolve(result)
+      }
+    })
   }
 }

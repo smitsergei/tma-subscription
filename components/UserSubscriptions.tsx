@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { telegramUtils } from '@/components/ui/TelegramMiniAppWrapper'
 import { Subscription, DemoAccess } from '@/types'
 import { formatDate, formatTimeLeft, isSubscriptionActive } from '@/lib/utils'
 
@@ -247,14 +248,22 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
 
                 {isActive && subscription.channel && (
                   <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
-                    <a
-                      href={subscription.metadata?.inviteLink || `https://t.me/${subscription.channel.username?.replace('@', '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => {
+                        const url = subscription.metadata?.inviteLink || `https://t.me/${subscription.channel?.username?.replace('@', '')}`
+                        if (url) {
+                          telegramUtils.triggerHaptic('selection')
+                          if (window.Telegram?.WebApp && (window.Telegram.WebApp as any).openTelegramLink) {
+                             (window.Telegram.WebApp as any).openTelegramLink(url)
+                          } else {
+                             window.open(url, '_blank')
+                          }
+                        }
+                      }}
                       className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
                     >
                       🔗 Перейти к каналу
-                    </a>
+                    </button>
                   </div>
                 )}
 
@@ -262,8 +271,8 @@ export function UserSubscriptions({ telegramUser, onSwitchToProducts, onPurchase
                   <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
                     <button
                       onClick={() => {
-                        // Здесь можно добавить логику продления подписки
-                        alert('Функция продления подписки в разработке')
+                        telegramUtils.triggerHaptic('notification', 'warning')
+                        telegramUtils.showToast('Функция продления подписки в разработке')
                       }}
                       className="tg-button text-sm px-4 py-2"
                     >

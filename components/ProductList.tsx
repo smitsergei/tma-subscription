@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { telegramUtils } from '@/components/ui/TelegramMiniAppWrapper'
 import { Product, NOWPayment } from '@/types'
 import { apiRequest, formatPrice, formatTimeLeft } from '@/lib/utils'
 import { useNOWPayments } from '@/hooks/useNOWPayments'
@@ -119,7 +120,7 @@ export function ProductList({ telegramUser }: ProductListProps) {
       console.error('❌ Payment error:', err)
       const errorMessage = err instanceof Error ? err.message : 'Ошибка при оплате'
       setPaymentStatus(`❌ ${errorMessage}`)
-      alert(`❌ Ошибка при оформлении подписки: ${errorMessage}`)
+      telegramUtils.showToast(`❌ Ошибка при оформлении подписки: ${errorMessage}`)
     } finally {
       setPurchasingProduct(null)
       setTimeout(() => {

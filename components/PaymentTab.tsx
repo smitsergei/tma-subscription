@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { telegramUtils } from '@/components/ui/TelegramMiniAppWrapper'
 
 interface Payment {
   paymentId: string
@@ -94,12 +95,8 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
 
   // Функция копирования в буфер обмена
   const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      alert('Скопировано в буфер обмена')
-    } catch (err) {
-      alert('Ошибка копирования')
-    }
+    telegramUtils.triggerHaptic('selection')
+    await telegramUtils.requestClipboard(text)
   }
 
   // Функция форматирования даты
@@ -305,7 +302,10 @@ export default function PaymentTab({ parseTelegramInitData }: PaymentTabProps) {
               {/* Кнопка действий */}
               <div className="flex justify-end mt-3">
                 <button
-                  onClick={() => openPaymentDetails(payment.paymentId)}
+                  onClick={() => {
+                    telegramUtils.triggerHaptic('impact', 'light')
+                    openPaymentDetails(payment.paymentId)
+                  }}
                   className="tg-button-adaptive-sm"
                 >
                   📋 Детали платежа
