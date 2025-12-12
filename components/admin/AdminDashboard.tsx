@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { telegramUtils } from '@/components/ui/TelegramMiniAppWrapper'
 import ProductManagement from './ProductManagement'
 import UserManagement from './UserManagement'
 import SubscriptionManagement from './SubscriptionManagement'
@@ -59,8 +60,12 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold text-gray-900">🛠️ Админ-панель</h1>
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={() => {
+                telegramUtils.triggerHaptic('impact', 'light')
+                setIsMobileMenuOpen(!isMobileMenuOpen)
+              }}
               className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+              aria-label={isMobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -77,6 +82,7 @@ export default function AdminDashboard() {
                 <button
                   key={tab.id}
                   onClick={() => {
+                    telegramUtils.triggerHaptic('selection')
                     setActiveTab(tab.id)
                     setIsMobileMenuOpen(false)
                   }}
@@ -120,7 +126,10 @@ export default function AdminDashboard() {
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      telegramUtils.triggerHaptic('selection')
+                      setActiveTab(tab.id)
+                    }}
                     className={`${
                       activeTab === tab.id
                         ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-l-4 border-blue-500'
@@ -188,7 +197,10 @@ export default function AdminDashboard() {
               {tabs.slice(0, 5).map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    telegramUtils.triggerHaptic('selection')
+                    setActiveTab(tab.id)
+                  }}
                   className={`${
                     activeTab === tab.id
                       ? 'text-blue-600 bg-blue-50'

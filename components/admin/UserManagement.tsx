@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { telegramUtils } from '@/components/ui/TelegramMiniAppWrapper'
 import { createAuthenticatedRequest } from '@/utils/telegramAuth'
 
 interface User {
@@ -273,21 +274,26 @@ export default function UserManagement() {
       }))
 
       if (response.ok) {
+        telegramUtils.triggerHaptic('notification', 'success')
+        telegramUtils.showToast('Пользователь создан')
         setShowCreateModal(false)
         setNewUser({ telegramId: '', firstName: '', username: '' })
         fetchUsers()
       } else {
         const error = await response.json()
-        alert(`Ошибка: ${error.error || 'Failed to create user'}\nДетали: ${error.details || ''}`)
+        telegramUtils.triggerHaptic('notification', 'error')
+        telegramUtils.showToast(`Ошибка: ${error.error || 'Failed to create user'}`)
       }
     } catch (error) {
       console.error('Error creating user:', error)
-      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to create user'}`)
+      telegramUtils.triggerHaptic('notification', 'error')
+      telegramUtils.showToast(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to create user'}`)
     }
   }
 
   const deleteUser = async (telegramId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить этого пользователя? Это также удалит все связанные подписки.')) return
+    const confirmed = await telegramUtils.confirm('Вы уверены, что хотите удалить этого пользователя? Это также удалит все связанные подписки.')
+    if (!confirmed) return
 
     try {
       const response = await fetch(`/api/admin/users?telegramId=${telegramId}`, createAuthenticatedRequest({
@@ -295,21 +301,26 @@ export default function UserManagement() {
       }))
 
       if (response.ok) {
+        telegramUtils.triggerHaptic('notification', 'success')
+        telegramUtils.showToast('Пользователь удален')
         fetchUsers()
       } else {
         const error = await response.json()
-        alert(`Ошибка: ${error.error || 'Failed to delete user'}\nДетали: ${error.details || ''}`)
+        telegramUtils.triggerHaptic('notification', 'error')
+        telegramUtils.showToast(`Ошибка: ${error.error || 'Failed to delete user'}`)
       }
     } catch (error) {
       console.error('Error deleting user:', error)
-      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to delete user'}`)
+      telegramUtils.triggerHaptic('notification', 'error')
+      telegramUtils.showToast(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to delete user'}`)
     }
   }
 
   const toggleAdmin = async (telegramId: string, currentIsAdmin: boolean) => {
     const action = currentIsAdmin ? 'отнять права администратора' : 'сделать администратором'
 
-    if (!confirm(`Вы уверены, что хотите ${action} у этого пользователя?`)) return
+    const confirmed = await telegramUtils.confirm(`Вы уверены, что хотите ${action} у этого пользователя?`)
+    if (!confirmed) return
 
     try {
       const response = await fetch('/api/admin/users', createAuthenticatedRequest({
@@ -322,14 +333,17 @@ export default function UserManagement() {
 
       if (response.ok) {
         fetchUsers()
-        alert(`Права администратора успешно ${currentIsAdmin ? 'отняты' : 'предоставлены'}`)
+        telegramUtils.triggerHaptic('notification', 'success')
+        telegramUtils.showToast(`Права администратора успешно ${currentIsAdmin ? 'отняты' : 'предоставлены'}`)
       } else {
         const error = await response.json()
-        alert(`Ошибка: ${error.error || 'Failed to update admin status'}\nДетали: ${error.details || ''}`)
+        telegramUtils.triggerHaptic('notification', 'error')
+        telegramUtils.showToast(`Ошибка: ${error.error || 'Failed to update admin status'}`)
       }
     } catch (error) {
       console.error('Error updating admin status:', error)
-      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to update admin status'}`)
+      telegramUtils.triggerHaptic('notification', 'error')
+      telegramUtils.showToast(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to update admin status'}`)
     }
   }
 
@@ -354,14 +368,17 @@ export default function UserManagement() {
 
       if (response.ok) {
         fetchUsers()
-        alert('Подписка успешно создана')
+        telegramUtils.triggerHaptic('notification', 'success')
+        telegramUtils.showToast('Подписка успешно создана')
       } else {
         const error = await response.json()
-        alert(`Ошибка: ${error.error || 'Failed to create subscription'}\nДетали: ${error.details || ''}`)
+        telegramUtils.triggerHaptic('notification', 'error')
+        telegramUtils.showToast(`Ошибка: ${error.error || 'Failed to create subscription'}`)
       }
     } catch (error) {
       console.error('Error creating subscription:', error)
-      alert(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to create subscription'}`)
+      telegramUtils.triggerHaptic('notification', 'error')
+      telegramUtils.showToast(`Ошибка сети: ${error instanceof Error ? error.message : 'Failed to create subscription'}`)
     }
   }
 
