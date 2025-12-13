@@ -92,6 +92,7 @@ model Payment {
   user             User           @relation(fields: [userId], references: [telegramId])
   subscriptions    Subscription[]
 
+  @@index([userId])
   @@map("payments")
 }
 
@@ -113,6 +114,8 @@ model Subscription {
   user           User     @relation(fields: [userId], references: [telegramId])
 
   @@index([status, expiresAt])
+  @@index([userId])
+  @@index([productId])
   @@map("subscriptions")
 }
 
@@ -174,16 +177,17 @@ model PromoUsage {
 }
 
 model DemoAccess {
-  id            String    @id @default(cuid())
-  userId        BigInt    @map("user_id")
-  productId     String    @map("product_id")
-  startedAt     DateTime  @default(now()) @map("started_at")
-  expiresAt     DateTime  @map("expires_at")
-  isActive      Boolean   @default(true) @map("is_active")
-  reminderSent  Boolean   @default(false) @map("reminder_sent")
-  product       Product   @relation(fields: [productId], references: [productId])
-  user          User      @relation(fields: [userId], references: [telegramId])
+  id           String   @id @default(cuid())
+  userId       BigInt   @map("user_id")
+  productId    String   @map("product_id")
+  startedAt    DateTime @default(now()) @map("started_at")
+  expiresAt    DateTime @map("expires_at")
+  isActive     Boolean  @default(true) @map("is_active")
+  reminderSent Boolean  @default(false) @map("reminder_sent")
+  product      Product  @relation(fields: [productId], references: [productId])
+  user         User     @relation(fields: [userId], references: [telegramId])
 
+  @@index([userId])
   @@map("demo_access")
 }
 
@@ -220,6 +224,7 @@ model BroadcastMessage {
   broadcast         Broadcast     @relation(fields: [broadcastId], references: [broadcastId], onDelete: Cascade)
   user              User          @relation(fields: [userId], references: [telegramId])
 
+  @@index([broadcastId])
   @@map("broadcast_messages")
 }
 
