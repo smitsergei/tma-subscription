@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { verifyNOWPaymentsIPN } from '@/lib/utils'
+import { verifyNOWPaymentsIPN } from '@/lib/server-utils'
 import { syncChannelAccess } from '@/lib/botSync'
 import { notifyAdminsAboutNewSubscription } from '@/lib/adminNotifications'
 
@@ -76,10 +76,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Временно отключаем проверку подписи для тестирования
-    // TODO: Включить проверку подписи в production
-    console.log('⚠️ Signature verification disabled for testing')
-    const isValidSignature = true // await verifyNOWPaymentsIPN(body, signature, ipnSecret)
+    const isValidSignature = await verifyNOWPaymentsIPN(body, signature, ipnSecret)
 
     if (!isValidSignature) {
       console.error('❌ Invalid NOWPayments signature')

@@ -227,33 +227,6 @@ export async function apiRequest<T>(
   }
 }
 
-// Проверка подписи NOWPayments IPN
-export async function verifyNOWPaymentsIPN(
-  ipnData: any,
-  signature: string,
-  ipnSecret: string
-): Promise<boolean> {
-  try {
-    // Создаем строку для HMAC
-    const sortedKeys = Object.keys(ipnData).sort()
-    const message = sortedKeys
-      .map(key => `${key}:${ipnData[key]}`)
-      .join(';')
-
-    // Для проверки подписи в Node.js используем crypto
-    const crypto = require('crypto')
-    const hmac = crypto
-      .createHmac('sha512', ipnSecret)
-      .update(message)
-      .digest('hex')
-
-    return hmac === signature.toLowerCase()
-  } catch (error) {
-    console.error('Error verifying NOWPayments IPN signature:', error)
-    return false
-  }
-}
-
 // Получение поддерживаемых криптовалют NOWPayments
 export async function getNOWPaymentsSupportedCurrencies(): Promise<string[]> {
   try {
